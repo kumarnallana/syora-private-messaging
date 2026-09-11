@@ -1,0 +1,24 @@
+'use client';
+import { useRouter } from 'next/navigation';
+import { Bell, Eye, Lock, LogOut, Moon, Shield, Sun, UserX, Volume2 } from 'lucide-react';
+import { useState } from 'react';
+import { useApp } from '@/stores/use-app';
+import { Avatar, Modal } from '@/components/shared/ui';
+import { PageHeader, PreviewNote } from '@/components/shell';
+
+export function Settings(){
+ const {me,users,services,preferences}=useApp(); const router=useRouter(); const [logout,setLogout]=useState(false);
+ const update=(key:keyof typeof preferences,value:unknown)=>services.updatePreferences({[key]:value});
+ return <div className="page-view settings-page"><PageHeader eyebrow="YOUR SPACE" title="Settings" description="Tune privacy, notifications, and appearance for this preview."/>
+  <SettingsSection icon={<Shield/>} title="Account"><div className="account-summary"><Avatar user={me!}/><span><strong>{me!.name}</strong><small>{me!.email}</small></span><button className="button secondary small" onClick={()=>router.push('/profile')}>Edit profile</button></div></SettingsSection>
+  <SettingsSection icon={<Lock/>} title="Privacy"><Choice label="Last seen" value={preferences.lastSeen} options={['Everyone','Friends','Nobody']} onChange={v=>update('lastSeen',v)}/><Choice label="Profile photo" value={preferences.photo} options={['Everyone','Friends','Nobody']} onChange={v=>update('photo',v)}/><Choice label="Status visibility" value={preferences.status} options={['Friends','Selected friends','Nobody']} onChange={v=>update('status',v)}/><Toggle label="Read receipts" description="Let friends know when you have read a message." value={preferences.receipts} onChange={v=>update('receipts',v)}/></SettingsSection>
+  <SettingsSection icon={<Bell/>} title="Notifications"><Toggle label="Message notifications" description="Show alerts for new messages in this preview." value={preferences.notifications} onChange={v=>update('notifications',v)}/><Toggle label="Conversation sounds" description="Play a sound for message activity." value={preferences.sound} onChange={v=>update('sound',v)}/></SettingsSection>
+  <SettingsSection icon={<Moon/>} title="Appearance"><div className="theme-options" role="radiogroup" aria-label="Appearance"><button role="radio" aria-checked={preferences.appearance==='dark'} className={preferences.appearance==='dark'?'active':''} onClick={()=>update('appearance','dark')}><Moon size={18}/> Dark</button><button role="radio" aria-checked={preferences.appearance==='light'} className={preferences.appearance==='light'?'active':''} onClick={()=>update('appearance','light')}><Sun size={18}/> Light</button></div><Toggle label="Compact conversations" description="Reduce spacing in conversation lists and messages." value={preferences.compact} onChange={v=>update('compact',v)}/></SettingsSection>
+  <SettingsSection icon={<UserX/>} title={`Blocked users (${preferences.blocked.length})`}>{preferences.blocked.length?preferences.blocked.map(id=>{const user=users.find(u=>u.id===id);return user&&<div className="blocked-row" key={id}><Avatar user={user} size="small"/><span>{user.name}</span><button className="button secondary small" onClick={()=>services.block(id)}>Unblock</button></div>}):<p className="muted-copy">You have not blocked anyone.</p>}</SettingsSection>
+  <button className="button danger logout-setting" onClick={()=>setLogout(true)}><LogOut size={18}/> Log out</button><PreviewNote/>
+  {logout&&<Modal title="Log out of SYORA?" onClose={()=>setLogout(false)}><p className="modal-copy">Your frontend preview data resets when this browser session refreshes.</p><div className="modal-actions"><button className="button secondary" onClick={()=>setLogout(false)}>Cancel</button><button className="button danger" onClick={()=>{services.logout();router.push('/login')}}>Log out</button></div></Modal>}
+ </div>;
+}
+function SettingsSection({icon,title,children}:{icon:React.ReactNode;title:string;children:React.ReactNode}){return <section className="settings-section"><header>{icon}<h2>{title}</h2></header><div>{children}</div></section>}
+function Toggle({label,description,value,onChange}:{label:string;description:string;value:boolean;onChange:(value:boolean)=>void}){return <div className="setting-row"><span><strong>{label}</strong><small>{description}</small></span><button className={`switch ${value?'on':''}`} role="switch" aria-checked={value} aria-label={label} onClick={()=>onChange(!value)}><span/></button></div>}
+function Choice({label,value,options,onChange}:{label:string;value:string;options:string[];onChange:(value:string)=>void}){return <label className="setting-row"><span><strong>{label}</strong></span><select value={value} onChange={e=>onChange(e.target.value)} aria-label={label}>{options.map(option=><option key={option}>{option}</option>)}</select></label>}

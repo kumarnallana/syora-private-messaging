@@ -1,12 +1,89 @@
 'use client';
-import { useState,useEffect,useRef } from 'react';
-import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Search, SquarePen, Pin, BellOff, ArrowLeft, MoreHorizontal, X, MessageCircle, Shield, ArrowRight, UserRound, Ban } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Search, X } from 'lucide-react';
 import { useApp } from '@/stores/use-app';
-import { Avatar,Brand,IconButton,Empty,time,Modal } from '@/components/shared/ui';
+import { Avatar, Brand, Empty, IconButton, time } from '@/components/shared/ui';
 import { PreviewNote } from '@/components/shell';
 import { MessageBubble } from './message-bubble';
 import { Composer } from './composer';
-import type { Message } from '@/types';
-export function Chats(){const {me,users,conversations,messages,services,preferences}=useApp();const params=useSearchParams();const [selected,setSelected]=useState<string|null>(params.get('conversation'));const [query,setQuery]=useState('');const [filter,setFilter]=useState('All');const [searchOpen,setSearchOpen]=useState(false);const [messageQuery,setMessageQuery]=useState('');const [info,setInfo]=useState(false);const [reply,setReply]=useState<Message>();const [notice,setNotice]=useState('');const timeline=useRef<HTMLDivElement>(null);const mine=conversations.filter(c=>c.participants.includes(me!.id));const active=mine.find(c=>c.id===selected);const friend=users.find(u=>active?.participants.includes(u.id)&&u.id!==me?.id);const activeMessages=messages.filter(m=>m.conversationId===selected);const visible=activeMessages.filter(m=>!messageQuery||m.text.toLowerCase().includes(messageQuery.toLowerCase())||m.attachment?.name.toLowerCase().includes(messageQuery.toLowerCase()));useEffect(()=>{if(params.get('conversation'))setSelected(params.get('conversation'))},[params]);useEffect(()=>{if(selected&&mine.some(c=>c.id===selected))services.markRead(selected);setReply(undefined);setMessageQuery('');setSearchOpen(false)},[selected,services]);useEffect(()=>{timeline.current?.scrollTo({top:timeline.current.scrollHeight})},[selected,activeMessages.length]);const choose=(id:string)=>{setSelected(id);setInfo(false)};return <div className={`chat-layout ${active?'has-conversation':''}`}><section className="conversation-panel" aria-label="Conversations"><header className="list-header"><Brand/><div className="list-title"><h1>Messages<span>{mine.length}</span></h1><Link className="icon-button" href="/contacts" title="New conversation" aria-label="New conversation"><SquarePen size={20}/></Link></div><label className="search-field"><Search size={18}/><input aria-label="Search conversations" placeholder="Search your conversations" value={query} onChange={e=>setQuery(e.target.value)}/>{query&&<IconButton label="Clear search" onClick={()=>setQuery('')}><X size={15}/></IconButton>}</label><div className="filter-tabs" aria-label="Filter conversations">{['All','Unread','Pinned'].map(t=><button key={t} aria-pressed={filter===t} className={filter===t?'active':''} onClick={()=>setFilter(t)}>{t}{t==='Unread'&&mine.some(c=>c.unread>0)&&<span>{mine.filter(c=>c.unread>0).length}</span>}</button>)}</div></header><div className="conversation-rows">{mine.filter(c=>{const u=users.find(u=>c.participants.includes(u.id)&&u.id!==me!.id);return u?.name.toLowerCase().includes(query.toLowerCase())&&(filter!=='Unread'||c.unread>0)&&(filter!=='Pinned'||c.pinned)}).sort((a,b)=>Number(b.pinned)-Number(a.pinned)).map(c=>{const user=users.find(u=>c.participants.includes(u.id)&&u.id!==me!.id)!;const last=messages.filter(m=>m.conversationId===c.id).at(-1);return <button key={c.id} className={`conversation-row ${selected===c.id?'selected':''}`} onClick={()=>choose(c.id)} aria-label={`Open conversation with ${user.name}`} aria-current={selected===c.id?'true':undefined}><Avatar user={user}/><span className="conversation-copy"><span className="conversation-top"><strong>{user.name}</strong><time>{last?time(last.createdAt):'New'}</time></span><span className="conversation-bottom"><span className={c.typing?'typing-text':''}>{c.typing?'typing…':last?.deleted?'Message deleted':last?(last.senderId===me!.id?'You: ':'')+(last.text||last.attachment?.name||'Attachment'):'Say hello'}</span><span className="row-indicators">{c.muted&&<BellOff size={13}/>} {c.unread>0?<b className="unread-badge">{c.unread}</b>:c.pinned?<Pin size={13}/>:null}</span></span></span></button>})}{!mine.some(c=>{const user=users.find(u=>c.participants.includes(u.id)&&u.id!==me!.id);return user?.name.toLowerCase().includes(query.toLowerCase())&&(filter!=='Unread'||c.unread>0)&&(filter!=='Pinned'||c.pinned)})&&<Empty title={query?'No conversations found':filter==='Unread'?'All caught up':filter==='Pinned'?'Keep your people close':'Your story starts here'} description={query?'Try another name.':filter==='Unread'?'You’ve read all your messages.':filter==='Pinned'?'Pin a conversation from its details.':'Find a friend to start a conversation.'}>{filter==='All'&&!query&&<Link href="/contacts" className="button secondary">Find your people</Link>}</Empty>}</div><div className="list-footer"><PreviewNote/><span>Your people. Your own space.</span></div></section>{active&&friend?<section className="chat-panel" aria-label={`Conversation with ${friend.name}`}><header className="chat-header"><IconButton label="Back to conversations" className="mobile-back" onClick={()=>setSelected(null)}><ArrowLeft size={21}/></IconButton><button className="chat-person" onClick={()=>setInfo(true)}><Avatar user={friend} size="small"/><span><strong>{friend.name}</strong><small className={friend.online?'online-label':''}>{friend.online?'Online':`Last seen ${friend.lastSeen||'recently'}`}</small></span></button><div className="header-actions"><IconButton label="Search messages" onClick={()=>setSearchOpen(!searchOpen)}><Search size={20}/></IconButton><span className="header-divider"/><IconButton label="Conversation options" onClick={()=>setInfo(true)}><MoreHorizontal size={22}/></IconButton></div></header>{searchOpen&&<div className="message-search"><label className="search-field"><Search size={17}/><input autoFocus aria-label="Search messages in conversation" placeholder="Find something in this conversation" value={messageQuery} onChange={e=>setMessageQuery(e.target.value)}/></label><span>{visible.length} results</span><IconButton label="Close message search" onClick={()=>{setSearchOpen(false);setMessageQuery('')}}><X size={18}/></IconButton></div>}<div className="timeline" ref={timeline}><div className="conversation-intro"><span className="intro-line"/><span><MessageCircle size={13}/> Just you and {friend.name.split(' ')[0]}</span><span className="intro-line"/></div>{visible.map((message,i)=>{const prev=visible[i-1];const day=new Date(message.createdAt).toDateString();return <div key={message.id}>{(!prev||new Date(prev.createdAt).toDateString()!==day)&&<div className="date-separator">{day===new Date().toDateString()?'Today':new Date(message.createdAt).toLocaleDateString([],{month:'short',day:'numeric'})}</div>}<MessageBubble message={message} original={activeMessages.find(m=>m.id===message.replyTo)} onReply={()=>setReply(message)}/></div>})}{!visible.length&&<Empty title={messageQuery?'No messages found':'A simple hello goes a long way.'} description={messageQuery?'Try a different word or file name.':`Start your conversation with ${friend.name.split(' ')[0]}.`}/>} {active.typing&&<div className="typing-indicator"><span>•••</span> {friend.name.split(' ')[0]} is typing <small>· demo</small></div>}</div>{notice&&<p role="alert" className="inline-error">{notice}</p>}<Composer key={selected} conversationId={active.id} reply={reply} clearReply={()=>setReply(undefined)} blocked={preferences.blocked.includes(friend.id)} onError={setNotice}/></section>:<section className="chat-panel welcome-panel"><div className="welcome-brand"><span className="brand-symbol">s</span></div><span className="eyebrow">YOUR INNER CIRCLE, A LITTLE CLOSER</span><h1>Good conversations<br/>start <em>here.</em></h1><p>Pick a conversation and make someone’s day.<br/>A small hello can mean a lot.</p>{mine[0]&&<button className="button primary" onClick={()=>choose(mine[0].id)}>Pick up a conversation <ArrowRight size={17}/></button>}<div className="welcome-foot"><Shield size={16}/> Private conversations. Real connection.<small>Phase 1 preview · Privacy enforcement comes in Phase 2.</small></div></section>}{info&&friend&&active&&<Modal title="Conversation details" onClose={()=>setInfo(false)}><div className="person-detail"><Avatar user={friend} size="large"/><h2>{friend.name}</h2><p>{friend.about}</p><small>{friend.email}</small></div><div className="detail-actions"><button onClick={()=>services.toggleConversation(active.id,'pinned')}><Pin size={19}/>{active.pinned?'Unpin conversation':'Pin conversation'}</button><button onClick={()=>services.toggleConversation(active.id,'muted')}><BellOff size={19}/>{active.muted?'Unmute notifications':'Mute notifications'}</button><button onClick={()=>services.block(friend.id)}><Ban size={19}/>{preferences.blocked.includes(friend.id)?'Unblock contact':'Block contact'}</button></div><p className="demo-disclosure">These controls affect this preview only.</p></Modal>}</div>}
+
+export function Chats() {
+ const { me, users, conversations, messages, services, preferences } = useApp();
+ const params = useSearchParams();
+ const [selected, setSelected] = useState<string | null>(params.get('conversation'));
+ const [query,setQuery]=useState('');
+ const [messageQuery,setMessageQuery]=useState('');
+ const [searchOpen,setSearchOpen]=useState(false);
+ const [reply,setReply]=useState<import('@/types').Message>();
+ const timeline = useRef<HTMLDivElement>(null);
+ const heading = useRef<HTMLHeadingElement>(null);
+ const rowRefs = useRef(new Map<string, HTMLButtonElement>());
+ const nearBottom = useRef(true);
+ const active = conversations.find(c => c.id === selected && c.participants.includes(me!.id));
+ const friend = users.find(u => active?.participants.includes(u.id) && u.id !== me?.id);
+ const activeMessages = messages.filter(m => m.conversationId === active?.id);
+ const visibleMessages=activeMessages.filter(m=>!messageQuery||m.text.toLowerCase().includes(messageQuery.toLowerCase())||m.attachment?.name.toLowerCase().includes(messageQuery.toLowerCase()));
+ const ordered = [...conversations].sort((a, b) => {
+  const latest = (id: string) => messages.filter(m => m.conversationId === id).at(-1)?.createdAt || '';
+  return latest(b.id).localeCompare(latest(a.id));
+ });
+ useEffect(() => { setSelected(params.get('conversation')); }, [params]);
+ useEffect(() => {
+  if (!active) return;
+  services.markRead(active.id);
+  setReply(undefined);setMessageQuery('');setSearchOpen(false);
+  nearBottom.current = true;
+  heading.current?.focus({ preventScroll: true });
+ }, [active?.id, me?.id, services]);
+ useEffect(() => {
+  const last = activeMessages.at(-1);
+  if (nearBottom.current || last?.senderId === me?.id) timeline.current?.scrollTo({ top: timeline.current.scrollHeight });
+ }, [active?.id, activeMessages.length, me?.id]);
+ function back() {
+  const id = selected;
+  setSelected(null);
+  requestAnimationFrame(() => { if (id) rowRefs.current.get(id)?.focus(); });
+ }
+ return <div className={`chat-layout ${active && friend ? 'has-conversation' : ''}`}>
+  <section className="conversation-panel" aria-label="Conversations">
+   <header className="list-header"><Brand/><h1>Messages <span className="count">{conversations.length}</span></h1><label className="search-field"><Search size={18}/><input aria-label="Search conversations" placeholder="Search conversations" value={query} onChange={e=>setQuery(e.target.value)}/>{query&&<IconButton label="Clear search" onClick={()=>setQuery('')}><X size={15}/></IconButton>}</label></header>
+   <div className="conversation-rows">
+    {ordered.map(conversation => {
+     const person = users.find(u => conversation.participants.includes(u.id) && u.id !== me!.id);
+     if (!person||!person.name.toLowerCase().includes(query.toLowerCase())) return null;
+     const last = messages.filter(m => m.conversationId === conversation.id).at(-1);
+     return <button key={conversation.id} ref={node => { if (node) rowRefs.current.set(conversation.id, node); else rowRefs.current.delete(conversation.id); }}
+      className={`conversation-row ${active?.id === conversation.id ? 'selected' : ''}`}
+      aria-label={`Open conversation with ${person.name}${conversation.unread ? `, ${conversation.unread} unread` : ''}`}
+      aria-current={active?.id === conversation.id ? 'true' : undefined} onClick={() => setSelected(conversation.id)}>
+      <Avatar user={person}/><span className="conversation-copy">
+       <span className="conversation-top"><strong>{person.name}</strong>{last && <time dateTime={last.createdAt}>{time(last.createdAt)}</time>}</span>
+       <span className="conversation-bottom"><span>{last ? `${last.senderId === me!.id ? 'You: ' : ''}${last.deleted?'Message deleted':last.text||last.attachment?.name||'Attachment'}` : 'No messages yet'}</span>
+        {conversation.unread > 0 && <span className="unread-badge">{conversation.unread}</span>}</span>
+      </span>
+     </button>;
+    })}
+    {!conversations.length?<Empty title="Your inbox is quiet" description="There are no conversations for this profile yet."/>:!ordered.some(c=>users.find(u=>c.participants.includes(u.id)&&u.id!==me!.id)?.name.toLowerCase().includes(query.toLowerCase()))&&<Empty title="No conversations found" description="Try another name."/>}
+   </div><footer className="list-footer"><PreviewNote/></footer>
+  </section>
+  {active && friend ? <section className="chat-panel" aria-label={`Conversation with ${friend.name}`}>
+   <header className="chat-header"><IconButton label="Back to conversations" className="mobile-back" onClick={back}><ArrowLeft size={21}/></IconButton>
+    <Avatar user={friend} size="small"/><div className="chat-person"><h2 ref={heading} tabIndex={-1}>{friend.name}</h2><p>{friend.online ? 'Online · demo' : `Last seen ${friend.lastSeen || 'recently'} · demo`}</p></div><IconButton label="Search messages" onClick={()=>setSearchOpen(v=>!v)}><Search size={20}/></IconButton>
+   </header>
+   {searchOpen&&<div className="message-search"><label className="search-field"><Search size={17}/><input autoFocus aria-label="Search messages" placeholder="Search this conversation" value={messageQuery} onChange={e=>setMessageQuery(e.target.value)}/></label><span>{visibleMessages.length} results</span><IconButton label="Close message search" onClick={()=>{setSearchOpen(false);setMessageQuery('')}}><X size={18}/></IconButton></div>}
+   <div className="timeline" ref={timeline} role="log" aria-label="Messages" aria-live="polite" aria-relevant="additions text" onScroll={e => { const el = e.currentTarget; nearBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}>
+    {visibleMessages.map((message, index) => {
+     const day = new Date(message.createdAt).toDateString();
+     const previous = visibleMessages[index - 1];
+     return <div key={message.id}>
+      {(!previous || new Date(previous.createdAt).toDateString() !== day) && <div className="date-separator">{day === new Date().toDateString() ? 'Today' : new Date(message.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}</div>}
+      <MessageBubble message={message} mine={message.senderId === me!.id} original={activeMessages.find(m=>m.id===message.replyTo)} onReply={()=>setReply(message)}/>
+     </div>;
+    })}
+    {!visibleMessages.length && <Empty title={messageQuery?'No messages found':'Start with a hello'} description={messageQuery?'Try another word or file name.':`Send the first message to ${friend.name.split(' ')[0]}.`}/>}
+   </div>
+   <Composer key={`${me!.id}:${active.id}`} conversationId={active.id} blocked={preferences.blocked.includes(friend.id)} reply={reply} clearReply={()=>setReply(undefined)}/>
+  </section> : <section className="chat-panel welcome-panel"><MessageCircle size={40}/><h2>{conversations.length ? 'A space for your conversations' : 'No conversations yet'}</h2><p>{conversations.length ? 'Choose someone from your messages to catch up.' : 'Your conversations will appear here.'}</p></section>}
+ </div>;
+}

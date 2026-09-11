@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useRef, type ReactNode } from 'react';
-import { X, Sparkles, LoaderCircle } from 'lucide-react';
+import { X, Sparkles, LoaderCircle, Heart } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import type { User, Attachment } from '@/types';
-export function Brand(){return <span className="brand"><span className="brand-symbol">s</span><span>SYORA<span className="brand-dot">.</span></span></span>}
+export function LogoMark(){return <span className="brand-symbol" aria-hidden="true"><Heart size={21} strokeWidth={2.25} fill="currentColor"/></span>}
+export function Brand(){return <span className="brand"><LogoMark/><span>SYORA<span className="brand-dot">.</span></span></span>}
 export function Avatar({user,size='normal'}:{user:User;size?:'small'|'normal'|'large'}){return <span className={`avatar ${user.color} ${size}`}>{user.avatar?<img src={user.avatar} alt={user.name}/>:user.name.split(' ').map(n=>n[0]).slice(0,2).join('')}{user.online&&<span className="presence-dot"/>}</span>}
 export function IconButton({label,children,onClick,className='',disabled=false}:{label:string;children:ReactNode;onClick?:()=>void;className?:string;disabled?:boolean}){return <button type="button" className={`icon-button ${className}`} title={label} aria-label={label} onClick={onClick} disabled={disabled}>{children}</button>}
 export function Modal({title,children,onClose,wide=false}:{title:string;children:ReactNode;onClose:()=>void;wide?:boolean}){const ref=useRef<HTMLDialogElement>(null);const reduced=useReducedMotion();useEffect(()=>{const active=document.activeElement as HTMLElement;ref.current?.showModal();return()=>active?.focus()},[]);return <dialog ref={ref} className={`modal ${wide?'wide':''}`} onCancel={onClose} onClick={e=>{if(e.target===e.currentTarget){const r=e.currentTarget.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)onClose()}}} aria-label={title}><motion.div initial={reduced?false:{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{duration:.16}}><header className="modal-header"><h2>{title}</h2><IconButton label="Close dialog" onClick={onClose}><X size={20}/></IconButton></header>{children}</motion.div></dialog>}
