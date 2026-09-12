@@ -1,6 +1,6 @@
 @layer components {
   .chat-panel {
-    @apply flex min-w-0 flex-1 flex-col bg-bg;
+    @apply flex min-w-0 flex-1 flex-col bg-background;
   }
   .chat-header {
     @apply flex h-[80px] shrink-0 items-center gap-[13px] border-b border-border bg-panel p-[15px_28px];
