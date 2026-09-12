@@ -14,7 +14,7 @@ export function createSeed(): AppState {
  const now = Date.now();
  const stamp = (minutes: number) => new Date(now - minutes * 60000).toISOString();
  const message = (id:string,conversationId:string,senderId:string,text:string,minutes:number,extra:Partial<Message>={}):Message => ({id,conversationId,senderId,text,createdAt:stamp(minutes),receipt:'read',...extra});
- return { currentUserId:null,users:structuredClone(people),
+ return { sessionReady:true,currentUserId:null,users:structuredClone(people),
  conversations: ['maya','leo','aisha','noah','sophie','ethan'].map((id,i)=>({id:'chat-'+id,participants:['demo',id],unread:i===0?2:i===2?1:0,pinned:i<2,muted:i===4,typing:i===2})),
  messages:[
  message('m1','chat-maya','maya','Hey! Have you decided where we should go this weekend?',70),

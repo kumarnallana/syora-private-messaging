@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Ban, Check, MessageCircle, Search, UserMinus, UserPlus, X } from 'lucide-react';
 import { useApp } from '@/stores/use-app';
@@ -13,7 +13,8 @@ export function Contacts(){
  const relationship=(id:string)=>friendships.find(f=>[f.from,f.to].includes(me!.id)&&[f.from,f.to].includes(id));
  const incoming=friendships.filter(f=>f.to===me!.id&&f.status==='pending');
  const results=users.filter(u=>u.id!==me!.id&&u.name.toLowerCase().includes(query.toLowerCase()));
- function open(id:string){try{router.push(`/chats?conversation=${services.openConversation(id)}`)}catch(e){setError((e as Error).message)}}
+ useEffect(()=>{if(query.trim().length<2)return;const timer=setTimeout(()=>{void services.searchUsers(query).catch(e=>setError((e as Error).message))},250);return()=>clearTimeout(timer)},[query,services]);
+ async function open(id:string){try{router.push(`/chats?conversation=${await services.openConversation(id)}`)}catch(e){setError((e as Error).message)}}
  function actions(user:User){const rel=relationship(user.id);const accepted=rel?.status==='accepted';const pending=rel?.status==='pending';const blocked=preferences.blocked.includes(user.id);return <div className="row-actions">{accepted&&!blocked&&<button className="button secondary small" onClick={()=>open(user.id)}><MessageCircle size={16}/> Message</button>}{!rel&&!blocked&&<button className="button secondary small" onClick={()=>services.request(user.id)}><UserPlus size={16}/> Add</button>}{pending&&<span className="status-pill">{rel.from===me!.id?'Request sent':'Awaiting response'}</span>}{accepted&&!blocked&&<IconButton label={`Remove ${user.name} from friends`} onClick={()=>services.remove(user.id)}><UserMinus size={18}/></IconButton>}{blocked&&<button className="button secondary small" onClick={()=>services.block(user.id)}><Ban size={16}/> Unblock</button>}</div>}
  if(selected)return <div className="page-view contact-detail-screen"><MobileScreenHeader title="Contact" onBack={()=>setSelected(undefined)}/><div className="person-detail contact-profile"><Avatar user={selected} size="large"/><h1>{selected.name}</h1><p>{selected.about}</p><small>{selected.email}</small>{actions(selected)}</div></div>;
  return <div className="page-view"><MobileScreenHeader title="Contacts"/><PageHeader eyebrow="YOUR CIRCLE" title="Contacts" description="Find people, manage requests, and start conversations with accepted friends."/>

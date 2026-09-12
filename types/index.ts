@@ -6,4 +6,4 @@ export interface Conversation { id: string; participants: string[]; unread: numb
 export interface Friendship { id: string; from: string; to: string; status: 'pending' | 'accepted' | 'declined' }
 export interface StatusPost { id: string; userId: string; text: string; color: string; attachment?: Attachment; createdAt: string; expiresAt: string; viewedBy: string[] }
 export interface Preferences { lastSeen: string; photo: string; status: string; receipts: boolean; notifications: boolean; sound: boolean; appearance: 'dark' | 'light'; compact: boolean; blocked: string[] }
-export interface AppState { currentUserId: string | null; users: User[]; conversations: Conversation[]; messages: Message[]; friendships: Friendship[]; statuses: StatusPost[]; preferences: Preferences }
+export interface AppState { sessionReady: boolean; currentUserId: string | null; users: User[]; conversations: Conversation[]; messages: Message[]; friendships: Friendship[]; statuses: StatusPost[]; preferences: Preferences }

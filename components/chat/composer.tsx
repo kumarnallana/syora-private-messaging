@@ -16,12 +16,14 @@ export function Composer({conversationId,blocked,reply,clearReply}:{conversation
  const pending=useRef<Attachment|undefined>(undefined);
  const input=useRef<HTMLTextAreaElement>(null);
  const submitting=useRef(false);
+ const typingTimer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
  useEffect(()=>()=>{if(pending.current)URL.revokeObjectURL(pending.current.url)},[]);
+ useEffect(()=>()=>{if(typingTimer.current)clearTimeout(typingTimer.current);services.typing(conversationId,false)},[conversationId,services]);
  function choose(file?:Attachment){if(pending.current)URL.revokeObjectURL(pending.current.url);pending.current=file;setAttachment(file);}
  async function send(){
   if((!text.trim()&&!attachment)||blocked||submitting.current)return;
   submitting.current=true;setBusy(true);setError('');
-  try{await services.send(conversationId,text,attachment,reply?.id);pending.current=undefined;setAttachment(undefined);setText('');clearReply();setEmoji(false);if(input.current)input.current.style.height='auto';}
+  try{services.typing(conversationId,false);await services.send(conversationId,text,attachment,reply?.id);pending.current=undefined;setAttachment(undefined);setText('');clearReply();setEmoji(false);if(input.current)input.current.style.height='auto';}
   catch(error){setError(error instanceof Error?error.message:'Message could not be sent. Please try again.');}
   finally{submitting.current=false;setBusy(false);input.current?.focus();}
  }
@@ -31,10 +33,10 @@ export function Composer({conversationId,blocked,reply,clearReply}:{conversation
   {emoji&&<div className="emoji-picker" role="group" aria-label="Emoji picker"><header>Choose an emoji<IconButton label="Close emoji picker" onClick={()=>setEmoji(false)}><X size={17}/></IconButton></header><div>{emojis.map(e=><button type="button" key={e} aria-label={`Insert ${e}`} onClick={()=>{setText(t=>(t+e).slice(0,10000));input.current?.focus()}}>{e}</button>)}</div></div>}
   <form onSubmit={e=>{e.preventDefault();void send()}}><div className="composer">
    <FilePicker onSelect={choose} onError={setError} disabled={blocked||busy}/>
-   <textarea ref={input} rows={1} aria-label="Message" placeholder={blocked?'This contact is blocked':'Write a message…'} value={text} readOnly={busy} disabled={blocked} maxLength={10000} onChange={e=>{setText(e.target.value);e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,140)+'px'}} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();void send()}if(e.key==='Escape')setEmoji(false)}}/>
+   <textarea ref={input} rows={1} aria-label="Message" placeholder={blocked?'This contact is blocked':'Write a message…'} value={text} readOnly={busy} disabled={blocked} maxLength={10000} onChange={e=>{setText(e.target.value);services.typing(conversationId,true);if(typingTimer.current)clearTimeout(typingTimer.current);typingTimer.current=setTimeout(()=>services.typing(conversationId,false),1200);e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,140)+'px'}} onBlur={()=>services.typing(conversationId,false)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();void send()}if(e.key==='Escape')setEmoji(false)}}/>
    <IconButton label="Choose emoji" disabled={blocked||busy} onClick={()=>setEmoji(!emoji)}><Smile size={21}/></IconButton>
    <button type="submit" className="icon-button send-button" aria-label="Send message" disabled={blocked||busy||(!text.trim()&&!attachment)}><Send size={20}/></button>
   </div></form><p className="composer-hint">Enter to send · Shift + Enter for a new line</p>
-  {attachment&&<Modal title="Ready to share?" className="mobile-sheet" onClose={()=>{if(!busy)choose(undefined)}}><AttachmentContent attachment={attachment} preview/><label className="field">Caption<textarea aria-label="Attachment caption" value={text} onChange={e=>setText(e.target.value)} maxLength={10000} readOnly={busy}/></label><p className="demo-disclosure">Local preview only. No file is uploaded.</p><div className="modal-actions"><button className="button secondary" disabled={busy} onClick={()=>choose(undefined)}>Cancel</button><button className="button primary" disabled={busy||blocked} onClick={()=>void send()}>{busy?'Sending…':'Send attachment'}</button></div></Modal>}
+  {attachment&&<Modal title="Ready to share?" className="mobile-sheet" onClose={()=>{if(!busy)choose(undefined)}}><AttachmentContent attachment={attachment} preview/><label className="field">Caption<textarea aria-label="Attachment caption" value={text} onChange={e=>setText(e.target.value)} maxLength={10000} readOnly={busy}/></label><p className="demo-disclosure">The file will be shared privately in this conversation.</p><div className="modal-actions"><button className="button secondary" disabled={busy} onClick={()=>choose(undefined)}>Cancel</button><button className="button primary" disabled={busy||blocked} onClick={()=>void send()}>{busy?'Sending…':'Send attachment'}</button></div></Modal>}
  </div>;
 }
