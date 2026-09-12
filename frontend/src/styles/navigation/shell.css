@@ -1,0 +1,88 @@
+@layer components {
+  .app-shell {
+    @apply flex h-[100dvh] flex-col overflow-hidden pb-[65px] md:flex-row md:pb-0;
+  }
+  .app-shell.is-compact {
+    /* Compact mode overrides if needed */
+  }
+
+  .rail {
+    @apply fixed bottom-0 left-0 z-[100] flex h-[65px] w-full flex-row items-center border-t border-border bg-[#15161c] px-[10px] md:static md:h-auto md:w-[64px] md:flex-col md:gap-9 md:border-r md:border-t-0 md:bg-[#181922] md:p-[25px_9px_18px] lg:w-[76px];
+  }
+  @media (max-width: 767px) {
+    .rail {
+      padding-bottom: max(6px, env(safe-area-inset-bottom));
+    }
+  }
+
+  .rail__brand {
+    @apply hidden md:block;
+  }
+
+  .rail__nav {
+    @apply flex w-full justify-around md:block md:w-full;
+  }
+
+  .rail-link {
+    @apply flex flex-col items-center justify-center gap-[5px] rounded-[9px] py-2 text-muted transition-colors hover:bg-surface md:h-[52px] md:w-full md:p-0 md:hover:bg-transparent;
+  }
+  .rail-link.is-active {
+    @apply bg-[#302a42] text-accent;
+  }
+  .rail-link span {
+    @apply text-[12px];
+  }
+  .rail-link--danger {
+    @apply hover:text-danger;
+  }
+
+  .rail-bottom {
+    @apply hidden md:mt-auto md:flex md:w-full md:flex-col md:items-center md:gap-[14px];
+  }
+  @media (max-width: 767px) {
+    .rail-bottom {
+      @apply m-[0_0_0_auto] flex flex-row w-auto gap-[18px];
+    }
+    .rail-bottom .rail-link {
+      @apply w-[52px];
+    }
+  }
+
+  .profile-link {
+    @apply grid place-items-center rounded-full transition-transform hover:scale-105;
+  }
+  .profile-link.is-active {
+    @apply ring-2 ring-accent ring-offset-2 ring-offset-[#181922];
+  }
+
+  .app-content {
+    @apply flex-1 min-w-0 h-full overflow-hidden;
+  }
+
+  .page-header {
+    @apply flex items-center justify-between gap-[15px] border-b border-border bg-panel p-[30px_40px];
+  }
+  .page-header__eyebrow {
+    @apply text-[12px] font-medium tracking-[1.8px] text-accent uppercase;
+  }
+  .page-header h2 {
+    @apply mb-1.5 mt-2 text-[26px] font-medium tracking-[-0.5px];
+  }
+  .page-header p {
+    @apply text-[14px] text-muted;
+  }
+
+  .mobile-header {
+    @apply flex h-[60px] items-center gap-[15px] border-b border-border bg-panel px-[15px] md:hidden;
+  }
+  .mobile-header__title {
+    @apply text-[17px] font-medium;
+  }
+  .mobile-header__action {
+    @apply ml-auto;
+  }
+
+  .preview-note {
+    @apply flex items-center justify-center gap-[7px] p-4 text-[12px] text-muted;
+  }
+}

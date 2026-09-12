@@ -1,0 +1,18 @@
+@layer components {
+  .empty-state {
+    @apply flex flex-col items-center gap-[14px] p-[45px_20px] text-center;
+  }
+  .empty-state__icon {
+    @apply grid size-[58px] place-items-center rounded-[15px] bg-[#302a42] text-accent;
+  }
+  .empty-state h2 {
+    @apply text-[19px] font-medium;
+  }
+  .empty-state p {
+    @apply max-w-[290px] text-[14px] leading-[1.7] text-muted;
+  }
+
+  .loading-state {
+    @apply flex h-[100dvh] items-center justify-center gap-3;
+  }
+}

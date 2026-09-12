@@ -61,7 +61,7 @@ export function Chats() {
      if (!person||!person.name.toLowerCase().includes(query.toLowerCase())) return null;
      const last = messages.filter(m => m.conversationId === conversation.id).at(-1);
      return <button key={conversation.id} ref={node => { if (node) rowRefs.current.set(conversation.id, node); else rowRefs.current.delete(conversation.id); }}
-      className={`conversation-row ${active?.id === conversation.id ? 'selected' : ''} ${conversation.unread?'unread':''}`}
+      className={`conversation-row ${active?.id === conversation.id ? 'is-selected' : ''} ${conversation.unread?'is-unread':''}`}
       aria-label={`Open conversation with ${person.name}${conversation.unread ? `, ${conversation.unread} unread` : ''}`}
       aria-current={active?.id === conversation.id ? 'true' : undefined} onClick={() => setSelected(conversation.id)}>
       <Avatar user={person}/><span className="conversation-copy">

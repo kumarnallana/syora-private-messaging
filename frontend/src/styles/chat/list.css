@@ -1,0 +1,121 @@
+@layer components {
+  .chat-layout {
+    @apply flex h-full;
+  }
+  
+  .conversation-panel {
+    @apply flex w-[330px] shrink-0 min-w-0 flex-col bg-panel border-r border-border;
+  }
+
+  .list-header {
+    @apply border-b border-border p-[25px_22px_20px];
+  }
+  .list-header .brand-logo {
+    @apply hidden; /* Hide the brand logo in the list header to avoid duplication if it's there */
+  }
+  .list-title {
+    @apply mt-[29px] flex items-center justify-between;
+  }
+  .list-title h1 {
+    @apply flex items-center gap-[10px] text-[24px] font-medium tracking-[-0.5px];
+  }
+  .count {
+    @apply rounded-[5px] bg-surface p-[4px_7px] text-[12px] text-muted;
+  }
+
+  .conversation-rows {
+    @apply flex-1 overflow-auto p-[9px] min-h-0;
+  }
+
+  .conversation-row {
+    @apply m-[3px_0] flex w-full items-center gap-[12px] rounded-[10px] border border-transparent p-[16px_11px] text-left transition-colors hover:bg-surface;
+  }
+  .conversation-row.is-selected {
+    @apply border-[#5b4d75] bg-[#322c43];
+  }
+
+  .conversation-copy {
+    @apply flex min-w-0 flex-1 flex-col gap-[9px];
+  }
+
+  .conversation-top,
+  .conversation-bottom {
+    @apply flex min-w-0 items-center justify-between gap-[8px];
+  }
+
+  .conversation-top strong {
+    @apply overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-medium;
+  }
+  .conversation-top time {
+    @apply shrink-0 whitespace-nowrap text-[12px] text-muted;
+  }
+
+  .conversation-bottom > span:first-child {
+    @apply overflow-hidden text-ellipsis whitespace-nowrap text-[13px] leading-[1.5] text-muted;
+  }
+
+  .typing-text {
+    @apply italic text-accent;
+  }
+
+  .row-indicators {
+    @apply flex items-center gap-[6px] shrink-0 text-muted;
+  }
+
+  .unread-badge {
+    @apply grid h-[21px] min-w-[21px] shrink-0 place-items-center rounded-[7px] bg-accent text-[12px] text-[#241e35];
+  }
+
+  .list-footer {
+    @apply border-t border-border p-[18px_12px];
+  }
+
+  .list-header .search-field {
+    @apply mt-[18px];
+  }
+
+  @media (max-width: 1100px) {
+    .conversation-panel {
+      @apply w-[280px];
+    }
+    .conversation-row {
+      @apply gap-[9px] p-[14px_8px];
+    }
+    .conversation-top time {
+      @apply text-[11px];
+    }
+    .list-header {
+      @apply px-[18px];
+    }
+  }
+
+  @media (max-width: 767px) {
+    .chat-layout {
+      @apply block;
+    }
+    .conversation-panel {
+      @apply h-full w-full border-0;
+    }
+    .list-header {
+      @apply p-[24px_20px_19px];
+    }
+    .conversation-row {
+      @apply gap-[13px] p-[17px_10px];
+    }
+    .conversation-top strong {
+      @apply text-[15px];
+    }
+    .conversation-top time {
+      @apply text-[12px];
+    }
+    .chat-layout > .chat-panel {
+      @apply hidden;
+    }
+    .chat-layout.has-conversation .conversation-panel {
+      @apply hidden;
+    }
+    .chat-layout.has-conversation > .chat-panel {
+      @apply fixed inset-0 z-10 flex h-[100dvh];
+    }
+  }
+}

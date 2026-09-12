@@ -1,0 +1,29 @@
+@layer components {
+  .modal {
+    @apply max-h-[calc(100dvh-30px)] overflow-auto rounded-[14px] border border-border bg-panel p-6 text-text-primary backdrop:bg-[#090a11b8];
+  }
+  .modal--normal {
+    @apply w-[min(460px,calc(100vw-30px))];
+  }
+  .modal--wide {
+    @apply w-[min(900px,calc(100vw-30px))];
+  }
+  
+  .modal__header {
+    @apply mb-4 flex items-center justify-between gap-[15px];
+  }
+  .modal__header h2 {
+    @apply text-[20px] font-medium;
+  }
+  
+  .modal.wide {
+    @apply w-[min(880px,calc(100vw-30px))];
+  }
+  .modal .field textarea {
+    @apply min-h-[88px] w-full resize-y p-[12px];
+  }
+  
+  .modal-actions .button {
+    @apply flex-1;
+  }
+}

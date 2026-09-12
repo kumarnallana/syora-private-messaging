@@ -1,0 +1,86 @@
+@layer components {
+  .status-grid {
+    @apply grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-[10px];
+  }
+  .status-card {
+    @apply flex items-center rounded-[11px] border border-border bg-panel p-[14px];
+  }
+  .status-open {
+    @apply flex min-w-0 flex-1 items-center gap-[13px] text-left;
+  }
+  .status-ring {
+    @apply grid place-items-center rounded-full border-[2px] border-accent p-[3px];
+  }
+  .status-open > span:last-child {
+    @apply min-w-0;
+  }
+  .status-open strong {
+    @apply block text-[14px] font-medium;
+  }
+  .status-open small {
+    @apply mt-[4px] block text-[12px] text-muted;
+  }
+  .status-open p {
+    @apply mt-[6px] overflow-hidden text-ellipsis whitespace-nowrap text-[13px] text-muted;
+  }
+
+  .status-compose,
+  .status-viewer {
+    @apply mb-[22px] grid min-h-[240px] place-items-center overflow-hidden rounded-[11px] p-[30px];
+  }
+  .status-compose > p,
+  .status-viewer > p {
+    @apply max-w-[540px] text-center text-[clamp(22px,4vw,38px)] leading-[1.4];
+  }
+  .status-compose .attachment-content,
+  .status-viewer .attachment-content {
+    @apply w-full;
+  }
+  .status-compose img,
+  .status-viewer img {
+    @apply max-h-[52dvh];
+  }
+
+  .status-tools {
+    @apply flex items-center gap-[8px];
+  }
+  .color-choice {
+    @apply h-[34px] w-[34px] rounded-full border-[2px] border-transparent;
+  }
+  .color-choice[aria-pressed="true"] {
+    @apply border-white shadow-[0_0_0_2px_var(--accent)];
+  }
+
+  .status-progress {
+    @apply mb-[13px] flex gap-[5px];
+  }
+  .status-progress span {
+    @apply h-[3px] flex-1 rounded-[3px] bg-border;
+  }
+  .status-progress span.is-complete {
+    @apply bg-accent;
+  }
+
+  .viewer-person {
+    @apply mb-[13px] flex items-center gap-[10px];
+  }
+  .viewer-person > span {
+    @apply flex flex-col gap-[4px];
+  }
+  .viewer-person strong {
+    @apply text-[14px];
+  }
+  .viewer-person small {
+    @apply text-[12px] text-muted;
+  }
+  .viewer-controls {
+    @apply flex items-center justify-center gap-[15px] text-muted;
+  }
+
+  @media (max-width: 767px) {
+    .status-compose,
+    .status-viewer {
+      @apply min-h-[190px] p-[18px];
+    }
+  }
+}

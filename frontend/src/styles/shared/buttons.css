@@ -1,0 +1,21 @@
+@layer components {
+  .button {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2.5 rounded-[9px] border border-transparent px-[18px] py-[11px] text-[14px] font-semibold transition-colors disabled:pointer-events-none disabled:opacity-50;
+  }
+  .button--primary {
+    @apply bg-accent text-[#241e35] hover:bg-accent-strong;
+  }
+  .button--secondary {
+    @apply border-border bg-surface hover:bg-white/[0.035];
+  }
+  .button--danger {
+    @apply bg-danger text-panel hover:bg-[#ff9caa];
+  }
+  .button.is-full {
+    @apply w-full;
+  }
+
+  .icon-button {
+    @apply inline-flex size-11 shrink-0 items-center justify-center rounded-[9px] text-muted transition-colors hover:bg-surface disabled:pointer-events-none disabled:opacity-50;
+  }
+}

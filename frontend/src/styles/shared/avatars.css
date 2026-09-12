@@ -1,0 +1,38 @@
+@layer components {
+  .avatar {
+    @apply relative inline-flex shrink-0 items-center justify-center rounded-full bg-[#473a58] font-semibold text-[#e9dff6];
+  }
+  .avatar--peach {
+    @apply bg-[#68433f] text-[#f5d8c4];
+  }
+  .avatar--blue {
+    @apply bg-[#354659] text-[#c1def2];
+  }
+  .avatar--rose {
+    @apply bg-[#59384a] text-[#f7d0e7];
+  }
+  .avatar--sand {
+    @apply bg-[#5b4e39] text-[#f2e1b6];
+  }
+  .avatar--mint {
+    @apply bg-[#314e48] text-[#c0dfd7];
+  }
+
+  .avatar--small {
+    @apply size-[37px] text-[12px];
+  }
+  .avatar--normal {
+    @apply size-[45px] text-[14px];
+  }
+  .avatar--large {
+    @apply size-[88px] text-[26px];
+  }
+
+  .avatar__image {
+    @apply size-full rounded-full object-cover;
+  }
+
+  .avatar__online-indicator {
+    @apply absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-panel bg-[#afd2bb];
+  }
+}

@@ -1,0 +1,83 @@
+@layer components {
+  .composer-wrap {
+    @apply relative shrink-0 border-t border-border p-[15px_24px_17px];
+  }
+  .composer-wrap form {
+    @apply m-0;
+  }
+  
+  .composer {
+    @apply flex items-end gap-[8px] rounded-[11px] border border-border bg-surface p-[7px] focus-within:border-accent;
+  }
+  .composer textarea {
+    @apply flex-1 resize-none border-0 bg-transparent p-[10px_8px] text-[16px] leading-[1.5] outline-none max-h-[140px];
+  }
+  
+  .composer-hint {
+    @apply mt-[9px] text-right text-[12px] text-muted;
+  }
+  
+  .inline-error {
+    @apply pb-[10px] text-[14px] text-[#ffb4b4];
+  }
+
+  .composer-reply {
+    @apply flex items-center gap-[10px] rounded-[10px_10px_0_0] bg-[#302a42] p-[9px_12px] text-accent;
+  }
+  .composer-reply > span {
+    @apply flex min-w-0 flex-1 flex-col gap-[4px];
+  }
+  .composer-reply strong {
+    @apply text-[12px];
+  }
+  .composer-reply small {
+    @apply overflow-hidden text-ellipsis whitespace-nowrap text-[12px] text-muted;
+  }
+
+  .emoji-picker {
+    @apply absolute bottom-full right-[24px] z-[3] w-[300px] rounded-[12px] border border-border bg-surface p-[12px] shadow-[0_20px_50px_#0006];
+  }
+  .emoji-picker header {
+    @apply flex items-center justify-between text-[13px] text-muted;
+  }
+  .emoji-picker > div {
+    @apply grid grid-cols-6;
+  }
+  .emoji-picker > div button {
+    @apply h-[43px] rounded-[7px] text-[22px] hover:bg-panel;
+  }
+
+  .welcome-panel {
+    @apply items-center justify-center gap-[19px] p-[25px] text-center;
+  }
+  .welcome-panel > svg {
+    @apply text-accent;
+  }
+  .welcome-panel h2 {
+    @apply text-[25px] font-medium leading-[1.4];
+  }
+  .welcome-panel p {
+    @apply max-w-[330px] text-[15px] leading-[1.7] text-muted;
+  }
+
+  @media (max-width: 1100px) {
+    .composer-wrap {
+      @apply px-[17px];
+    }
+  }
+
+  @media (max-width: 767px) {
+    .composer-wrap {
+      padding: 10px 10px max(12px, env(safe-area-inset-bottom));
+    }
+    .composer-hint {
+      @apply hidden;
+    }
+    .composer textarea {
+      @apply px-[5px];
+    }
+    .composer {
+      @apply gap-[4px];
+    }
+  }
+}

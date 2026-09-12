@@ -66,6 +66,9 @@ async def create_direct(body: DirectConversationIn, user: User = Depends(current
 async def get_conversation(conversation_id: uuid.UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
     participant = await require_participant(conversation_id, user, db)
     item = await db.get(Conversation, conversation_id)
+    if not item:
+        raise api_error(404, "CONVERSATION_NOT_FOUND",
+                        "Conversation not found.")
     return await conversation_out(db, item, participant, user.id)
 
 
@@ -88,6 +91,7 @@ async def list_messages(conversation_id: uuid.UUID, before: datetime | None = No
     if before:
         query = query.where(Message.created_at < before)
     rows = (await db.scalars(query.order_by(Message.created_at.desc()).limit(limit))).all()
+    rows = list(rows)
     rows.reverse()
     return {"messages": [await message_out(db, x, user.id) for x in rows], "nextCursor": rows[0].created_at.isoformat() if len(rows) == limit else None}
 

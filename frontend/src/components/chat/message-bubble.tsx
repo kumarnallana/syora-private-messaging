@@ -12,7 +12,7 @@ export function MessageBubble({message,mine,original,onReply,groupedWithPrevious
  const [error,setError]=useState('');
  const [retrying,setRetrying]=useState(false);
  async function remove(everyone:boolean){try{await services.deleteMessage(message.id,everyone);setDeleting(false);}catch(error){setError((error as Error).message)}}
- return <article className={`message-row ${mine?'outgoing':'incoming'} ${groupedWithPrevious?'grouped':''}`} aria-label={mine?'Sent by you':'Received message'}>
+ return <article className={`message-row ${mine?'is-outgoing':'is-incoming'} ${groupedWithPrevious?'grouped':''}`} aria-label={mine?'Sent by you':'Received message'}>
   <div className={`message-bubble ${message.attachment?'with-media':''}`}>
    {message.replyTo&&!message.deleted&&<div className="reply-quote"><strong>{original?.senderId===me!.id?'You':users.find(u=>u.id===original?.senderId)?.name||'Original message'}</strong><span>{!original?'Message unavailable':original.deleted?'Message deleted':original.text||original.attachment?.name}</span></div>}
    {message.deleted?<p className="deleted-message"><Trash2 size={14}/> This message was deleted</p>:<>{message.attachment&&<AttachmentContent attachment={message.attachment}/>} {message.text&&<p>{message.text}</p>}</>}

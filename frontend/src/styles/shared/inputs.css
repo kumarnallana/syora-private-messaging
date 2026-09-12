@@ -1,0 +1,11 @@
+@layer components {
+  .search-field {
+    @apply flex min-h-[44px] items-center gap-[9px] rounded-[9px] border border-border bg-surface p-[0_11px] text-muted focus-within:border-accent;
+  }
+  .search-field input {
+    @apply w-full border-0 bg-transparent p-[10px_0] outline-0;
+  }
+  .search-field .icon-button {
+    @apply h-[36px] w-[30px];
+  }
+}

@@ -1,0 +1,13 @@
+@layer components {
+  .logo-mark {
+    @apply inline-grid size-9 place-items-center rounded-[10px] bg-accent font-[Georgia,serif] text-[30px] font-bold italic tracking-normal text-[#241e35];
+  }
+
+  .brand-logo {
+    @apply inline-flex items-center gap-2.5 text-[21px] font-bold tracking-[3px];
+  }
+
+  .brand-logo__dot {
+    @apply text-accent;
+  }
+}

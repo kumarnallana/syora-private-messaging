@@ -1,0 +1,87 @@
+@layer components {
+  .with-media {
+    @apply max-w-[min(83%,380px)] p-[6px_6px_8px];
+  }
+  .with-media > p {
+    @apply p-[6px_8px_0];
+  }
+  .with-media .message-meta {
+    @apply pr-[7px];
+  }
+
+  .attachment-content {
+    @apply min-w-0;
+  }
+  
+  .image-message {
+    @apply block w-full overflow-hidden rounded-[8px];
+  }
+  .image-message img {
+    @apply block max-h-[270px] w-full object-cover;
+  }
+  
+  .video-message {
+    @apply block max-h-[300px] w-full rounded-[8px] bg-[#090a10];
+  }
+
+  .document-message {
+    @apply flex min-w-[270px] max-w-full items-center gap-[10px] rounded-[8px] bg-[#ffffff09] p-[11px];
+  }
+  .document-message > span {
+    @apply min-w-0 flex-1;
+  }
+  .document-message strong {
+    @apply block break-words text-[13px];
+  }
+  .document-message small {
+    @apply mt-[5px] block text-[12px] text-muted;
+  }
+  .document-message .icon-button {
+    @apply h-[38px] w-[35px];
+  }
+
+  .file-caption {
+    @apply break-words p-[9px_3px_3px] text-[12px] text-muted;
+  }
+
+  .media-viewer {
+    @apply m-auto block max-h-[68dvh] max-w-full rounded-[8px] object-contain;
+  }
+  
+  .pdf-viewer {
+    @apply h-[min(68dvh,650px)] w-full rounded-[8px] border-0 bg-white;
+  }
+
+  .reply-quote {
+    @apply mb-[8px] flex flex-col gap-[4px] overflow-hidden rounded-[5px] border-l-[3px] border-accent bg-[#11121a55] p-[8px_10px] text-[12px];
+  }
+  .reply-quote strong {
+    @apply font-medium text-accent;
+  }
+  .reply-quote span {
+    @apply overflow-hidden text-ellipsis whitespace-nowrap text-muted;
+  }
+
+  .deleted-message {
+    @apply flex items-center gap-[7px] text-[14px] italic text-muted !important;
+  }
+
+  .message-actions {
+    @apply flex opacity-0 transition-opacity;
+  }
+  .message-row:hover .message-actions,
+  .message-row:focus-within .message-actions {
+    @apply opacity-100;
+  }
+  .message-actions .icon-button {
+    @apply h-[36px] w-[34px];
+  }
+
+  .retry-button {
+    @apply mt-[7px] flex items-center gap-[6px] text-[12px] text-[#ffb4b4];
+  }
+
+  .delete-choices {
+    @apply mt-[22px] flex flex-col gap-[9px];
+  }
+}

@@ -1,0 +1,94 @@
+@layer components {
+  .chat-panel {
+    @apply flex min-w-0 flex-1 flex-col bg-bg;
+  }
+  .chat-header {
+    @apply flex h-[80px] shrink-0 items-center gap-[13px] border-b border-border bg-panel p-[15px_28px];
+  }
+  
+  .chat-person {
+    @apply min-w-0;
+  }
+  .chat-person h2 {
+    @apply break-words text-[16px] font-medium;
+  }
+  .chat-person p {
+    @apply mt-[7px] text-[12px] text-muted;
+  }
+
+  .timeline {
+    @apply min-h-0 flex-1 overflow-auto p-[12px_clamp(18px,4vw,65px)_25px] overscroll-contain;
+  }
+  .date-separator {
+    @apply mx-auto mb-[24px] mt-[14px] w-max max-w-full rounded-[7px] bg-panel p-[6px_12px] text-[12px] text-muted;
+  }
+
+  .message-row {
+    @apply my-[10px] flex items-center gap-[6px];
+  }
+  .message-row.is-outgoing {
+    @apply justify-end flex-row-reverse;
+  }
+
+  .message-bubble {
+    @apply min-w-[90px] max-w-[min(83%,480px)] rounded-[3px_13px_13px_13px] bg-surface p-[11px_14px_8px];
+  }
+  .message-row.is-outgoing .message-bubble {
+    @apply rounded-[13px_3px_13px_13px] bg-[#403551];
+  }
+
+  .message-bubble > p {
+    @apply whitespace-pre-wrap break-words text-[16px] leading-[1.55];
+  }
+  
+  .message-meta {
+    @apply mt-[7px] flex flex-wrap items-center justify-end gap-[9px] text-[12px] text-[#c5bed3];
+  }
+
+  .receipt {
+    @apply inline-flex items-center gap-[4px] text-[12px];
+  }
+  .receipt.is-read {
+    @apply text-[#d2beff];
+  }
+  .receipt.is-failed {
+    @apply text-[#ffb4b4];
+  }
+
+  .message-search {
+    @apply flex items-center gap-[10px] border-b border-border bg-panel p-[10px_20px];
+  }
+  .message-search .search-field {
+    @apply flex-1;
+  }
+  .message-search > span {
+    @apply whitespace-nowrap text-[12px] text-muted;
+  }
+  .chat-header > .icon-button:last-child {
+    @apply ml-auto;
+  }
+
+  @media (max-width: 1100px) {
+    .timeline {
+      @apply px-[18px];
+    }
+  }
+
+  @media (max-width: 767px) {
+    .chat-header {
+      @apply h-[71px] gap-[9px] p-[12px_10px];
+    }
+    .chat-person h2 {
+      @apply text-[15px];
+    }
+    .chat-person p {
+      @apply text-[12px];
+    }
+    .timeline {
+      @apply p-[10px_13px_20px];
+    }
+    .message-bubble {
+      @apply max-w-[87%] p-[10px_12px_8px];
+    }
+  }
+}

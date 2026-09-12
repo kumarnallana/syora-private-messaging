@@ -7,7 +7,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 export function LogoMark() {
   return (
     <span
-      className="inline-grid size-9 place-items-center rounded-[10px] bg-accent font-[Georgia,serif] text-[30px] font-bold italic tracking-normal text-[#241e35]"
+      className="logo-mark"
       aria-hidden="true"
     >
       <Heart size={21} strokeWidth={2.25} fill="currentColor" />
@@ -16,10 +16,10 @@ export function LogoMark() {
 }
 export function Brand() {
   return (
-    <span className="inline-flex items-center gap-2.5 text-[21px] font-bold tracking-[3px]">
+    <span className="brand-logo">
       <LogoMark />
       <span>
-        SYORA<span className="text-accent">.</span>
+        SYORA<span className="brand-logo__dot">.</span>
       </span>
     </span>
   );
@@ -34,19 +34,13 @@ export function Avatar({
   return (
     <span
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center rounded-full bg-[#473a58] font-semibold text-[#e9dff6]",
-        user.color === "peach" && "bg-[#68433f] text-[#f5d8c4]",
-        user.color === "blue" && "bg-[#354659] text-[#c1def2]",
-        user.color === "rose" && "bg-[#59384a] text-[#f7d0e7]",
-        user.color === "sand" && "bg-[#5b4e39] text-[#f2e1b6]",
-        user.color === "mint" && "bg-[#314e48] text-[#c0dfd7]",
-        size === "small" && "size-[37px] text-[12px]",
-        size === "normal" && "size-[45px] text-[14px]",
-        size === "large" && "size-[88px] text-[26px]",
+        "avatar",
+        `avatar--${user.color || "default"}`,
+        `avatar--${size}`
       )}
     >
       {user.avatar ? (
-        <img src={user.avatar} alt={user.name} className="size-full rounded-full object-cover" />
+        <img src={user.avatar} alt={user.name} className="avatar__image" />
       ) : (
         user.name
           .split(" ")
@@ -54,7 +48,7 @@ export function Avatar({
           .slice(0, 2)
           .join("")
       )}
-      {user.online && <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-panel bg-[#afd2bb]" />}
+      {user.online && <span className="avatar__online-indicator" />}
     </span>
   );
 }
@@ -75,7 +69,7 @@ export function IconButton({
     <button
       type="button"
       className={cn(
-        "inline-flex size-11 shrink-0 items-center justify-center rounded-[9px] text-muted transition-colors hover:bg-surface disabled:pointer-events-none disabled:opacity-50",
+        "icon-button",
         className,
       )}
       title={label}
@@ -101,11 +95,9 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex min-h-[44px] items-center justify-center gap-2.5 rounded-[9px] border border-transparent px-[18px] py-[11px] text-[14px] font-semibold transition-colors disabled:pointer-events-none disabled:opacity-50",
-        variant === "primary" && "bg-accent text-[#241e35] hover:bg-[#cabbff]",
-        variant === "secondary" && "border-border bg-surface hover:bg-white/[0.035]",
-        variant === "danger" && "bg-danger text-panel hover:bg-[#ff9caa]",
-        full && "w-full",
+        "button",
+        `button--${variant}`,
+        full && "is-full",
         className
       )}
       {...props}
@@ -139,8 +131,8 @@ export function Modal({
     <dialog
       ref={ref}
       className={cn(
-        "max-h-[calc(100dvh-30px)] overflow-auto rounded-[14px] border border-border bg-panel p-6 text-text-primary backdrop:bg-[#090a11b8]",
-        wide ? "w-[min(900px,calc(100vw-30px))]" : "w-[min(460px,calc(100vw-30px))]",
+        "modal",
+        wide ? "modal--wide" : "modal--normal",
         className,
       )}
       onCancel={onClose}
@@ -163,8 +155,8 @@ export function Modal({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.16 }}
       >
-        <header className="mb-4 flex items-center justify-between gap-[15px]">
-          <h2 className="text-[20px] font-medium">{title}</h2>
+        <header className="modal__header">
+          <h2>{title}</h2>
           <IconButton label="Close dialog" onClick={onClose}>
             <X size={20} />
           </IconButton>
@@ -184,19 +176,19 @@ export function Empty({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-[14px] p-[45px_20px] text-center">
-      <span className="grid size-[58px] place-items-center rounded-[15px] bg-[#302a42] text-accent">
+    <div className="empty-state">
+      <span className="empty-state__icon">
         <Sparkles size={28} />
       </span>
-      <h2 className="text-[19px] font-medium">{title}</h2>
-      <p className="max-w-[290px] text-[14px] leading-[1.7] text-muted">{description}</p>
+      <h2>{title}</h2>
+      <p>{description}</p>
       {children}
     </div>
   );
 }
 export function Loading() {
   return (
-    <div className="flex h-[100dvh] items-center justify-center gap-3" role="status">
+    <div className="loading-state" role="status">
       <LoaderCircle className="animate-spin" /> Loading your space…
     </div>
   );

@@ -1,0 +1,28 @@
+@layer components {
+  .card-list {
+    @apply flex flex-col gap-[8px];
+  }
+  .person-card {
+    @apply flex items-center gap-[14px] rounded-[11px] border border-border bg-panel p-[15px_16px];
+  }
+  .person-card > div:nth-child(2) {
+    @apply min-w-0 flex-1;
+  }
+  .person-card strong {
+    @apply text-[14px] font-medium;
+  }
+  .person-card p {
+    @apply mt-[6px] overflow-hidden text-ellipsis whitespace-nowrap text-[13px] text-muted;
+  }
+
+  .row-actions {
+    @apply flex items-center gap-[8px];
+  }
+
+  .status-pill {
+    @apply rounded-[7px] bg-surface p-[7px_10px] text-[12px] text-muted;
+  }
+  .blocked-card {
+    @apply opacity-[0.78];
+  }
+}

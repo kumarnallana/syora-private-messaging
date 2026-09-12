@@ -13,5 +13,5 @@ const icons = {
 
 export function DeliveryReceipt({state}:{state:Receipt}){
  const Icon=icons[state];
- return <span className={`receipt ${state}`} aria-label={state} title={state}><Icon size={13}/></span>;
+ return <span className={`receipt is-${state}`} aria-label={state} title={state}><Icon size={13}/></span>;
 }

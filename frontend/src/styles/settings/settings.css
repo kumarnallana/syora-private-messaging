@@ -1,0 +1,94 @@
+@layer components {
+  .settings-page {
+    @apply m-auto max-w-[980px];
+  }
+  .settings-section {
+    @apply grid gap-[25px] border-b border-border p-[25px_0] [grid-template-columns:190px_1fr];
+  }
+  .settings-section > header {
+    @apply flex items-center gap-[10px] text-accent;
+  }
+  .settings-section > header h2 {
+    @apply text-[16px] font-medium text-text;
+  }
+  .settings-section > header svg {
+    @apply w-[19px];
+  }
+
+  .setting-row {
+    @apply flex min-h-[66px] items-center justify-between gap-[20px] border-b border-border;
+  }
+  .setting-row:last-child {
+    @apply border-b-0;
+  }
+  .setting-row > span {
+    @apply flex flex-col gap-[5px];
+  }
+  .setting-row strong {
+    @apply text-[14px] font-medium;
+  }
+  .setting-row small,
+  .muted-copy {
+    @apply text-[12px] leading-[1.5] text-muted;
+  }
+  .setting-row select {
+    @apply min-h-[40px] min-w-[160px] p-[8px_30px_8px_10px];
+  }
+
+  .switch {
+    @apply h-[26px] w-[47px] shrink-0 rounded-[20px] border border-border bg-surface p-[3px];
+  }
+  .switch span {
+    @apply block h-[18px] w-[18px] rounded-full bg-muted transition-transform duration-150;
+  }
+  .switch.is-on {
+    @apply border-accent bg-accent;
+  }
+  .switch.is-on span {
+    @apply translate-x-[20px] bg-[#241e35];
+  }
+
+  .theme-options {
+    @apply mb-[13px] grid grid-cols-2 gap-[10px];
+  }
+  .theme-options button {
+    @apply flex min-h-[46px] items-center justify-center gap-[8px] rounded-[9px] border border-border;
+  }
+  .theme-options button.is-active {
+    @apply border-accent bg-[#302a42] text-accent;
+  }
+
+  .account-summary,
+  .blocked-row {
+    @apply flex items-center gap-[12px];
+  }
+  .account-summary > span {
+    @apply flex min-w-0 flex-1 flex-col gap-[5px];
+  }
+  .account-summary small {
+    @apply break-words text-[12px] text-muted;
+  }
+  
+  .blocked-row {
+    @apply min-h-[58px] border-b border-border;
+  }
+  .blocked-row > span:nth-child(2) {
+    @apply flex-1;
+  }
+
+  .logout-setting {
+    @apply my-[28px];
+  }
+
+  @media (max-width: 767px) {
+    .settings-section {
+      @apply grid-cols-1 gap-[15px];
+    }
+    .setting-row select {
+      @apply min-w-[130px];
+    }
+    .account-summary {
+      @apply flex-wrap;
+    }
+  }
+}

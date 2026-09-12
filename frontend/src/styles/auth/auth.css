@@ -1,0 +1,116 @@
+@layer components {
+  .auth-page {
+    @apply grid min-h-[100dvh] grid-cols-2;
+  }
+  .auth-story {
+    @apply flex flex-col border-r border-border bg-panel p-[40px_10%];
+  }
+  .auth-copy {
+    @apply m-[auto_0] p-[65px_0];
+  }
+  .eyebrow {
+    @apply text-[12px] tracking-[1.8px] text-accent;
+  }
+  .auth-copy h1 {
+    @apply m-[24px_0] text-[clamp(38px,4.5vw,66px)] font-medium leading-[1.2] tracking-[-2px];
+  }
+  .auth-copy em {
+    @apply font-[Georgia,serif] text-accent;
+  }
+  .auth-copy > p {
+    @apply text-[19px] leading-[1.6] text-muted;
+  }
+  
+  .auth-notes {
+    @apply mt-[36px] flex flex-col gap-[19px] text-[14px] text-muted;
+  }
+  .auth-notes > span {
+    @apply flex items-center gap-[10px];
+  }
+  
+  .auth-foot {
+    @apply text-[12px] text-muted;
+  }
+  
+  .auth-form-wrap {
+    @apply flex items-center justify-center p-[36px];
+  }
+  .auth-form {
+    @apply w-full max-w-[385px];
+  }
+  .auth-form h2 {
+    @apply m-[15px_0_12px] text-[27px] font-medium;
+  }
+  .auth-form > p {
+    @apply text-[14px] leading-[1.7] text-muted;
+  }
+  .auth-form form {
+    @apply mt-[30px];
+  }
+  
+  .field {
+    @apply mb-[20px] flex flex-col gap-[9px] text-[14px];
+  }
+  .field input {
+    @apply min-h-[46px] w-full p-[13px_46px_13px_13px];
+  }
+  
+  .input-wrap {
+    @apply relative flex;
+  }
+  .password-toggle {
+    @apply absolute right-0 top-0 grid h-[46px] w-[44px] place-items-center text-muted;
+  }
+  
+  .field-error {
+    @apply text-[13px] text-[#ffb4b4];
+  }
+  .forgot-link {
+    @apply m-[-4px_0_22px] block text-right text-[13px] text-accent;
+  }
+  
+  .auth-switch {
+    @apply mt-[24px] flex items-center justify-center gap-[7px] text-[14px];
+  }
+  .auth-switch a {
+    @apply text-accent;
+  }
+  
+  .divider {
+    @apply m-[26px_0] flex items-center gap-[12px] text-[12px] text-muted;
+  }
+  .divider:before,
+  .divider:after {
+    @apply content-[""] h-[1px] flex-1 bg-border;
+  }
+  
+  .demo-disclosure {
+    @apply mt-[24px] text-[12px] leading-[1.7] text-muted !important;
+  }
+  
+  .auth-mobile-brand {
+    @apply hidden;
+  }
+  
+  .spin {
+    @apply animate-[spin_1s_linear_infinite];
+  }
+
+  @media (max-width: 767px) {
+    .auth-page {
+      @apply block;
+    }
+    .auth-story {
+      @apply hidden;
+    }
+    .auth-form-wrap {
+      @apply min-h-[100dvh] flex-col gap-[42px] p-[28px_22px];
+    }
+    .auth-mobile-brand {
+      @apply block w-full max-w-[385px];
+    }
+    .auth-form h2 {
+      @apply text-[25px];
+    }
+  }
+}

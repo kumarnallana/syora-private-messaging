@@ -1,0 +1,29 @@
+@layer components {
+  .profile-editor {
+    @apply grid items-start gap-[45px] rounded-[14px] border border-border bg-panel p-[28px] [grid-template-columns:180px_1fr];
+  }
+  .avatar-editor {
+    @apply relative m-auto w-max;
+  }
+  .avatar-editor .icon-button {
+    @apply absolute bottom-[-4px] right-[-6px] rounded-full border-[4px] border-panel bg-accent text-[#241e35];
+  }
+  .profile-editor form {
+    @apply min-w-0;
+  }
+  .readonly-field {
+    @apply flex min-h-[46px] items-center gap-[10px] break-words rounded-[8px] border border-border bg-surface p-[11px_13px] text-muted;
+  }
+  .field small {
+    @apply text-[12px] leading-[1.5] text-muted;
+  }
+  .notice {
+    @apply mb-[17px] rounded-[8px] bg-[#302a42] p-[12px] text-[13px] text-text;
+  }
+
+  @media (max-width: 767px) {
+    .profile-editor {
+      @apply grid-cols-1 gap-[30px] p-[20px];
+    }
+  }
+}
