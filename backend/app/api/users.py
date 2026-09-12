@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import and_, or_, select
@@ -61,6 +62,11 @@ async def update_profile(body:ProfileIn,user:User=Depends(current_user),db:Async
     if body.about is not None:user.about=body.about.strip()
     if body.avatar_key is not None:
         if not body.avatar_key.startswith(f"users/{user.id}/avatar/"):raise api_error(422,"AVATAR_INVALID","Avatar upload is invalid.")
+        if not body.avatar_mime or not body.avatar_size:raise api_error(422,"AVATAR_INVALID","Avatar metadata is required.")
+        from app.services.media import r2
+        r2.validate_metadata("avatar",body.avatar_mime,body.avatar_size);await asyncio.to_thread(r2.verify_object,body.avatar_key,body.avatar_mime,body.avatar_size)
+        if user.avatar_key and user.avatar_key!=body.avatar_key:
+            await asyncio.to_thread(r2.delete,user.avatar_key)
         user.avatar_key=body.avatar_key
     await db.commit();return await user_out(db,user,user.id)
 @router.get("/api/preferences")

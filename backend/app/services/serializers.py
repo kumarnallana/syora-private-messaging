@@ -28,6 +28,13 @@ async def message_out(db:AsyncSession,message:Message,viewer_id:uuid.UUID)->dict
         if readable:receipt="read"
         elif any(x.delivered_at for x in states):receipt="delivered"
     data={"id":str(message.id),"conversationId":str(message.conversation_id),"senderId":str(message.sender_id),"text":"" if message.deleted_at else message.text,"createdAt":message.created_at.isoformat(),"receipt":receipt,"replyTo":str(message.reply_to_message_id) if message.reply_to_message_id else None,"deleted":bool(message.deleted_at)}
+    if message.reply_to_message_id:
+        reply=await db.get(Message,message.reply_to_message_id)
+        if reply:
+            preview={"id":str(reply.id),"conversationId":str(reply.conversation_id),"senderId":str(reply.sender_id),"text":"" if reply.deleted_at else reply.text,"createdAt":reply.created_at.isoformat(),"receipt":"sent","deleted":bool(reply.deleted_at)}
+            reply_attachment=await db.scalar(select(Attachment).where(Attachment.message_id==reply.id))
+            if reply_attachment and not reply.deleted_at:preview["attachment"]={"id":str(reply_attachment.id),"name":reply_attachment.file_name,"type":reply.type.value.lower(),"mime":reply_attachment.mime_type,"size":reply_attachment.file_size,"url":""}
+            data["replyPreview"]=preview
     if attachment and not message.deleted_at:data["attachment"]={"id":str(attachment.id),"name":attachment.file_name,"type":message.type.value.lower(),"mime":attachment.mime_type,"size":attachment.file_size,"url":r2.access_url(attachment.object_key) if r2.configured else ""}
     return data
 async def status_out(db:AsyncSession,status:StatusPost,viewer_id:uuid.UUID)->dict:

@@ -3,12 +3,38 @@
 Revision ID: 0001_initial
 """
 from alembic import op
-from app.db.base import Base
-from app import models
-revision="0001_initial"
-down_revision=None
-branch_labels=None
-depends_on=None
+import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
+revision="0001_initial";down_revision=None;branch_labels=None;depends_on=None
+uuid=postgresql.UUID(as_uuid=True)
+friendship_status=postgresql.ENUM("PENDING","ACCEPTED","DECLINED","BLOCKED",name="friendship_status",create_type=False)
+conversation_type=postgresql.ENUM("DIRECT",name="conversation_type",create_type=False)
+message_type=postgresql.ENUM("TEXT","IMAGE","VIDEO","DOCUMENT","SYSTEM",name="message_type",create_type=False)
+status_type=postgresql.ENUM("TEXT","IMAGE","VIDEO",name="status_type",create_type=False)
 
-def upgrade(): Base.metadata.create_all(bind=op.get_bind())
-def downgrade(): Base.metadata.drop_all(bind=op.get_bind())
+def upgrade():
+    bind=op.get_bind()
+    for kind in (friendship_status,conversation_type,message_type,status_type):kind.create(bind,checkfirst=True)
+    op.create_table("users",sa.Column("id",uuid,primary_key=True),sa.Column("display_name",sa.String(80),nullable=False),sa.Column("email",sa.String(320),nullable=False),sa.Column("password_hash",sa.Text(),nullable=False),sa.Column("avatar_key",sa.Text()),sa.Column("about",sa.String(160),nullable=False,server_default=""),sa.Column("last_seen_at",sa.DateTime(timezone=True)),sa.Column("created_at",sa.DateTime(timezone=True),nullable=False,server_default=sa.text("now()")),sa.Column("updated_at",sa.DateTime(timezone=True),nullable=False,server_default=sa.text("now()")),sa.UniqueConstraint("email",name="uq_users_email"))
+    op.create_table("refresh_sessions",sa.Column("id",uuid,primary_key=True),sa.Column("user_id",uuid,sa.ForeignKey("users.id",ondelete="CASCADE"),nullable=False),sa.Column("token_hash",sa.String(64),nullable=False,unique=True),sa.Column("expires_at",sa.DateTime(timezone=True),nullable=False),sa.Column("created_at",sa.DateTime(timezone=True),nullable=False,server_default=sa.text("now()")),sa.Column("revoked_at",sa.DateTime(timezone=True)),sa.Column("user_agent",sa.String(300)))
+    op.create_index("ix_refresh_sessions_user_id","refresh_sessions",["user_id"])
+    op.create_table("friendships",sa.Column("id",uuid,primary_key=True),sa.Column("requester_id",uuid,sa.ForeignKey("users.id",ondelete="CASCADE"),nullable=False),sa.Column("addressee_id",uuid,sa.ForeignKey("users.id",ondelete="CASCADE"),nullable=False),sa.Column("status",friendship_status,nullable=False),sa.Column("created_at",sa.DateTime(timezone=True),nullable=False,server_default=sa.text("now()")),sa.Column("updated_at",sa.DateTime(timezone=True),nullable=False,server_default=sa.text("now()")),sa.CheckConstraint("requester_id <> addressee_id",name="ck_friendship_not_self"))
+    op.create_index("ix_friendships_requester_id","friendships",["requester_id"]);op.create_index("ix_friendships_addressee_id","friendships",["addressee_id"]);op.create_index("ix_friendships_status","friendships",["status"]);op.create_index("uq_friendship_pair","friendships",[sa.text("least(requester_id, addressee_id)"),sa.text("greatest(requester_id, addressee_id)")],unique=True)
+    op.create_table("conversations",sa.Column("id",uuid,primary_key=True),sa.Column("type",conversation_type,nullable=False,server_default="DIRECT"),sa.Column("direct_key",sa.String(73),unique=True),sa.Column("created_at",sa.DateTime(timezone=True),nullable=False,server_default=sa.text("now()")),sa.Column("updated_at",sa.DateTime(timezone=True),nullable=False,server_default=sa.text("now()")),sa.Column("last_message_at",sa.DateTime(timezone=True)))
+    op.create_index("ix_conversations_last_message_at","conversations",["last_message_at"])
+    op.create_table("messages",sa.Column("id",uuid,primary_key=True),sa.Column("conversation_id",uuid,sa.ForeignKey("conversations.id",ondelete="CASCADE"),nullable=False),sa.Column("sender_id",uuid,sa.ForeignKey("users.id",ondelete="CASCADE"),nullable=False),sa.Column("type",message_type,nullable=False,server_default="TEXT"),sa.Column("text",sa.Text(),nullable=False,server_default=""),sa.Column("reply_to_message_id",uuid,sa.ForeignKey("messages.id",ondelete="SET NULL")),sa.Column("created_at",sa.DateTime(timezone=True),nullable=False,server_default=sa.text("now()")),sa.Column("updated_at",sa.DateTime(timezone=True),nullable=False,server_default=sa.text("now()")),sa.Column("deleted_at",sa.DateTime(timezone=True)))
+    op.create_index("ix_messages_sender_id","messages",["sender_id"]);op.create_index("ix_messages_conversation_created","messages",["conversation_id","created_at"])
+    op.create_table("conversation_participants",sa.Column("conversation_id",uuid,sa.ForeignKey("conversations.id",ondelete="CASCADE"),primary_key=True),sa.Column("user_id",uuid,sa.ForeignKey("users.id",ondelete="CASCADE"),primary_key=True),sa.Column("joined_at",sa.DateTime(timezone=True),nullable=False,server_default=sa.text("now()")),sa.Column("last_read_message_id",uuid,sa.ForeignKey("messages.id",ondelete="SET NULL")),sa.Column("pinned",sa.Boolean(),nullable=False,server_default=sa.false()),sa.Column("muted",sa.Boolean(),nullable=False,server_default=sa.false()))
+    op.create_index("ix_conversation_participants_user_id","conversation_participants",["user_id"])
+    op.create_table("message_receipts",sa.Column("message_id",uuid,sa.ForeignKey("messages.id",ondelete="CASCADE"),primary_key=True),sa.Column("user_id",uuid,sa.ForeignKey("users.id",ondelete="CASCADE"),primary_key=True),sa.Column("delivered_at",sa.DateTime(timezone=True)),sa.Column("read_at",sa.DateTime(timezone=True)))
+    op.create_table("message_visibility",sa.Column("message_id",uuid,sa.ForeignKey("messages.id",ondelete="CASCADE"),primary_key=True),sa.Column("user_id",uuid,sa.ForeignKey("users.id",ondelete="CASCADE"),primary_key=True),sa.Column("hidden_at",sa.DateTime(timezone=True),nullable=False,server_default=sa.text("now()")))
+    op.create_table("attachments",sa.Column("id",uuid,primary_key=True),sa.Column("message_id",uuid,sa.ForeignKey("messages.id",ondelete="CASCADE"),nullable=False,unique=True),sa.Column("object_key",sa.Text(),nullable=False,unique=True),sa.Column("file_name",sa.String(255),nullable=False),sa.Column("mime_type",sa.String(150),nullable=False),sa.Column("file_size",sa.BigInteger(),nullable=False),sa.Column("width",sa.Integer()),sa.Column("height",sa.Integer()),sa.Column("duration",sa.Integer()),sa.Column("created_at",sa.DateTime(timezone=True),nullable=False,server_default=sa.text("now()")))
+    op.create_table("status_posts",sa.Column("id",uuid,primary_key=True),sa.Column("user_id",uuid,sa.ForeignKey("users.id",ondelete="CASCADE"),nullable=False),sa.Column("type",status_type,nullable=False),sa.Column("text",sa.String(500),nullable=False,server_default=""),sa.Column("object_key",sa.Text()),sa.Column("file_name",sa.String(255)),sa.Column("mime_type",sa.String(150)),sa.Column("file_size",sa.BigInteger()),sa.Column("color",sa.String(20),nullable=False,server_default="#4c3f66"),sa.Column("created_at",sa.DateTime(timezone=True),nullable=False,server_default=sa.text("now()")),sa.Column("expires_at",sa.DateTime(timezone=True),nullable=False))
+    op.create_index("ix_status_user_expiry","status_posts",["user_id","expires_at"])
+    op.create_table("status_views",sa.Column("status_id",uuid,sa.ForeignKey("status_posts.id",ondelete="CASCADE"),primary_key=True),sa.Column("viewer_id",uuid,sa.ForeignKey("users.id",ondelete="CASCADE"),primary_key=True),sa.Column("viewed_at",sa.DateTime(timezone=True),nullable=False,server_default=sa.text("now()")))
+    op.create_table("user_preferences",sa.Column("user_id",uuid,sa.ForeignKey("users.id",ondelete="CASCADE"),primary_key=True),sa.Column("read_receipts",sa.Boolean(),nullable=False,server_default=sa.true()),sa.Column("last_seen_visibility",sa.String(30),nullable=False,server_default="Friends"),sa.Column("profile_photo_visibility",sa.String(30),nullable=False,server_default="Friends"),sa.Column("status_visibility",sa.String(30),nullable=False,server_default="Friends"))
+
+def downgrade():
+    for table in ("user_preferences","status_views","status_posts","attachments","message_visibility","message_receipts","conversation_participants","messages","conversations","friendships","refresh_sessions","users"):op.drop_table(table)
+    bind=op.get_bind()
+    for kind in (status_type,message_type,conversation_type,friendship_status):kind.drop(bind,checkfirst=True)

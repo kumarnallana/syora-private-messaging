@@ -12,6 +12,8 @@ from app.schemas.inputs import LoginIn, RegisterIn
 from app.services.serializers import user_out
 router=APIRouter(prefix="/api/auth",tags=["auth"]); settings=get_settings(); COOKIE="syora_refresh"
 
+def require_client_origin(request:Request)->None:
+    if request.headers.get("origin")!=settings.client_origin:raise api_error(403,"ORIGIN_FORBIDDEN","This request origin is not allowed.")
 def set_refresh_cookie(response:Response,token:str):
     response.set_cookie(COOKIE,token,max_age=settings.refresh_token_days*86400,httponly=True,secure=settings.production,samesite="none" if settings.production else "lax",path="/api/auth")
 async def payload(db:AsyncSession,user:User)->dict:return {"user":await user_out(db,user,user.id),"accessToken":create_access_token(str(user.id))}
@@ -20,16 +22,19 @@ async def issue_session(db:AsyncSession,user:User,response:Response,request:Requ
 
 @router.post("/register",dependencies=[Depends(rate_limit("register",8,3600))],status_code=201)
 async def register(body:RegisterIn,response:Response,request:Request,db:AsyncSession=Depends(get_db)):
+    require_client_origin(request)
     email=str(body.email).strip().lower()
     if await db.scalar(select(User.id).where(User.email==email)):raise api_error(409,"EMAIL_EXISTS","An account already exists for this email.")
     user=User(display_name=body.display_name,email=email,password_hash=hash_password(body.password));db.add(user);await db.flush();db.add(UserPreference(user_id=user.id));await db.commit();await db.refresh(user);await issue_session(db,user,response,request);return await payload(db,user)
 @router.post("/login",dependencies=[Depends(rate_limit("login",12,900))])
 async def login(body:LoginIn,response:Response,request:Request,db:AsyncSession=Depends(get_db)):
+    require_client_origin(request)
     user=await db.scalar(select(User).where(User.email==str(body.email).strip().lower()))
     if not user or not verify_password(user.password_hash,body.password):raise api_error(401,"LOGIN_INVALID","Email or password is incorrect.")
     await issue_session(db,user,response,request);return await payload(db,user)
 @router.post("/refresh",dependencies=[Depends(rate_limit("refresh",30,300))])
 async def refresh(response:Response,request:Request,db:AsyncSession=Depends(get_db)):
+    require_client_origin(request)
     raw=request.cookies.get(COOKIE)
     if not raw:raise api_error(401,"REFRESH_REQUIRED","Your session has expired.")
     session=await db.scalar(select(RefreshSession).where(RefreshSession.token_hash==hash_refresh_token(raw),RefreshSession.revoked_at.is_(None),RefreshSession.expires_at>now()).with_for_update())
@@ -39,6 +44,7 @@ async def refresh(response:Response,request:Request,db:AsyncSession=Depends(get_
     await issue_session(db,user,response,request);return await payload(db,user)
 @router.post("/logout",status_code=204)
 async def logout(response:Response,request:Request,db:AsyncSession=Depends(get_db)):
+    require_client_origin(request)
     raw=request.cookies.get(COOKIE)
     if raw:
         session=await db.scalar(select(RefreshSession).where(RefreshSession.token_hash==hash_refresh_token(raw),RefreshSession.revoked_at.is_(None)))

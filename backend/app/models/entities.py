@@ -16,7 +16,7 @@ class User(Base):
     __tablename__="users"
     id:Mapped[uuid.UUID]=mapped_column(UUID(as_uuid=True),primary_key=True,default=uuid.uuid4)
     display_name:Mapped[str]=mapped_column(String(80))
-    email:Mapped[str]=mapped_column(String(320),unique=True,index=True)
+    email:Mapped[str]=mapped_column(String(320),unique=True)
     password_hash:Mapped[str]=mapped_column(Text)
     avatar_key:Mapped[str|None]=mapped_column(Text)
     about:Mapped[str]=mapped_column(String(160),default="")
@@ -65,7 +65,7 @@ class ConversationParticipant(Base):
 class Message(Base):
     __tablename__="messages"
     id:Mapped[uuid.UUID]=mapped_column(UUID(as_uuid=True),primary_key=True,default=uuid.uuid4)
-    conversation_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("conversations.id",ondelete="CASCADE"),index=True)
+    conversation_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("conversations.id",ondelete="CASCADE"))
     sender_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("users.id",ondelete="CASCADE"),index=True)
     type:Mapped[MessageType]=mapped_column(Enum(MessageType,name="message_type"),default=MessageType.TEXT)
     text:Mapped[str]=mapped_column(Text,default="")
@@ -91,7 +91,7 @@ class MessageVisibility(Base):
 class Attachment(Base):
     __tablename__="attachments"
     id:Mapped[uuid.UUID]=mapped_column(UUID(as_uuid=True),primary_key=True,default=uuid.uuid4)
-    message_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("messages.id",ondelete="CASCADE"),unique=True,index=True)
+    message_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("messages.id",ondelete="CASCADE"),unique=True)
     object_key:Mapped[str]=mapped_column(Text,unique=True)
     file_name:Mapped[str]=mapped_column(String(255))
     mime_type:Mapped[str]=mapped_column(String(150))
@@ -104,7 +104,7 @@ class Attachment(Base):
 class StatusPost(Base):
     __tablename__="status_posts"
     id:Mapped[uuid.UUID]=mapped_column(UUID(as_uuid=True),primary_key=True,default=uuid.uuid4)
-    user_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("users.id",ondelete="CASCADE"),index=True)
+    user_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("users.id",ondelete="CASCADE"))
     type:Mapped[StatusType]=mapped_column(Enum(StatusType,name="status_type"))
     text:Mapped[str]=mapped_column(String(500),default="")
     object_key:Mapped[str|None]=mapped_column(Text)
@@ -113,7 +113,7 @@ class StatusPost(Base):
     file_size:Mapped[int|None]=mapped_column(BigInteger)
     color:Mapped[str]=mapped_column(String(20),default="#4c3f66")
     created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
-    expires_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),index=True)
+    expires_at:Mapped[datetime]=mapped_column(DateTime(timezone=True))
     __table_args__=(Index("ix_status_user_expiry",user_id,expires_at),)
 
 class StatusView(Base):

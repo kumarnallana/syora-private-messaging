@@ -9,5 +9,12 @@ dependencies = [
   "python-socketio>=5.12,<6", "boto3>=1.36,<2", "python-multipart>=0.0.20,<1"
 ]
 
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
 [tool.uvicorn]
 factory = false

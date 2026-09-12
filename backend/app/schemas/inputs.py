@@ -17,6 +17,8 @@ class ProfileIn(BaseModel):
     display_name:str|None=Field(default=None,min_length=1,max_length=80)
     about:str|None=Field(default=None,max_length=160)
     avatar_key:str|None=Field(default=None,max_length=600)
+    avatar_mime:str|None=Field(default=None,max_length=150)
+    avatar_size:int|None=Field(default=None,gt=0)
 class PreferencesIn(BaseModel):
     read_receipts:bool|None=None
     last_seen_visibility:Literal["Everyone","Friends","Nobody"]|None=None

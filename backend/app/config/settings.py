@@ -1,5 +1,5 @@
 from functools import lru_cache
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -15,6 +15,13 @@ class Settings(BaseSettings):
     r2_secret_access_key: str = Field(default="", alias="R2_SECRET_ACCESS_KEY")
     r2_bucket: str = Field(default="", alias="R2_BUCKET")
     environment: str = Field(default="development", alias="ENVIRONMENT")
+
+    @field_validator("database_url",mode="before")
+    @classmethod
+    def async_postgres_url(cls,value:str)->str:
+        value=value.replace("postgres://","postgresql://",1)
+        if value.startswith("postgresql://"):value=value.replace("postgresql://","postgresql+asyncpg://",1)
+        return value.replace("sslmode=require","ssl=require")
 
     @property
     def production(self) -> bool:

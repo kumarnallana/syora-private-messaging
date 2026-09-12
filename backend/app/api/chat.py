@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from datetime import datetime
 from fastapi import APIRouter, Depends, Query
@@ -5,7 +6,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import api_error, current_user, require_participant
 from app.db.session import get_db
-from app.models import Attachment, Conversation, ConversationParticipant, ConversationType, Friendship, FriendshipStatus, Message, MessageReceipt, MessageType, MessageVisibility, User, now
+from app.models import Attachment, Conversation, ConversationParticipant, ConversationType, Friendship, FriendshipStatus, Message, MessageReceipt, MessageType, MessageVisibility, User, UserPreference, now
 from app.schemas.inputs import ConversationPreferenceIn, DeleteMessageIn, DirectConversationIn, MessageIn
 from app.services.media import r2
 from app.services.relationships import blocked
@@ -59,6 +60,7 @@ async def send_message(conversation_id:uuid.UUID,body:MessageIn,user:User=Depend
         if not body.attachment.object_key.startswith(f"users/{user.id}/"):raise api_error(422,"ATTACHMENT_INVALID","Attachment upload is invalid.")
         message_type=MessageType.IMAGE if body.attachment.mime_type.startswith("image/") else MessageType.VIDEO if body.attachment.mime_type.startswith("video/") else MessageType.DOCUMENT
         r2.validate_metadata(message_type.value.lower(),body.attachment.mime_type,body.attachment.file_size)
+        await asyncio.to_thread(r2.verify_object,body.attachment.object_key,body.attachment.mime_type,body.attachment.file_size)
     item=Message(conversation_id=conversation_id,sender_id=user.id,type=message_type,text=body.text,reply_to_message_id=body.reply_to);db.add(item);await db.flush()
     if body.attachment:db.add(Attachment(message_id=item.id,object_key=body.attachment.object_key,file_name=body.attachment.file_name,mime_type=body.attachment.mime_type,file_size=body.attachment.file_size,width=body.attachment.width,height=body.attachment.height,duration=body.attachment.duration))
     db.add_all([MessageReceipt(message_id=item.id,user_id=x) for x in other_ids]);conversation=await db.get(Conversation,conversation_id);conversation.last_message_at=item.created_at;await db.commit();data=await message_out(db,item,user.id)
@@ -75,13 +77,15 @@ async def delete_message(message_id:uuid.UUID,body:DeleteMessageIn,user:User=Dep
     else:
         if item.sender_id!=user.id:raise api_error(403,"MESSAGE_DELETE_FORBIDDEN","You can only delete your own message for everyone.")
         attachment=await db.scalar(select(Attachment).where(Attachment.message_id==item.id));item.text="";item.reply_to_message_id=None;item.deleted_at=now()
-        if attachment:r2.delete(attachment.object_key);await db.delete(attachment)
+        if attachment:await asyncio.to_thread(r2.delete,attachment.object_key);await db.delete(attachment)
     await db.commit()
     if body.mode=="everyone":await emit_conversation(item.conversation_id,"message:deleted",{"messageId":str(item.id)})
     return {"deleted":True,"mode":body.mode}
 async def mark_read_internal(message:Message,user:User,db:AsyncSession):
     await require_participant(message.conversation_id,user,db);receipt=await db.get(MessageReceipt,{"message_id":message.id,"user_id":user.id})
-    if receipt and not receipt.read_at:receipt.delivered_at=receipt.delivered_at or now();receipt.read_at=now();participant=await db.get(ConversationParticipant,{"conversation_id":message.conversation_id,"user_id":user.id});participant.last_read_message_id=message.id;await db.commit();await emit_conversation(message.conversation_id,"message:read",{"messageId":str(message.id),"userId":str(user.id)})
+    if receipt and not receipt.read_at:
+        receipt.delivered_at=receipt.delivered_at or now();receipt.read_at=now();participant=await db.get(ConversationParticipant,{"conversation_id":message.conversation_id,"user_id":user.id});participant.last_read_message_id=message.id;preference=await db.get(UserPreference,user.id);await db.commit()
+        if not preference or preference.read_receipts:await emit_conversation(message.conversation_id,"message:read",{"messageId":str(message.id),"userId":str(user.id)})
 @router.post("/api/messages/{message_id}/read")
 async def mark_message_read(message_id:uuid.UUID,user:User=Depends(current_user),db:AsyncSession=Depends(get_db)):
     item=await db.get(Message,message_id)
@@ -93,5 +97,6 @@ async def mark_conversation_read(conversation_id:uuid.UUID,user:User=Depends(cur
     for item in items:
         receipt=await db.get(MessageReceipt,{"message_id":item.id,"user_id":user.id});receipt.delivered_at=receipt.delivered_at or now();receipt.read_at=now()
     if items:
-        participant=await db.get(ConversationParticipant,{"conversation_id":conversation_id,"user_id":user.id});participant.last_read_message_id=items[-1].id;await db.commit();await emit_conversation(conversation_id,"message:read",{"messageIds":[str(x.id) for x in items],"userId":str(user.id)})
+        participant=await db.get(ConversationParticipant,{"conversation_id":conversation_id,"user_id":user.id});participant.last_read_message_id=items[-1].id;preference=await db.get(UserPreference,user.id);await db.commit()
+        if not preference or preference.read_receipts:await emit_conversation(conversation_id,"message:read",{"messageIds":[str(x.id) for x in items],"userId":str(user.id)})
     return {"read":len(items)}

@@ -44,10 +44,11 @@ async def disconnect(sid):
     if user_sids[user_id]:return
     online_users.discard(user_id);user_sids.pop(user_id,None)
     async with SessionLocal() as db:
-        user=await db.get(User,user_id); friends=await friend_ids(db,user_id);preference=await db.get(UserPreference,user_id)
+        user=await db.get(User,user_id); friends=await friend_ids(db,user_id);preference=await db.get(UserPreference,user_id);conversations=(await db.scalars(select(ConversationParticipant.conversation_id).where(ConversationParticipant.user_id==user_id))).all()
         if user:user.last_seen_at=now();await db.commit()
     if not preference or preference.last_seen_visibility!="Nobody":
         for friend_id in friends:await emit_user(friend_id,"presence:update",{"userId":str(user_id),"online":False,"lastSeen":now().isoformat()})
+    for conversation_id in conversations:await emit_conversation(conversation_id,"typing:stop",{"conversationId":str(conversation_id),"userId":str(user_id)})
 
 async def _authorized(sid:str,conversation_id:str):
     user_id=sid_users.get(sid)

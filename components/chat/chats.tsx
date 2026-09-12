@@ -17,6 +17,7 @@ export function Chats() {
  const [messageQuery,setMessageQuery]=useState('');
  const [searchOpen,setSearchOpen]=useState(false);
  const [infoOpen,setInfoOpen]=useState(false);
+ const [actionError,setActionError]=useState('');
  const [reply,setReply]=useState<import('@/types').Message>();
  const timeline = useRef<HTMLDivElement>(null);
  const heading = useRef<HTMLHeadingElement>(null);
@@ -42,6 +43,10 @@ export function Chats() {
   const last = activeMessages.at(-1);
   if (nearBottom.current || last?.senderId === me?.id) timeline.current?.scrollTo({ top: timeline.current.scrollHeight });
  }, [active?.id, activeMessages.length, me?.id]);
+ useEffect(() => {
+  const last=activeMessages.at(-1);
+  if(active&&last&&last.senderId!==me?.id)services.markRead(active.id);
+ },[active?.id,activeMessages.length,me?.id,services]);
  function back() {
   const id = selected;
   setSelected(null);
@@ -79,13 +84,13 @@ export function Chats() {
      const previous = visibleMessages[index - 1];
      return <div key={message.id}>
       {(!previous || new Date(previous.createdAt).toDateString() !== day) && <div className="date-separator">{day === new Date().toDateString() ? 'Today' : new Date(message.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}</div>}
-      <MessageBubble message={message} mine={message.senderId === me!.id} groupedWithPrevious={!!previous&&previous.senderId===message.senderId&&new Date(previous.createdAt).toDateString()===day} original={activeMessages.find(m=>m.id===message.replyTo)} onReply={()=>setReply(message)}/>
+      <MessageBubble message={message} mine={message.senderId === me!.id} groupedWithPrevious={!!previous&&previous.senderId===message.senderId&&new Date(previous.createdAt).toDateString()===day} original={activeMessages.find(m=>m.id===message.replyTo)||message.replyPreview} onReply={()=>setReply(message)}/>
      </div>;
     })}
     {!visibleMessages.length && <Empty title={messageQuery?'No messages found':'Start with a hello'} description={messageQuery?'Try another word or file name.':`Send the first message to ${friend.name.split(' ')[0]}.`}/>}</div>
    </div>
    <Composer key={`${me!.id}:${active.id}`} conversationId={active.id} blocked={preferences.blocked.includes(friend.id)} reply={reply} clearReply={()=>setReply(undefined)}/>
-   {infoOpen&&<Modal title="Conversation details" className="mobile-sheet" onClose={()=>setInfoOpen(false)}><div className="person-detail"><Avatar user={friend} size="large"/><h2>{friend.name}</h2><p>{friend.about}</p><small>{friend.email}</small></div><div className="detail-actions"><button onClick={()=>services.toggleConversation(active.id,'pinned')}><Pin size={18}/>{active.pinned?'Unpin conversation':'Pin conversation'}</button><button onClick={()=>services.toggleConversation(active.id,'muted')}><BellOff size={18}/>{active.muted?'Unmute notifications':'Mute notifications'}</button><button onClick={()=>services.block(friend.id)}><Ban size={18}/>{preferences.blocked.includes(friend.id)?'Unblock contact':'Block contact'}</button></div></Modal>}
+   {infoOpen&&<Modal title="Conversation details" className="mobile-sheet" onClose={()=>setInfoOpen(false)}><div className="person-detail"><Avatar user={friend} size="large"/><h2>{friend.name}</h2><p>{friend.about}</p><small>{friend.email}</small></div>{actionError&&<p className="inline-error" role="alert">{actionError}</p>}<div className="detail-actions"><button onClick={()=>void services.toggleConversation(active.id,'pinned').catch(e=>setActionError((e as Error).message))}><Pin size={18}/>{active.pinned?'Unpin conversation':'Pin conversation'}</button><button onClick={()=>void services.toggleConversation(active.id,'muted').catch(e=>setActionError((e as Error).message))}><BellOff size={18}/>{active.muted?'Unmute notifications':'Mute notifications'}</button><button onClick={()=>void services.block(friend.id).catch(e=>setActionError((e as Error).message))}><Ban size={18}/>{preferences.blocked.includes(friend.id)?'Unblock contact':'Block contact'}</button></div></Modal>}
   </section> : <section className="chat-panel welcome-panel"><MessageCircle size={40}/><h2>{conversations.length ? 'A space for your conversations' : 'No conversations yet'}</h2><p>{conversations.length ? 'Choose someone from your messages to catch up.' : 'Your conversations will appear here.'}</p></section>}
  </div>;
 }
