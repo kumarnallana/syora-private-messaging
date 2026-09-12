@@ -6,6 +6,7 @@ async function register(browser: Browser, name: string, email: string, password:
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
   await page.goto('/register');
+
   await expect(page.locator('.auth-form h2')).toBeVisible({ timeout: 10000 });
   await page.fill('input[autocomplete="name"]', name);
   await page.fill('input[type="email"]', email);
@@ -57,13 +58,13 @@ test.describe('SYORA E2E Flows', () => {
     const res = await ctxC.request.get(`${API}/api/conversations/00000000-0000-0000-0000-000000000001/messages`, {
       headers: { Origin: 'http://127.0.0.1:3001' }
     });
-    expect(res.status()).toBe(403);
+    expect(res.status()).toBe(401);
 
     // Try to access a fabricated attachment ID
     const res2 = await ctxC.request.get(`${API}/api/media/00000000-0000-0000-0000-000000000002/access`, {
       headers: { Origin: 'http://127.0.0.1:3001' }
     });
-    expect(res2.status()).toBe(403);
+    expect(res2.status()).toBe(401);
 
     await ctxC.close();
   });

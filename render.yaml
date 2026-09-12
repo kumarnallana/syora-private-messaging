@@ -20,7 +20,7 @@ services:
         value: 15
       - key: REFRESH_TOKEN_DAYS
         value: 30
-      - key: CLIENT_ORIGIN
+      - key: CLIENT_ORIGINS
         sync: false
       - key: R2_ACCOUNT_ID
         sync: false

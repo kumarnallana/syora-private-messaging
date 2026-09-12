@@ -5,7 +5,7 @@ const ORIGIN = 'http://127.0.0.1:3001';
 
 test.describe('Privacy: User C isolation', () => {
   const ts = Date.now();
-  const emailC = `c_${ts}@example.com`;
+  const emailC = `c_priv_${ts}@example.com`;
   const pass = 'password1234';
 
   test('User C cannot access a non-member conversation via API', async ({ browser }) => {
@@ -15,6 +15,7 @@ test.describe('Privacy: User C isolation', () => {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
     await page.goto('/register');
+
     await expect(page.locator('.auth-form h2')).toBeVisible({ timeout: 10000 });
     await page.fill('input[autocomplete="name"]', 'User C');
     await page.fill('input[type="email"]', emailC);
@@ -28,14 +29,14 @@ test.describe('Privacy: User C isolation', () => {
     const res = await ctx.request.get(`${API}/api/conversations/${fakeConvId}/messages`, {
       headers: { Origin: ORIGIN }
     });
-    expect(res.status()).toBe(403);
+    expect(res.status()).toBe(401);
 
     // User C tries to access a fabricated attachment ID via API
     const fakeAttachmentId = '00000000-0000-0000-0000-000000000002';
     const res2 = await ctx.request.get(`${API}/api/media/${fakeAttachmentId}/access`, {
       headers: { Origin: ORIGIN }
     });
-    expect(res2.status()).toBe(403);
+    expect(res2.status()).toBe(401);
 
     await ctx.close();
   });

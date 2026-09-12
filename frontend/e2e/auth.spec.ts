@@ -7,6 +7,7 @@ test.describe('Authentication', () => {
   test('User registration and login', async ({ page }) => {
     // Register
     await page.goto('/register');
+
     await expect(page.locator('.auth-form h2')).toBeVisible({ timeout: 10000 });
     
     await page.fill('input[autocomplete="name"]', 'User A');
