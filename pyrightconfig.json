@@ -1,0 +1,9 @@
+{
+  "executionEnvironments": [
+    {
+      "root": "backend",
+      "extraPaths": ["."]
+    }
+  ],
+  "pythonVersion": "3.12"
+}

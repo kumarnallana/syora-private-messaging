@@ -69,7 +69,7 @@ async def send_message(conversation_id:uuid.UUID,body:MessageIn,user:User=Depend
     return data
 @router.delete("/api/messages/{message_id}")
 async def delete_message(message_id:uuid.UUID,body:DeleteMessageIn,user:User=Depends(current_user),db:AsyncSession=Depends(get_db)):
-    item=await db.scalar(select(Message).where(Message.id==message_id));
+    item=await db.scalar(select(Message).where(Message.id==message_id))
     if not item:raise api_error(404,"MESSAGE_NOT_FOUND","Message not found.")
     await require_participant(item.conversation_id,user,db)
     if body.mode=="me":
