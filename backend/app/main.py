@@ -7,7 +7,7 @@ from app.api import auth, chat, media, status, users
 from app.config.settings import get_settings
 from app.realtime.socket import sio
 settings=get_settings();api=FastAPI(title="SYORA API",version="0.1.0",docs_url="/api/docs" if not settings.production else None)
-api.add_middleware(CORSMiddleware,allow_origins=[settings.client_origin],allow_credentials=True,allow_methods=["GET","POST","PATCH","DELETE","OPTIONS"],allow_headers=["Authorization","Content-Type"])
+api.add_middleware(CORSMiddleware,allow_origins=settings.client_origins,allow_credentials=True,allow_methods=["GET","POST","PATCH","DELETE","OPTIONS"],allow_headers=["Authorization","Content-Type"])
 @api.exception_handler(HTTPException)
 async def http_error(_:Request,exc:HTTPException):
     detail=exc.detail if isinstance(exc.detail,dict) else {"code":"REQUEST_ERROR","message":str(exc.detail)}

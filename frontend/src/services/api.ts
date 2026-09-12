@@ -45,6 +45,7 @@ export class ApiServices implements Services {
   private socket?: Socket;
   private started = false;
   private retries = new Map<string, Retry>();
+  private loadedMessages = new Set<string>();
   private refreshTask?: Promise<boolean>;
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
@@ -152,13 +153,9 @@ export class ApiServices implements Services {
     const conversationUsers = conversations
       .map((x) => x.participant)
       .filter(Boolean);
-    const messagePages = await Promise.all(
-      conversations.map((x) =>
-        this.fetch<{ messages: Message[] }>(
-          `/api/conversations/${x.id}/messages`,
-        ),
-      ),
-    );
+    const latestMessages = conversations
+      .map((x) => x.latestMessage)
+      .filter(Boolean);
     const local = {
       appearance: this.state.preferences.appearance,
       compact: this.state.preferences.compact,
@@ -176,7 +173,7 @@ export class ApiServices implements Services {
       conversations: conversations.map(
         ({ participant, latestMessage, ...x }) => x,
       ),
-      messages: messagePages.flatMap((x) => x.messages),
+      messages: latestMessages,
       friendships: [...contacts.friendships, ...requests.friendships],
       statuses: statuses.statuses,
       preferences: { ...defaults, ...local, ...preferences },
@@ -192,11 +189,21 @@ export class ApiServices implements Services {
       transports: ["websocket", "polling"],
       withCredentials: true,
     }));
-    socket.on("connect", () =>
+    socket.on("connect", () => {
       this.state.conversations.forEach((c) =>
         socket.emit("conversation:join", { conversationId: c.id }),
-      ),
-    );
+      );
+      this.state.messages.forEach((m) => {
+        if (
+          m.senderId !== this.state.currentUserId &&
+          m.receipt !== "read" &&
+          m.receipt !== "delivered"
+        ) {
+          socket.emit("message:delivered", { messageId: m.id });
+          this.patchMessage(m.id, { receipt: "delivered" });
+        }
+      });
+    });
     socket.on("connect_error", (error) => {
       if (error.message === "Authentication required")
         void this.refresh().then((ok) => {
@@ -296,6 +303,11 @@ export class ApiServices implements Services {
       users: this.users(rows.map((x) => x.participant)),
       conversations: rows.map(({ participant, latestMessage, ...x }) => x),
     });
+    if (this.socket?.connected) {
+      rows.forEach((c) =>
+        this.socket?.emit("conversation:join", { conversationId: c.id }),
+      );
+    }
   }
   private async reloadContacts() {
     const [contacts, requests, preferences] = await Promise.all([
@@ -508,6 +520,41 @@ export class ApiServices implements Services {
       });
     } catch (error) {
       this.patchConversation(id, { [key]: !value });
+      throw error;
+    }
+  }
+  async getAccessUrl(attachmentId: string) {
+    const data = await this.fetch<{ url: string }>(
+      `/api/media/${attachmentId}/access`,
+    );
+    return data.url;
+  }
+  async loadMessages(conversationId: string) {
+    if (this.loadedMessages.has(conversationId)) return;
+    this.loadedMessages.add(conversationId);
+    try {
+      const page = await this.fetch<{ messages: Message[] }>(
+        `/api/conversations/${conversationId}/messages`,
+      );
+      const existing = this.state.messages.filter(
+        (m) => m.conversationId !== conversationId,
+      );
+      this.update({ messages: [...existing, ...page.messages] });
+      
+      if (this.socket?.connected) {
+        page.messages.forEach((m) => {
+          if (
+            m.senderId !== this.state.currentUserId &&
+            m.receipt !== "read" &&
+            m.receipt !== "delivered"
+          ) {
+            this.socket?.emit("message:delivered", { messageId: m.id });
+            this.patchMessage(m.id, { receipt: "delivered" });
+          }
+        });
+      }
+    } catch (error) {
+      this.loadedMessages.delete(conversationId);
       throw error;
     }
   }

@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     jwt_refresh_secret: str = Field(min_length=32, alias="JWT_REFRESH_SECRET")
     access_token_minutes: int = Field(default=15, ge=10, le=20, alias="ACCESS_TOKEN_MINUTES")
     refresh_token_days: int = Field(default=30, ge=1, le=90, alias="REFRESH_TOKEN_DAYS")
-    client_origin: str = Field(alias="CLIENT_ORIGIN")
+    client_origins: list[str] = Field(alias="CLIENT_ORIGINS")
     r2_account_id: str = Field(default="", alias="R2_ACCOUNT_ID")
     r2_access_key_id: str = Field(default="", alias="R2_ACCESS_KEY_ID")
     r2_secret_access_key: str = Field(default="", alias="R2_SECRET_ACCESS_KEY")
@@ -22,6 +22,13 @@ class Settings(BaseSettings):
         value=value.replace("postgres://","postgresql://",1)
         if value.startswith("postgresql://"):value=value.replace("postgresql://","postgresql+asyncpg://",1)
         return value.replace("sslmode=require","ssl=require")
+
+    @field_validator("client_origins", mode="before")
+    @classmethod
+    def parse_origins(cls, value: str) -> list[str]:
+        if isinstance(value, str):
+            return [o.strip() for o in value.split(",")]
+        return value
 
     @property
     def production(self) -> bool:

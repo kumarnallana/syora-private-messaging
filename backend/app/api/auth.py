@@ -13,7 +13,7 @@ from app.services.serializers import user_out
 router=APIRouter(prefix="/api/auth",tags=["auth"]); settings=get_settings(); COOKIE="syora_refresh"
 
 def require_client_origin(request:Request)->None:
-    if request.headers.get("origin")!=settings.client_origin:raise api_error(403,"ORIGIN_FORBIDDEN","This request origin is not allowed.")
+    if request.headers.get("origin") not in settings.client_origins:raise api_error(403,"ORIGIN_FORBIDDEN","This request origin is not allowed.")
 def set_refresh_cookie(response:Response,token:str):
     response.set_cookie(COOKIE,token,max_age=settings.refresh_token_days*86400,httponly=True,secure=settings.production,samesite="none" if settings.production else "lax",path="/api/auth")
 async def payload(db:AsyncSession,user:User)->dict:return {"user":await user_out(db,user,user.id),"accessToken":create_access_token(str(user.id))}
