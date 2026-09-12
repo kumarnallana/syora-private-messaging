@@ -18,3 +18,8 @@ include = ["app*"]
 
 [tool.uvicorn]
 factory = false
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.12"

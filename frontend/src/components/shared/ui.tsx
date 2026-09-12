@@ -1,21 +1,25 @@
 "use client";
 import type { Attachment, User } from "@/types";
+import { cn } from "@/utils/cn";
 import { motion, useReducedMotion } from "framer-motion";
 import { Heart, LoaderCircle, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 export function LogoMark() {
   return (
-    <span className="brand-symbol" aria-hidden="true">
+    <span
+      className="inline-grid size-9 place-items-center rounded-[10px] bg-accent font-[Georgia,serif] text-[30px] font-bold italic tracking-normal text-[#241e35]"
+      aria-hidden="true"
+    >
       <Heart size={21} strokeWidth={2.25} fill="currentColor" />
     </span>
   );
 }
 export function Brand() {
   return (
-    <span className="brand">
+    <span className="inline-flex items-center gap-2.5 text-[21px] font-bold tracking-[3px]">
       <LogoMark />
       <span>
-        SYORA<span className="brand-dot">.</span>
+        SYORA<span className="text-accent">.</span>
       </span>
     </span>
   );
@@ -28,9 +32,21 @@ export function Avatar({
   size?: "small" | "normal" | "large";
 }) {
   return (
-    <span className={`avatar ${user.color} ${size}`}>
+    <span
+      className={cn(
+        "relative inline-flex shrink-0 items-center justify-center rounded-full bg-[#473a58] font-semibold text-[#e9dff6]",
+        user.color === "peach" && "bg-[#68433f] text-[#f5d8c4]",
+        user.color === "blue" && "bg-[#354659] text-[#c1def2]",
+        user.color === "rose" && "bg-[#59384a] text-[#f7d0e7]",
+        user.color === "sand" && "bg-[#5b4e39] text-[#f2e1b6]",
+        user.color === "mint" && "bg-[#314e48] text-[#c0dfd7]",
+        size === "small" && "size-[37px] text-[12px]",
+        size === "normal" && "size-[45px] text-[14px]",
+        size === "large" && "size-[88px] text-[26px]",
+      )}
+    >
       {user.avatar ? (
-        <img src={user.avatar} alt={user.name} />
+        <img src={user.avatar} alt={user.name} className="size-full rounded-full object-cover" />
       ) : (
         user.name
           .split(" ")
@@ -38,7 +54,7 @@ export function Avatar({
           .slice(0, 2)
           .join("")
       )}
-      {user.online && <span className="presence-dot" />}
+      {user.online && <span className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-panel bg-[#afd2bb]" />}
     </span>
   );
 }
@@ -58,7 +74,10 @@ export function IconButton({
   return (
     <button
       type="button"
-      className={`icon-button ${className}`}
+      className={cn(
+        "inline-flex size-11 shrink-0 items-center justify-center rounded-[9px] text-muted transition-colors hover:bg-surface disabled:pointer-events-none disabled:opacity-50",
+        className,
+      )}
       title={label}
       aria-label={label}
       onClick={onClick}
@@ -68,6 +87,34 @@ export function IconButton({
     </button>
   );
 }
+
+export function Button({
+  children,
+  variant = "primary",
+  className,
+  full,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "primary" | "secondary" | "danger";
+  full?: boolean;
+}) {
+  return (
+    <button
+      className={cn(
+        "inline-flex min-h-[44px] items-center justify-center gap-2.5 rounded-[9px] border border-transparent px-[18px] py-[11px] text-[14px] font-semibold transition-colors disabled:pointer-events-none disabled:opacity-50",
+        variant === "primary" && "bg-accent text-[#241e35] hover:bg-[#cabbff]",
+        variant === "secondary" && "border-border bg-surface hover:bg-white/[0.035]",
+        variant === "danger" && "bg-danger text-panel hover:bg-[#ff9caa]",
+        full && "w-full",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function Modal({
   title,
   children,
@@ -91,7 +138,11 @@ export function Modal({
   return (
     <dialog
       ref={ref}
-      className={`modal ${wide ? "wide" : ""} ${className}`}
+      className={cn(
+        "max-h-[calc(100dvh-30px)] overflow-auto rounded-[14px] border border-border bg-panel p-6 text-text-primary backdrop:bg-[#090a11b8]",
+        wide ? "w-[min(900px,calc(100vw-30px))]" : "w-[min(460px,calc(100vw-30px))]",
+        className,
+      )}
       onCancel={onClose}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
@@ -112,8 +163,8 @@ export function Modal({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.16 }}
       >
-        <header className="modal-header">
-          <h2>{title}</h2>
+        <header className="mb-4 flex items-center justify-between gap-[15px]">
+          <h2 className="text-[20px] font-medium">{title}</h2>
           <IconButton label="Close dialog" onClick={onClose}>
             <X size={20} />
           </IconButton>
@@ -133,20 +184,20 @@ export function Empty({
   children?: ReactNode;
 }) {
   return (
-    <div className="empty">
-      <span className="empty-icon">
+    <div className="flex flex-col items-center gap-[14px] p-[45px_20px] text-center">
+      <span className="grid size-[58px] place-items-center rounded-[15px] bg-[#302a42] text-accent">
         <Sparkles size={28} />
       </span>
-      <h2>{title}</h2>
-      <p>{description}</p>
+      <h2 className="text-[19px] font-medium">{title}</h2>
+      <p className="max-w-[290px] text-[14px] leading-[1.7] text-muted">{description}</p>
       {children}
     </div>
   );
 }
 export function Loading() {
   return (
-    <div className="loading" role="status">
-      <LoaderCircle className="spin" /> Loading your space…
+    <div className="flex h-[100dvh] items-center justify-center gap-3" role="status">
+      <LoaderCircle className="animate-spin" /> Loading your space…
     </div>
   );
 }

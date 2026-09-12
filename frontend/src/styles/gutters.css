@@ -1,0 +1,16 @@
+@layer utilities {
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .screen-gutter {
+    @apply px-4 sm:px-5 md:px-6;
+  }
+
+  .page-gutter {
+    @apply px-[15px] sm:px-[20px] md:px-[25px];
+  }
+}
