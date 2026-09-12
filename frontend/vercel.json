@@ -1,0 +1,11 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "env": {
+    "NEXT_PUBLIC_API_URL": "@syora_api_url",
+    "NEXT_PUBLIC_SOCKET_URL": "@syora_api_url",
+    "NEXT_PUBLIC_ENABLE_DEMO": "false"
+  }
+}
