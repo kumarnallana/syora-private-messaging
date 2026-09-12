@@ -1,0 +1,12 @@
+fastapi<1,>=0.115
+uvicorn[standard]<1,>=0.34
+sqlalchemy[asyncio]<3,>=2.0
+asyncpg<1,>=0.30
+alembic<2,>=1.14
+pydantic-settings<3,>=2.7
+pydantic[email]<3,>=2.10
+PyJWT<3,>=2.10
+argon2-cffi<24,>=23.1
+python-socketio<6,>=5.12
+boto3<2,>=1.36
+python-multipart<1,>=0.0.20
