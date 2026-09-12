@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import api_error, current_user
 from app.config.security import create_access_token, hash_password, hash_refresh_token, new_refresh_token, verify_password, create_reset_token, decode_reset_token
 from app.config.settings import get_settings
+import resend
+import asyncio
 from app.db.session import get_db
 from app.middleware.rate_limit import rate_limit
 from app.models import RefreshSession, User, UserPreference, now
@@ -36,8 +38,30 @@ async def forgot_password(body: ForgotPasswordIn, request: Request, db: AsyncSes
         token = create_reset_token(str(user.id), user.password_hash)
         base_url = settings.app_frontend_url.rstrip('/')
         reset_link = f"{base_url}/reset-password?token={token}"
-        # Development logger (Option A)
-        if not settings.production:
+        
+        if settings.resend_api_key:
+            resend.api_key = settings.resend_api_key
+            html_content = f"""
+            <div style="font-family: sans-serif; padding: 20px;">
+                <h2>Password Reset</h2>
+                <p>Hello {user.display_name},</p>
+                <p>We received a request to reset the password for your Syora account.</p>
+                <p><a href="{reset_link}" style="display: inline-block; padding: 10px 20px; background-color: #7b5ea7; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
+                <p>If you didn't request this, you can safely ignore this email.</p>
+            </div>
+            """
+            params = {
+                "from": settings.email_from,
+                "to": [email],
+                "subject": "Reset your Syora password",
+                "html": html_content
+            }
+            try:
+                await asyncio.to_thread(resend.Emails.send, params)
+            except Exception as e:
+                print(f"Failed to send email via Resend: {e}")
+        else:
+            # Development logger fallback
             print(f"\n==================================================\n[DEV LOG] PASSWORD RESET LINK FOR {email}:\n{reset_link}\n==================================================\n")
     # Always return a generic success message
     return {"message": "If an account exists for that email, a password reset link has been sent."}

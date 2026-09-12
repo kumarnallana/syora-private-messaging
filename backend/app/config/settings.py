@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     refresh_token_days: int = Field(default=30, ge=1, le=90, alias="REFRESH_TOKEN_DAYS")
     client_origins: list[str] = Field(alias="CLIENT_ORIGINS")
     app_frontend_url: str = Field(default="http://localhost:3000", alias="APP_FRONTEND_URL")
+    resend_api_key: str = Field(default="", alias="RESEND_API_KEY")
+    email_from: str = Field(default="noreply@resend.dev", alias="EMAIL_FROM")
     r2_account_id: str = Field(default="", alias="R2_ACCOUNT_ID")
     r2_access_key_id: str = Field(default="", alias="R2_ACCESS_KEY_ID")
     r2_secret_access_key: str = Field(default="", alias="R2_SECRET_ACCESS_KEY")
