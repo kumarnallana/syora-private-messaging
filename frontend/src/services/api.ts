@@ -10,6 +10,11 @@ import { io, type Socket } from "socket.io-client";
 import type { Services } from "./contracts";
 const API = process.env.NEXT_PUBLIC_API_URL || "";
 const SOCKET = process.env.NEXT_PUBLIC_SOCKET_URL || API;
+class ApiError extends Error {
+  constructor(message: string, readonly status: number, readonly code?: string) {
+    super(message);
+  }
+}
 const defaults: Preferences = {
   lastSeen: "Friends",
   photo: "Friends",
@@ -23,6 +28,7 @@ const defaults: Preferences = {
 };
 const empty = (): AppState => ({
   sessionReady: false,
+  connection: "connecting",
   currentUserId: null,
   users: [],
   conversations: [],
@@ -46,17 +52,22 @@ export class ApiServices implements Services {
   private started = false;
   private retries = new Map<string, Retry>();
   private loadedMessages = new Set<string>();
+  private messageCursors = new Map<string, string | null>();
   private refreshTask?: Promise<boolean>;
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
     if (!this.started && typeof window !== "undefined") {
       this.started = true;
       this.loadLocalPreferences();
+      window.addEventListener("online", this.handleOnline);
+      window.addEventListener("offline", this.handleOffline);
       void this.bootstrap();
     }
     return () => this.listeners.delete(fn);
   };
   getSnapshot = () => this.snapshot;
+  private handleOnline = () => { this.update({ connection: "connecting" }); this.socket?.connect(); };
+  private handleOffline = () => this.update({ connection: "offline" });
   private update(values: Partial<AppState>) {
     this.state = { ...this.state, ...values };
     this.snapshot = this.state;
@@ -78,7 +89,7 @@ export class ApiServices implements Services {
     } catch {}
   }
   private error(data: any, status: number) {
-    return new Error(data?.error?.message || `Request failed (${status}).`);
+    return new ApiError(data?.error?.message || `Request failed (${status}).`, status, data?.error?.code);
   }
   private async fetch<T>(
     path: string,
@@ -89,11 +100,16 @@ export class ApiServices implements Services {
     if (this.token) headers.set("Authorization", `Bearer ${this.token}`);
     if (init.body && !headers.has("Content-Type"))
       headers.set("Content-Type", "application/json");
-    const response = await fetch(`${API}${path}`, {
-      ...init,
-      headers,
-      credentials: "include",
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${API}${path}`, {
+        ...init,
+        headers,
+        credentials: "include",
+      });
+    } catch {
+      throw new ApiError("SYORA could not reach the server. Check your connection and try again.", 0, "NETWORK_UNAVAILABLE");
+    }
     if (response.status === 401 && retry && path !== "/api/auth/refresh") {
       const ok = await this.refresh();
       if (ok) return this.fetch<T>(path, init, false);
@@ -128,18 +144,25 @@ export class ApiServices implements Services {
         users: this.users([result.user]),
       });
       return true;
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiError && error.status !== 401) throw error;
       this.token = null;
       return false;
     }
   }
   private async bootstrap() {
+    this.update({ sessionReady: false, sessionError: undefined });
     try {
       const authenticated = await this.refresh();
       if (authenticated) await this.loadAll();
+    } catch (error) {
+      this.update({ sessionError: error instanceof Error ? error.message : "Your session could not be restored." });
     } finally {
       this.update({ sessionReady: true });
     }
+  }
+  async retryBootstrap() {
+    await this.bootstrap();
   }
   private async loadAll() {
     const [conversations, contacts, requests, statuses, preferences] =
@@ -177,6 +200,7 @@ export class ApiServices implements Services {
       friendships: [...contacts.friendships, ...requests.friendships],
       statuses: statuses.statuses,
       preferences: { ...defaults, ...local, ...preferences },
+      sessionError: undefined,
     });
     this.connectSocket();
   }
@@ -190,6 +214,7 @@ export class ApiServices implements Services {
       withCredentials: true,
     }));
     socket.on("connect", () => {
+      this.update({ connection: "online" });
       this.state.conversations.forEach((c) =>
         socket.emit("conversation:join", { conversationId: c.id }),
       );
@@ -205,6 +230,7 @@ export class ApiServices implements Services {
       });
     });
     socket.on("connect_error", (error) => {
+      this.update({ connection: "offline" });
       if (error.message === "Authentication required")
         void this.refresh().then((ok) => {
           if (ok) socket.connect();
@@ -296,17 +322,31 @@ export class ApiServices implements Services {
         x.id === id ? { ...x, ...values } : x,
       ),
     });
+    socket.on("disconnect", () => this.update({ connection: "offline" }));
+  }
+  private mergeMessages(incoming: Message[]) {
+    const map = new Map(this.state.messages.map((message) => [message.id, message]));
+    incoming.forEach((message) => map.set(message.id, { ...map.get(message.id), ...message }));
+    return [...map.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
   private async reloadConversations() {
     const rows = await this.fetch<any[]>("/api/conversations");
+    const latest = rows.map((x) => x.latestMessage).filter(Boolean) as Message[];
     this.update({
       users: this.users(rows.map((x) => x.participant)),
       conversations: rows.map(({ participant, latestMessage, ...x }) => x),
+      messages: this.mergeMessages(latest),
     });
     if (this.socket?.connected) {
       rows.forEach((c) =>
         this.socket?.emit("conversation:join", { conversationId: c.id }),
       );
+      latest.forEach((message) => {
+        if (message.senderId !== this.state.currentUserId && message.receipt !== "read") {
+          this.socket?.emit("message:delivered", { messageId: message.id });
+          this.patchMessage(message.id, { receipt: "delivered" });
+        }
+      });
     }
   }
   private async reloadContacts() {
@@ -371,14 +411,14 @@ export class ApiServices implements Services {
     await this.loadAll();
     return result.user;
   }
-  async register(name: string, email: string, password: string) {
+  async register(name: string, username: string, email: string, password: string) {
     this.started = true;
     if (this.refreshTask) await this.refreshTask;
     const result = await this.fetch<{ user: User; accessToken: string }>(
       "/api/auth/register",
       {
         method: "POST",
-        body: JSON.stringify({ display_name: name, email, password }),
+        body: JSON.stringify({ display_name: name, username, email, password }),
       },
       false,
     );
@@ -400,13 +440,16 @@ export class ApiServices implements Services {
     socket?.disconnect();
     void this.fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     this.token = null;
+    this.loadedMessages.clear();
+    this.messageCursors.clear();
+    this.retries.clear();
     this.state = empty();
     this.update({ sessionReady: true });
   }
   async updateProfile(
-    values: Partial<Pick<User, "name" | "about" | "avatar">>,
+    values: Partial<Pick<User, "name" | "username" | "about" | "avatar">>,
   ) {
-    const body: any = { display_name: values.name, about: values.about };
+    const body: any = { display_name: values.name, username: values.username, about: values.about };
     if (values.avatar) {
       const blob = await fetch(values.avatar).then((x) => x.blob());
       const attachment: Attachment = {
@@ -530,15 +573,16 @@ export class ApiServices implements Services {
     return data.url;
   }
   async loadMessages(conversationId: string) {
-    if (this.loadedMessages.has(conversationId)) return;
+    if (this.loadedMessages.has(conversationId)) return Boolean(this.messageCursors.get(conversationId));
     this.loadedMessages.add(conversationId);
     try {
-      const page = await this.fetch<{ messages: Message[] }>(
+      const page = await this.fetch<{ messages: Message[]; nextCursor: string | null }>(
         `/api/conversations/${conversationId}/messages`,
       );
       const existing = this.state.messages.filter(
         (m) => m.conversationId !== conversationId,
       );
+      this.messageCursors.set(conversationId, page.nextCursor);
       this.update({ messages: [...existing, ...page.messages] });
       
       if (this.socket?.connected) {
@@ -553,10 +597,21 @@ export class ApiServices implements Services {
           }
         });
       }
+      return Boolean(page.nextCursor);
     } catch (error) {
       this.loadedMessages.delete(conversationId);
       throw error;
     }
+  }
+  async loadOlderMessages(conversationId: string) {
+    const cursor = this.messageCursors.get(conversationId);
+    if (!cursor) return false;
+    const page = await this.fetch<{ messages: Message[]; nextCursor: string | null }>(
+      `/api/conversations/${conversationId}/messages?before=${encodeURIComponent(cursor)}`,
+    );
+    this.messageCursors.set(conversationId, page.nextCursor);
+    this.update({ messages: this.mergeMessages(page.messages) });
+    return Boolean(page.nextCursor);
   }
   typing(conversationId: string, active: boolean) {
     this.socket?.emit(active ? "typing:start" : "typing:stop", {
@@ -654,11 +709,12 @@ export class ApiServices implements Services {
     }
   }
   async searchUsers(query: string) {
-    if (!query.trim()) return;
+    if (!query.trim()) return [];
     const users = await this.fetch<User[]>(
-      `/api/users/search?q=${encodeURIComponent(query.trim())}`,
+      `/api/people/search?q=${encodeURIComponent(query.trim())}&limit=20`,
     );
     this.update({ users: this.users(users) });
+    return users;
   }
 }
 export const services: Services = new ApiServices();

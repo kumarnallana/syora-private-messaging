@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, case, exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import api_error, current_user
 from app.db.session import get_db
@@ -13,9 +13,16 @@ from app.services.serializers import preferences_out, user_out
 router=APIRouter(tags=["users"])
 def friendship_out(item:Friendship)->dict:return {"id":str(item.id),"from":str(item.requester_id),"to":str(item.addressee_id),"status":item.status.value.lower()}
 
-@router.get("/api/users/search")
+@router.get("/api/people/search",dependencies=[Depends(rate_limit("people-search",120,3600))])
+@router.get("/api/users/search",include_in_schema=False)
 async def search_users(q:str=Query(min_length=1,max_length=80),limit:int=Query(20,ge=1,le=30),user:User=Depends(current_user),db:AsyncSession=Depends(get_db)):
-    rows=(await db.scalars(select(User).where(User.id!=user.id,User.display_name.ilike(f"%{q.strip()}%")).order_by(User.display_name).limit(limit))).all();return [await user_out(db,x,user.id) for x in rows]
+    raw=q.strip();handle=raw.removeprefix("@").lower()
+    escaped=raw.replace("\\","\\\\").replace("%","\\%").replace("_","\\_")
+    handle_escaped=handle.replace("\\","\\\\").replace("%","\\%").replace("_","\\_")
+    blocked_pair=exists(select(Friendship.id).where(Friendship.status==FriendshipStatus.BLOCKED,pair_clause(user.id,User.id)))
+    rank=case((User.username==handle,0),(User.username.ilike(f"{handle_escaped}%",escape="\\"),1),else_=2)
+    rows=(await db.scalars(select(User).where(User.id!=user.id,~blocked_pair,or_(User.username==handle,User.username.ilike(f"{handle_escaped}%",escape="\\"),User.display_name.ilike(f"%{escaped}%",escape="\\"))).order_by(rank,User.username,User.display_name).limit(limit))).all()
+    return [await user_out(db,x,user.id) for x in rows]
 @router.get("/api/contacts")
 async def contacts(user:User=Depends(current_user),db:AsyncSession=Depends(get_db)):
     rels=(await db.scalars(select(Friendship).where(Friendship.status==FriendshipStatus.ACCEPTED,or_(Friendship.requester_id==user.id,Friendship.addressee_id==user.id)))).all();ids=[r.addressee_id if r.requester_id==user.id else r.requester_id for r in rels];people=(await db.scalars(select(User).where(User.id.in_(ids)))).all() if ids else [];return {"users":[await user_out(db,x,user.id) for x in people],"friendships":[friendship_out(x) for x in rels]}
@@ -59,6 +66,9 @@ async def profile(user:User=Depends(current_user),db:AsyncSession=Depends(get_db
 @router.patch("/api/profile")
 async def update_profile(body:ProfileIn,user:User=Depends(current_user),db:AsyncSession=Depends(get_db)):
     if body.display_name is not None:user.display_name=body.display_name.strip()
+    if body.username is not None and body.username!=user.username:
+        if await db.scalar(select(User.id).where(User.username==body.username,User.id!=user.id)):raise api_error(409,"USERNAME_EXISTS","That username is already taken.")
+        user.username=body.username
     if body.about is not None:user.about=body.about.strip()
     if body.avatar_key is not None:
         if not body.avatar_key.startswith(f"users/{user.id}/avatar/"):raise api_error(422,"AVATAR_INVALID","Avatar upload is invalid.")

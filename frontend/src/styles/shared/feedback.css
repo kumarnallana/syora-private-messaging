@@ -15,4 +15,16 @@
   .loading-state {
     @apply flex h-[100dvh] items-center justify-center gap-3;
   }
+  .recovery-state {
+    @apply flex h-[100dvh] flex-col items-center justify-center gap-[14px] px-[24px] text-center;
+  }
+  .recovery-state > svg {
+    @apply text-accent;
+  }
+  .recovery-state h1 {
+    @apply text-[22px] font-medium;
+  }
+  .recovery-state p {
+    @apply max-w-[420px] text-[14px] leading-[1.6] text-muted;
+  }
 }

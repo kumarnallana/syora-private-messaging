@@ -28,7 +28,7 @@ const nav = [
   { href: "/settings", label: "Settings", icon: Settings2 },
 ];
 export function Shell({ children }: { children: React.ReactNode }) {
-  const { me, services, preferences, sessionReady } = useApp();
+  const { me, services, preferences, sessionReady, sessionError, connection } = useApp();
   const pathname = usePathname();
   const router = useRouter();
   const [logout, setLogout] = useState(false);
@@ -36,12 +36,20 @@ export function Shell({ children }: { children: React.ReactNode }) {
     if (sessionReady && !me) router.replace("/login");
   }, [sessionReady, me, router]);
   useEffect(() => {
-    document.documentElement.dataset.theme = preferences.appearance;
+    const media = window.matchMedia("(prefers-color-scheme: light)");
+    const apply = () => {
+      document.documentElement.dataset.theme = preferences.appearance === "system" ? (media.matches ? "light" : "dark") : preferences.appearance;
+    };
+    apply();
+    if (preferences.appearance === "system") media.addEventListener("change", apply);
     return () => {
+      media.removeEventListener("change", apply);
       delete document.documentElement.dataset.theme;
     };
   }, [preferences.appearance]);
-  if (!sessionReady || !me) return <Loading />;
+  if (!sessionReady) return <Loading />;
+  if (sessionError && me) return <div className="recovery-state" role="alert"><Shield size={28}/><h1>Your space could not be loaded</h1><p>{sessionError}</p><Button variant="secondary" onClick={() => void services.retryBootstrap()}>Try again</Button></div>;
+  if (!me) return <Loading />;
   return (
     <main
       className={cn(
@@ -94,6 +102,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
       <div className="app-content">{children}</div>
+      {connection === "offline" && <div className="connection-banner" role="status">Offline — new activity will reconnect automatically.</div>}
       {logout && (
         <Modal
           title="Leave your space?"

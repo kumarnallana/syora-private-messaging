@@ -154,9 +154,9 @@ export function AttachmentContent({
           onClose={() => setView(false)}
         >
           {attachment.type === "image" ? (
-            <img className="media-viewer" src={url} alt={attachment.name} />
+            <img className="media-viewer" src={url} alt={attachment.name} onError={handleError} />
           ) : attachment.mime === "application/pdf" ? (
-            <iframe className="pdf-viewer" title={attachment.name} src={url} />
+            <iframe className="pdf-viewer" title={attachment.name} src={url} onError={handleError} />
           ) : (
             <p className="modal-copy">
               Download this document to open it in a compatible application.

@@ -241,8 +241,9 @@ export function pickAttachment(file: File): Attachment {
     ].includes(ext || "")
   )
     throw new Error("Choose an image, video, PDF, or Office document.");
-  if (file.size > 50 * 1024 * 1024)
-    throw new Error("Choose a file smaller than 50 MB.");
+  const limit = type === "image" ? 10 : type === "document" ? 20 : 50;
+  if (file.size > limit * 1024 * 1024)
+    throw new Error(`Choose a ${type} smaller than ${limit} MB.`);
   return {
     id: crypto.randomUUID(),
     name: file.name,

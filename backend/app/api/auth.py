@@ -25,7 +25,8 @@ async def register(body:RegisterIn,response:Response,request:Request,db:AsyncSes
     require_client_origin(request)
     email=str(body.email).strip().lower()
     if await db.scalar(select(User.id).where(User.email==email)):raise api_error(409,"EMAIL_EXISTS","An account already exists for this email.")
-    user=User(display_name=body.display_name,email=email,password_hash=hash_password(body.password));db.add(user);await db.flush();db.add(UserPreference(user_id=user.id));await db.commit();await db.refresh(user);await issue_session(db,user,response,request);return await payload(db,user)
+    if await db.scalar(select(User.id).where(User.username==body.username)):raise api_error(409,"USERNAME_EXISTS","That username is already taken.")
+    user=User(display_name=body.display_name,username=body.username,email=email,password_hash=hash_password(body.password));db.add(user);await db.flush();db.add(UserPreference(user_id=user.id));await db.commit();await db.refresh(user);await issue_session(db,user,response,request);return await payload(db,user)
 @router.post("/login",dependencies=[Depends(rate_limit("login",1000,900))])
 async def login(body:LoginIn,response:Response,request:Request,db:AsyncSession=Depends(get_db)):
     require_client_origin(request)

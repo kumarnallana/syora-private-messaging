@@ -60,6 +60,14 @@
   .status-progress span.is-complete {
     @apply bg-accent;
   }
+  .status-progress span.is-active {
+    @apply origin-left bg-accent;
+    animation: status-progress 5s linear both;
+  }
+  @keyframes status-progress {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
 
   .viewer-person {
     @apply mb-[13px] flex items-center gap-[10px];
@@ -78,6 +86,16 @@
   }
 
   @media (max-width: 767px) {
+    .status-grid {
+      @apply -mx-[18px] flex snap-x gap-[10px] overflow-x-auto px-[18px] pb-[8px];
+      scrollbar-width: none;
+    }
+    .status-grid::-webkit-scrollbar {
+      display: none;
+    }
+    .status-card {
+      @apply min-w-[225px] snap-start;
+    }
     .status-compose,
     .status-viewer {
       @apply min-h-[190px] p-[18px];

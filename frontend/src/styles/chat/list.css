@@ -73,6 +73,15 @@
   .list-header .search-field {
     @apply mt-[18px];
   }
+  .chat-filters {
+    @apply mt-[12px] flex gap-[7px];
+  }
+  .chat-filters button {
+    @apply min-h-[34px] rounded-full border border-border px-[14px] text-[12px] font-medium text-muted transition-colors duration-150;
+  }
+  .chat-filters button.is-active {
+    @apply border-accent bg-[#302a42] text-accent;
+  }
 
   @media (max-width: 1100px) {
     .conversation-panel {

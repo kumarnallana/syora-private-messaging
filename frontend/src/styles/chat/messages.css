@@ -22,6 +22,12 @@
   .date-separator {
     @apply mx-auto mb-[24px] mt-[14px] w-max max-w-full rounded-[7px] bg-panel p-[6px_12px] text-[12px] text-muted;
   }
+  .timeline-state {
+    @apply mx-auto my-[28px] flex max-w-[360px] flex-col items-center gap-[12px] text-center text-[13px] leading-[1.6] text-muted;
+  }
+  .load-older {
+    @apply mx-auto mb-[18px] block min-h-[40px] rounded-full border border-border px-[16px] text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-surface hover:text-text-primary;
+  }
 
   .message-row {
     @apply my-[10px] flex items-center gap-[6px];

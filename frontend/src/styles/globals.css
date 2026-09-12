@@ -113,6 +113,10 @@
     transition: none !important;
     scroll-behavior: auto !important;
   }
+  .button:active,
+  .icon-button:active {
+    transform: none !important;
+  }
 }
 
 :root[data-theme="light"] {
@@ -125,16 +129,17 @@
   --muted: #696274;
   --accent: #6952ad;
 }
-:root[data-theme="light"] .conversation-row.selected,
-:root[data-theme="light"] .theme-options button.active,
+:root[data-theme="light"] .conversation-row.is-selected,
+:root[data-theme="light"] .theme-options button.is-active,
 :root[data-theme="light"] .composer-reply,
 :root[data-theme="light"] .notice {
   background: #e6def5;
 }
-:root[data-theme="light"] .outgoing .message-bubble {
+:root[data-theme="light"] .message-row.is-outgoing .message-bubble {
   background: #e2d9f2;
 }
-:root[data-theme="light"] .primary,
+:root[data-theme="light"] .button.primary,
+:root[data-theme="light"] .button--primary,
 :root[data-theme="light"] .send-button,
 :root[data-theme="light"] .unread-badge {
   color: white;
@@ -195,3 +200,5 @@
     flex: 1;
   }
 }
+
+input[type='password']::-ms-reveal, input[type='password']::-ms-clear { display: none; }

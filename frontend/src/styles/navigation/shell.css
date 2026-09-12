@@ -41,10 +41,7 @@
   }
   @media (max-width: 767px) {
     .rail-bottom {
-      @apply m-[0_0_0_auto] flex flex-row w-auto gap-[18px];
-    }
-    .rail-bottom .rail-link {
-      @apply w-[52px];
+      @apply hidden;
     }
   }
 
@@ -57,6 +54,9 @@
 
   .app-content {
     @apply flex-1 min-w-0 h-full overflow-hidden;
+  }
+  .connection-banner {
+    @apply fixed left-1/2 top-[10px] z-[140] -translate-x-1/2 rounded-full border border-border bg-elevated px-[14px] py-[8px] text-[12px] text-muted shadow-lg;
   }
 
   .page-header {
@@ -84,5 +84,14 @@
 
   .preview-note {
     @apply flex items-center justify-center gap-[7px] p-4 text-[12px] text-muted;
+  }
+
+  @media (max-width: 767px) {
+    .page-header {
+      @apply hidden;
+    }
+    .mobile-header {
+      @apply sticky top-0 z-20 -mx-[18px] mb-[20px];
+    }
   }
 }

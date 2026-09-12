@@ -3,7 +3,7 @@
     @apply flex flex-col gap-[8px];
   }
   .person-card {
-    @apply flex items-center gap-[14px] rounded-[11px] border border-border bg-panel p-[15px_16px];
+    @apply flex items-center gap-[14px] border-b border-border px-[4px] py-[14px];
   }
   .person-card > div:nth-child(2) {
     @apply min-w-0 flex-1;
@@ -13,6 +13,22 @@
   }
   .person-card p {
     @apply mt-[6px] overflow-hidden text-ellipsis whitespace-nowrap text-[13px] text-muted;
+  }
+  .person-identity {
+    @apply flex min-w-0 flex-1 items-center gap-[12px] text-left;
+  }
+  .person-identity > span:last-child {
+    @apply min-w-0;
+  }
+  .person-identity small,
+  .username {
+    @apply mt-[3px] block text-[12px] font-medium text-accent;
+  }
+  .searching-state {
+    @apply flex min-h-[120px] items-center justify-center gap-[10px] text-[14px] text-muted;
+  }
+  .page-error {
+    @apply mt-[12px];
   }
 
   .row-actions {
@@ -24,5 +40,42 @@
   }
   .blocked-card {
     @apply opacity-[0.78];
+  }
+
+  .contact-profile {
+    @apply mx-auto mt-[44px] flex max-w-[440px] flex-col items-center rounded-[14px] border border-border bg-panel p-[34px] text-center;
+  }
+  .contact-profile h1 {
+    @apply mt-[17px] text-[23px] font-medium;
+  }
+  .contact-profile p {
+    @apply mt-[15px] max-w-[340px] text-[14px] leading-[1.6] text-muted;
+  }
+  .contact-profile > small {
+    @apply mt-[7px] text-[12px] text-muted;
+  }
+  .contact-profile .row-actions {
+    @apply mt-[24px];
+  }
+
+  @media (max-width: 767px) {
+    .person-card {
+      @apply flex-wrap gap-[10px];
+    }
+    .row-actions {
+      @apply ml-[56px] w-[calc(100%-56px)] justify-end;
+    }
+    .contact-detail-screen {
+      @apply px-[18px];
+    }
+    .contact-profile {
+      @apply mt-[24px] border-0 bg-transparent p-[18px_0];
+    }
+    .contact-profile .avatar--large {
+      @apply size-[112px] text-[30px];
+    }
+    .contact-profile .row-actions {
+      @apply ml-0 w-full flex-wrap justify-center;
+    }
   }
 }

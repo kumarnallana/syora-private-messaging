@@ -1,20 +1,20 @@
 import type { AppState, User, Message } from '@/types';
 const people: User[] = [
- { id:'demo', name:'Alex Morgan', email:'alex@syora.demo', about:'A little less noise. A little more connection.',color:'iris'},
- { id:'maya', name:'Maya Chen', email:'maya@syora.demo', about:'Collecting moments, mostly outdoors.',color:'peach',online:true},
- { id:'leo', name:'Leo Martinez', email:'leo@syora.demo', about:'Music on. World off.',color:'blue',lastSeen:'20 minutes ago'},
- { id:'aisha', name:'Aisha Patel', email:'aisha@syora.demo', about:'Making space for good things.',color:'rose',online:true},
- { id:'noah', name:'Noah Williams', email:'noah@syora.demo', about:'Probably looking for coffee.',color:'sand',lastSeen:'1 hour ago'},
- { id:'sophie', name:'Sophie Laurent', email:'sophie@syora.demo', about:'See you on the next adventure.',color:'mint',lastSeen:'yesterday'},
- { id:'ethan', name:'Ethan Brooks', email:'ethan@syora.demo', about:'One day at a time.',color:'blue',lastSeen:'3 hours ago'},
- { id:'olivia', name:'Olivia Park', email:'olivia@syora.demo', about:'Designing a slower life.',color:'rose',online:true},
- { id:'james', name:'James Wilson', email:'james@syora.demo', about:'Always up for a good conversation.',color:'sand'},
+ { id:'demo', name:'Alex Morgan', username:'alex', email:'alex@syora.demo', about:'A little less noise. A little more connection.',color:'iris'},
+ { id:'maya', name:'Maya Chen', username:'maya', email:'maya@syora.demo', about:'Collecting moments, mostly outdoors.',color:'peach',online:true},
+ { id:'leo', name:'Leo Martinez', username:'leo', email:'leo@syora.demo', about:'Music on. World off.',color:'blue',lastSeen:'20 minutes ago'},
+ { id:'aisha', name:'Aisha Patel', username:'aisha', email:'aisha@syora.demo', about:'Making space for good things.',color:'rose',online:true},
+ { id:'noah', name:'Noah Williams', username:'noah', email:'noah@syora.demo', about:'Probably looking for coffee.',color:'sand',lastSeen:'1 hour ago'},
+ { id:'sophie', name:'Sophie Laurent', username:'sophie', email:'sophie@syora.demo', about:'See you on the next adventure.',color:'mint',lastSeen:'yesterday'},
+ { id:'ethan', name:'Ethan Brooks', username:'ethan', email:'ethan@syora.demo', about:'One day at a time.',color:'blue',lastSeen:'3 hours ago'},
+ { id:'olivia', name:'Olivia Park', username:'olivia', email:'olivia@syora.demo', about:'Designing a slower life.',color:'rose',online:true},
+ { id:'james', name:'James Wilson', username:'james', email:'james@syora.demo', about:'Always up for a good conversation.',color:'sand'},
 ];
 export function createSeed(): AppState {
  const now = Date.now();
  const stamp = (minutes: number) => new Date(now - minutes * 60000).toISOString();
  const message = (id:string,conversationId:string,senderId:string,text:string,minutes:number,extra:Partial<Message>={}):Message => ({id,conversationId,senderId,text,createdAt:stamp(minutes),receipt:'read',...extra});
- return { sessionReady:true,currentUserId:null,users:structuredClone(people),
+ return { sessionReady:true,connection:'online',currentUserId:null,users:structuredClone(people),
  conversations: ['maya','leo','aisha','noah','sophie','ethan'].map((id,i)=>({id:'chat-'+id,participants:['demo',id],unread:i===0?2:i===2?1:0,pinned:i<2,muted:i===4,typing:i===2})),
  messages:[
  message('m1','chat-maya','maya','Hey! Have you decided where we should go this weekend?',70),

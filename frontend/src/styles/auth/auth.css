@@ -38,6 +38,12 @@
   .auth-form {
     @apply w-full max-w-[385px];
   }
+  .auth-form-shell {
+    @apply flex min-h-[650px] w-full max-w-[385px] items-center;
+  }
+  .auth-form-transition {
+    animation: auth-form-in 160ms ease-out both;
+  }
   .auth-form h2 {
     @apply m-[15px_0_12px] text-[27px] font-medium;
   }
@@ -52,7 +58,7 @@
     @apply mb-[20px] flex flex-col gap-[9px] text-[14px];
   }
   .field input {
-    @apply min-h-[46px] w-full p-[13px_46px_13px_13px];
+    @apply min-h-[46px] w-full p-[13px_46px_13px_13px] transition-[border-color,background-color] duration-150;
   }
   
   .input-wrap {
@@ -63,7 +69,13 @@
   }
   
   .field-error {
-    @apply text-[13px] text-[#ffb4b4];
+    @apply flex items-center gap-[6px] text-[13px] font-medium text-danger;
+  }
+  .field.has-error input {
+    @apply border-danger bg-[#2a1b20];
+  }
+  .field.has-error input:focus-visible {
+    outline-color: var(--color-danger);
   }
   .forgot-link {
     @apply m-[-4px_0_22px] block text-right text-[13px] text-accent;
@@ -87,6 +99,16 @@
   .demo-disclosure {
     @apply !mt-[24px] !text-[12px] !leading-[1.7] !text-muted;
   }
+  .notice.is-error,
+  .auth-session-error {
+    @apply mb-[17px] rounded-[8px] border border-danger/40 bg-[#2a1b20] p-[12px] text-[13px] leading-[1.5] text-danger;
+  }
+  .notice.is-success {
+    @apply mb-[17px] rounded-[8px] border border-[#6b9d87]/40 bg-[#1b2823] p-[12px] text-[13px];
+  }
+  .auth-session-error {
+    @apply flex items-center justify-between gap-[12px];
+  }
   
   .auth-mobile-brand {
     @apply hidden;
@@ -94,6 +116,11 @@
   
   .spin {
     @apply animate-[spin_1s_linear_infinite];
+  }
+
+  @keyframes auth-form-in {
+    from { opacity: .84; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   @media (max-width: 767px) {
@@ -105,6 +132,9 @@
     }
     .auth-form-wrap {
       @apply min-h-[100dvh] flex-col gap-[42px] p-[28px_22px];
+    }
+    .auth-form-shell {
+      @apply min-h-0 items-start;
     }
     .auth-mobile-brand {
       @apply block w-full max-w-[385px];

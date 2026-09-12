@@ -49,7 +49,7 @@
   }
 
   .theme-options {
-    @apply mb-[13px] grid grid-cols-2 gap-[10px];
+    @apply mb-[13px] grid grid-cols-3 gap-[10px];
   }
   .theme-options button {
     @apply flex min-h-[46px] items-center justify-center gap-[8px] rounded-[9px] border border-border;
@@ -80,7 +80,63 @@
     @apply my-[28px];
   }
 
+  .settings-mobile-main,
+  .settings-mobile-subscreen {
+    @apply hidden;
+  }
+
+  .settings-menu {
+    @apply overflow-hidden rounded-[13px] border border-border bg-panel;
+  }
+
+  .mobile-account-row,
+  .settings-menu-row {
+    @apply flex w-full items-center gap-[13px] border-b border-border px-[15px] text-left;
+  }
+  .mobile-account-row {
+    @apply mb-[18px] min-h-[82px] rounded-[13px] border border-border bg-panel;
+  }
+  .mobile-account-row > span {
+    @apply flex min-w-0 flex-1 flex-col gap-[4px];
+  }
+  .mobile-account-row small {
+    @apply text-[12px] text-muted;
+  }
+  .mobile-account-row > svg,
+  .settings-menu-row > svg:last-child {
+    @apply ml-auto shrink-0 text-muted;
+  }
+  .settings-menu-row {
+    @apply min-h-[58px] bg-panel text-[14px];
+  }
+  .settings-menu-row:last-child {
+    @apply border-b-0;
+  }
+  .settings-menu-row > svg:first-child {
+    @apply size-[19px] shrink-0 text-accent;
+  }
+  .settings-menu + .settings-menu-row {
+    @apply mt-[18px] rounded-[13px] border border-border;
+  }
+  .danger-text,
+  .danger-text > svg:first-child {
+    @apply text-danger;
+  }
+
   @media (max-width: 767px) {
+    .settings-page {
+      @apply max-w-none;
+    }
+    .settings-desktop-content {
+      @apply hidden;
+    }
+    .settings-mobile-main:not([hidden]),
+    .settings-mobile-subscreen {
+      @apply block;
+    }
+    .settings-mobile-subscreen {
+      @apply pb-[20px];
+    }
     .settings-section {
       @apply grid-cols-1 gap-[15px];
     }
@@ -89,6 +145,9 @@
     }
     .account-summary {
       @apply flex-wrap;
+    }
+    .theme-options {
+      @apply grid-cols-3;
     }
   }
 }

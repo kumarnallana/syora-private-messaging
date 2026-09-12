@@ -14,16 +14,34 @@
   .readonly-field {
     @apply flex min-h-[46px] items-center gap-[10px] break-words rounded-[8px] border border-border bg-surface p-[11px_13px] text-muted;
   }
+  .input-with-icon {
+    @apply relative flex items-center;
+  }
+  .input-with-icon > svg {
+    @apply pointer-events-none absolute left-[13px] text-muted;
+  }
+  .input-with-icon > input {
+    @apply pl-[38px];
+  }
   .field small {
     @apply text-[12px] leading-[1.5] text-muted;
   }
   .notice {
     @apply mb-[17px] rounded-[8px] bg-[#302a42] p-[12px] text-[13px] text-text-primary;
   }
+  .notice.is-error {
+    @apply border border-danger/40 bg-[#2a1b20] text-danger;
+  }
+  .notice.is-success {
+    @apply border border-[#6b9d87]/40 bg-[#1b2823];
+  }
 
   @media (max-width: 767px) {
     .profile-editor {
-      @apply grid-cols-1 gap-[30px] p-[20px];
+      @apply grid-cols-1 gap-[30px] border-0 bg-transparent p-[18px_0_0];
+    }
+    .profile-editor .avatar--large {
+      @apply size-[112px] text-[30px];
     }
   }
 }

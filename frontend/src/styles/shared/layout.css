@@ -33,11 +33,11 @@
   }
 
   @media (max-width: 767px) {
-    .page-header {
-      @apply flex-col items-start gap-[15px];
+    .page-view {
+      @apply p-[0_18px_92px];
     }
-    .page-header > .button {
-      @apply w-full;
+    .page-header {
+      @apply hidden;
     }
   }
 }

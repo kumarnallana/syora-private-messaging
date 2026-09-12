@@ -23,7 +23,7 @@ export function Composer({conversationId,blocked,reply,clearReply}:{conversation
  async function send(){
   if((!text.trim()&&!attachment)||blocked||submitting.current)return;
   submitting.current=true;setBusy(true);setError('');
-  try{services.typing(conversationId,false);await services.send(conversationId,text,attachment,reply?.id);pending.current=undefined;setAttachment(undefined);setText('');clearReply();setEmoji(false);if(input.current)input.current.style.height='auto';}
+  try{services.typing(conversationId,false);await services.send(conversationId,text,attachment,reply?.id);if(pending.current?.url.startsWith('blob:'))URL.revokeObjectURL(pending.current.url);pending.current=undefined;setAttachment(undefined);setText('');clearReply();setEmoji(false);if(input.current)input.current.style.height='auto';}
   catch(error){setError(error instanceof Error?error.message:'Message could not be sent. Please try again.');}
   finally{submitting.current=false;setBusy(false);input.current?.focus();}
  }
