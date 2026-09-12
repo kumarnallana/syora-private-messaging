@@ -18,7 +18,7 @@
     @apply text-[12px] leading-[1.5] text-muted;
   }
   .notice {
-    @apply mb-[17px] rounded-[8px] bg-[#302a42] p-[12px] text-[13px] text-text;
+    @apply mb-[17px] rounded-[8px] bg-[#302a42] p-[12px] text-[13px] text-text-primary;
   }
 
   @media (max-width: 767px) {

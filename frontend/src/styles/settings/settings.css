@@ -9,7 +9,7 @@
     @apply flex items-center gap-[10px] text-accent;
   }
   .settings-section > header h2 {
-    @apply text-[16px] font-medium text-text;
+    @apply text-[16px] font-medium text-text-primary;
   }
   .settings-section > header svg {
     @apply w-[19px];

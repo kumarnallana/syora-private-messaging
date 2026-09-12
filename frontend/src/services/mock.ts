@@ -48,8 +48,7 @@ export class MockServices implements Services {
  async view(id:string){const me=this.identity();if(!this.snapshot.statuses.some(s=>s.id===id&&new Date(s.expiresAt).getTime()>Date.now()))throw new Error('Status unavailable.');this.update({statuses:this.state.statuses.map(s=>s.id===id&&!s.viewedBy.includes(me)?{...s,viewedBy:[...s.viewedBy,me]}:s)});}
  async removeStatus(id:string){const me=this.identity();if(!this.state.statuses.some(s=>s.id===id&&s.userId===me))throw new Error('Status unavailable.');this.update({statuses:this.state.statuses.filter(s=>s.id!==id)});}
  async searchUsers(_query:string){return}
+ async getAccessUrl(_attachmentId:string){return ""}
  async updatePreferences(values:Partial<Preferences>){const me=this.identity();const preferences={...this.state.preferences,...values};this.settings.set(me,preferences);this.update({preferences});}
 }
 export const services:Services=new MockServices();
-
-

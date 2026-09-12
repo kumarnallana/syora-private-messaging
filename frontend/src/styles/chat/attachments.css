@@ -63,7 +63,7 @@
   }
 
   .deleted-message {
-    @apply flex items-center gap-[7px] text-[14px] italic text-muted !important;
+    @apply !flex !items-center !gap-[7px] !text-[14px] !italic !text-muted;
   }
 
   .message-actions {

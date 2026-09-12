@@ -85,7 +85,7 @@
   }
   
   .demo-disclosure {
-    @apply mt-[24px] text-[12px] leading-[1.7] text-muted !important;
+    @apply !mt-[24px] !text-[12px] !leading-[1.7] !text-muted;
   }
   
   .auth-mobile-brand {
