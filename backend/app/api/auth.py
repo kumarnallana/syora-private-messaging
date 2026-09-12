@@ -1,16 +1,19 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, Request, Response
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from jwt import InvalidTokenError
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import api_error, current_user
-from app.config.security import create_access_token, hash_password, hash_refresh_token, new_refresh_token, verify_password, create_reset_token, decode_reset_token
+from app.config.security import create_access_token, create_password_fingerprint, create_reset_token, decode_reset_token, hash_password, hash_refresh_token, new_refresh_token, verify_password
 from app.config.settings import get_settings
 import resend
 import asyncio
 from app.db.session import get_db
 from app.middleware.rate_limit import rate_limit
 from app.models import RefreshSession, User, UserPreference, now
-from app.schemas.inputs import LoginIn, RegisterIn, ForgotPasswordIn, ResetPasswordIn, ForgotPasswordIn, ResetPasswordIn
+from app.schemas.inputs import ForgotPasswordIn, LoginIn, RegisterIn, ResetPasswordIn
 from app.services.serializers import user_out
 router=APIRouter(prefix="/api/auth",tags=["auth"]); settings=get_settings(); COOKIE="syora_refresh"
 
@@ -28,7 +31,14 @@ async def register(body:RegisterIn,response:Response,request:Request,db:AsyncSes
     email=str(body.email).strip().lower()
     if await db.scalar(select(User.id).where(User.email==email)):raise api_error(409,"EMAIL_EXISTS","An account already exists for this email.")
     if await db.scalar(select(User.id).where(User.username==body.username)):raise api_error(409,"USERNAME_EXISTS","That username is already taken.")
-    user=User(display_name=body.display_name,username=body.username,email=email,password_hash=hash_password(body.password));db.add(user);await db.flush();db.add(UserPreference(user_id=user.id));await db.commit();await db.refresh(user);await issue_session(db,user,response,request);return await payload(db,user)
+    user=User(display_name=body.display_name,username=body.username,email=email,password_hash=hash_password(body.password));db.add(user)
+    try:
+        await db.flush();db.add(UserPreference(user_id=user.id));await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        if await db.scalar(select(User.id).where(User.email==email)):raise api_error(409,"EMAIL_EXISTS","An account already exists for this email.")
+        raise api_error(409,"USERNAME_EXISTS","That username is already taken.")
+    await db.refresh(user);await issue_session(db,user,response,request);return await payload(db,user)
 @router.post("/forgot-password", dependencies=[Depends(rate_limit("forgot", 1000, 300))])
 async def forgot_password(body: ForgotPasswordIn, request: Request, db: AsyncSession = Depends(get_db)):
     require_client_origin(request)
@@ -58,11 +68,10 @@ async def forgot_password(body: ForgotPasswordIn, request: Request, db: AsyncSes
             }
             try:
                 await asyncio.to_thread(resend.Emails.send, params)
-            except Exception as e:
-                print(f"Failed to send email via Resend: {e}")
+            except Exception:
+                print("Password reset email delivery failed.")
         else:
-            # Development logger fallback
-            print(f"\n==================================================\n[DEV LOG] PASSWORD RESET LINK FOR {email}:\n{reset_link}\n==================================================\n")
+            print("Password reset requested while email delivery is not configured.")
     # Always return a generic success message
     return {"message": "If an account exists for that email, a password reset link has been sent."}
 
@@ -71,7 +80,7 @@ async def reset_password(body: ResetPasswordIn, request: Request, db: AsyncSessi
     require_client_origin(request)
     try:
         payload = decode_reset_token(body.token)
-        user_id = payload.get("sub")
+        user_id = uuid.UUID(str(payload.get("sub")))
         token_fingerprint = payload.get("psw")
         
         user = await db.scalar(select(User).where(User.id == user_id))
@@ -87,7 +96,9 @@ async def reset_password(body: ResetPasswordIn, request: Request, db: AsyncSessi
         
         await db.commit()
         return {"message": "Password updated successfully."}
-    except Exception as e:
+    except HTTPException:
+        raise
+    except (InvalidTokenError, KeyError, ValueError):
         raise api_error(400, "INVALID_TOKEN", "This password reset link is invalid or has expired.")
 
 @router.post("/login",dependencies=[Depends(rate_limit("login",1000,900))])

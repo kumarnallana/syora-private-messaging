@@ -99,6 +99,12 @@
   }
 
   @media (max-width: 767px) {
+    .app-shell:has(.chat-layout.has-conversation) {
+      @apply pb-0;
+    }
+    .app-shell:has(.chat-layout.has-conversation) > .rail {
+      @apply hidden;
+    }
     .chat-layout {
       @apply block;
     }
@@ -124,7 +130,9 @@
       @apply hidden;
     }
     .chat-layout.has-conversation > .chat-panel {
-      @apply fixed inset-0 z-10 flex h-[100dvh];
+      @apply fixed left-0 right-0 z-[110] flex;
+      top: var(--syora-viewport-top, 0px);
+      height: var(--syora-viewport-height, 100dvh);
     }
   }
 }

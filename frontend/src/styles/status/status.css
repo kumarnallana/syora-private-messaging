@@ -44,6 +44,12 @@
   .status-tools {
     @apply flex items-center gap-[8px];
   }
+  .status-upload {
+    @apply mt-[14px] flex flex-col gap-[7px] text-[12px] text-muted;
+  }
+  .status-upload progress {
+    @apply h-[5px] w-full overflow-hidden rounded-full accent-accent;
+  }
   .color-choice {
     @apply h-[34px] w-[34px] rounded-full border-[2px] border-transparent;
   }
@@ -86,6 +92,12 @@
   }
 
   @media (max-width: 767px) {
+    .status-page .empty-state {
+      @apply gap-[11px] py-[24px];
+    }
+    .status-page .empty-state__icon {
+      @apply size-[50px];
+    }
     .status-grid {
       @apply -mx-[18px] flex snap-x gap-[10px] overflow-x-auto px-[18px] pb-[8px];
       scrollbar-width: none;

@@ -26,7 +26,7 @@
     @apply mx-auto my-[28px] flex max-w-[360px] flex-col items-center gap-[12px] text-center text-[13px] leading-[1.6] text-muted;
   }
   .load-older {
-    @apply mx-auto mb-[18px] block min-h-[40px] rounded-full border border-border px-[16px] text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-surface hover:text-text-primary;
+    @apply mx-auto mb-[18px] flex min-h-[40px] items-center gap-[7px] rounded-full border border-border px-[16px] text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-surface hover:text-text-primary;
   }
 
   .message-row {
@@ -73,6 +73,21 @@
   .chat-header > .icon-button:last-child {
     @apply ml-auto;
   }
+  .chat-header-actions {
+    @apply ml-auto flex items-center gap-[2px];
+  }
+  .detail-actions {
+    @apply mt-[22px] overflow-hidden rounded-[11px] border border-border bg-surface;
+  }
+  .detail-actions > button {
+    @apply flex min-h-[48px] w-full items-center gap-[12px] border-b border-border px-[14px] text-left text-[14px] transition-[background-color,color,transform] duration-150 hover:bg-white/[0.04] active:bg-white/[0.07] disabled:pointer-events-none disabled:opacity-50;
+  }
+  .detail-actions > button:last-child {
+    @apply border-b-0;
+  }
+  .detail-actions > button > span {
+    @apply min-w-0 flex-1;
+  }
 
   @media (max-width: 1100px) {
     .timeline {
@@ -92,6 +107,9 @@
     }
     .timeline {
       @apply p-[10px_13px_20px];
+    }
+    .timeline .empty-state {
+      @apply min-h-[210px] justify-center py-[26px];
     }
     .message-bubble {
       @apply max-w-[87%] p-[10px_12px_8px];

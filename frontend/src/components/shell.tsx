@@ -48,7 +48,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     };
   }, [preferences.appearance]);
   if (!sessionReady) return <Loading />;
-  if (sessionError && me) return <div className="recovery-state" role="alert"><Shield size={28}/><h1>Your space could not be loaded</h1><p>{sessionError}</p><Button variant="secondary" onClick={() => void services.retryBootstrap()}>Try again</Button></div>;
+  if (sessionError) return <div className="recovery-state" role="alert"><Shield size={28}/><h1>Your space could not be loaded</h1><p>{sessionError}</p><Button variant="secondary" onClick={() => void services.retryBootstrap()}>Try again</Button></div>;
   if (!me) return <Loading />;
   return (
     <main
@@ -102,6 +102,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
       <div className="app-content">{children}</div>
+      {connection === "connecting" && <div className="connection-banner" role="status">Connecting…</div>}
       {connection === "offline" && <div className="connection-banner" role="status">Offline — new activity will reconnect automatically.</div>}
       {logout && (
         <Modal

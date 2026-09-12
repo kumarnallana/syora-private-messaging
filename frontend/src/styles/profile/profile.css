@@ -5,6 +5,9 @@
   .avatar-editor {
     @apply relative m-auto w-max;
   }
+  .avatar-column {
+    @apply flex flex-col items-center gap-[14px];
+  }
   .avatar-editor .icon-button {
     @apply absolute bottom-[-4px] right-[-6px] rounded-full border-[4px] border-panel bg-accent text-[#241e35];
   }
@@ -35,6 +38,18 @@
   .notice.is-success {
     @apply border border-[#6b9d87]/40 bg-[#1b2823];
   }
+  .avatar-progress {
+    @apply flex w-full max-w-[180px] flex-col gap-[7px] text-center text-[12px] text-muted;
+  }
+  .avatar-progress progress {
+    @apply h-[5px] w-full overflow-hidden rounded-full accent-accent;
+  }
+  .profile-actions {
+    @apply flex items-center justify-between gap-[14px];
+  }
+  .profile-save-state {
+    @apply text-[12px] text-muted;
+  }
 
   @media (max-width: 767px) {
     .profile-editor {
@@ -42,6 +57,12 @@
     }
     .profile-editor .avatar--large {
       @apply size-[112px] text-[30px];
+    }
+    .profile-actions {
+      @apply sticky z-10 -mx-[18px] px-[18px] py-[10px];
+      bottom: calc(65px + env(safe-area-inset-bottom));
+      background: color-mix(in srgb, var(--bg) 94%, transparent);
+      backdrop-filter: blur(12px);
     }
   }
 }

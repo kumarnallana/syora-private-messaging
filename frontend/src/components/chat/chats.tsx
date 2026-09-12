@@ -2,13 +2,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Ban, BellOff, MessageCircle, MoreHorizontal, Pin, Search, SquarePen, X } from 'lucide-react';
+import { ArrowLeft, Ban, BellOff, LoaderCircle, MessageCircle, MoreHorizontal, Pin, Search, SquarePen, X } from 'lucide-react';
 import { useApp } from '@/stores/use-app';
 import { Avatar, Brand, Empty, IconButton, Modal, time } from '@/components/shared/ui';
 import { PreviewNote } from '@/components/shell';
 import { MessageBubble } from './message-bubble';
 import { Composer } from './composer';
 import { DeliveryReceipt } from './delivery-receipt';
+import { formatLastSeen, normalizeUsername, usernameLabel } from '@/utils/presentation';
 
 export function Chats() {
  const { me, users, conversations, messages, services, preferences } = useApp();
@@ -21,6 +22,8 @@ export function Chats() {
  const [filter,setFilter]=useState<'all'|'unread'>('all');
  const [messageState,setMessageState]=useState<'idle'|'loading'|'loaded'|'error'>('idle');
  const [hasOlder,setHasOlder]=useState(true);
+ const [loadingOlder,setLoadingOlder]=useState(false);
+ const [detailBusy,setDetailBusy]=useState<string>();
  const [actionError,setActionError]=useState('');
  const [reply,setReply]=useState<import('@/types').Message>();
  const timeline = useRef<HTMLDivElement>(null);
@@ -29,6 +32,7 @@ export function Chats() {
  const nearBottom = useRef(true);
  const active = conversations.find(c => c.id === selected && c.participants.includes(me!.id));
  const friend = users.find(u => active?.participants.includes(u.id) && u.id !== me?.id);
+ const presence = friend ? formatLastSeen(friend.lastSeen, friend.online) || usernameLabel(friend.username) : '';
  const activeMessages = messages.filter(m => m.conversationId === active?.id);
  const visibleMessages=activeMessages.filter(m=>!messageQuery||m.text.toLowerCase().includes(messageQuery.toLowerCase())||m.attachment?.name.toLowerCase().includes(messageQuery.toLowerCase()));
  const ordered = [...conversations].sort((a, b) => {
@@ -36,6 +40,24 @@ export function Chats() {
   return latest(b.id).localeCompare(latest(a.id));
  });
  useEffect(() => { setSelected(params.get('conversation')); }, [params]);
+ useEffect(() => {
+  const viewport = window.visualViewport;
+  const update = () => {
+   document.documentElement.style.setProperty('--syora-viewport-height', `${Math.round(viewport?.height || window.innerHeight)}px`);
+   document.documentElement.style.setProperty('--syora-viewport-top', `${Math.round(viewport?.offsetTop || 0)}px`);
+  };
+  update();
+  viewport?.addEventListener('resize', update);
+  viewport?.addEventListener('scroll', update);
+  window.addEventListener('resize', update);
+  return () => {
+   viewport?.removeEventListener('resize', update);
+   viewport?.removeEventListener('scroll', update);
+   window.removeEventListener('resize', update);
+   document.documentElement.style.removeProperty('--syora-viewport-height');
+   document.documentElement.style.removeProperty('--syora-viewport-top');
+  };
+ }, []);
  useEffect(() => {
   if (!active) return;
   let current=true;setMessageState('loading');setActionError('');setHasOlder(true);
@@ -57,13 +79,27 @@ export function Chats() {
   setSelected(null);
   requestAnimationFrame(() => { if (id) rowRefs.current.get(id)?.focus(); });
  }
+ async function loadEarlier() {
+  if (!active || loadingOlder) return;
+  setLoadingOlder(true); setActionError('');
+  try { setHasOlder(await services.loadOlderMessages(active.id)); }
+  catch (error) { setActionError(error instanceof Error ? error.message : 'Earlier messages could not be loaded.'); }
+  finally { setLoadingOlder(false); }
+ }
+ async function updateDetail(key: 'pinned' | 'muted' | 'blocked', work: () => Promise<void>) {
+  if (detailBusy) return;
+  setDetailBusy(key); setActionError('');
+  try { await work(); }
+  catch (error) { setActionError(error instanceof Error ? error.message : 'The conversation setting could not be updated.'); }
+  finally { setDetailBusy(undefined); }
+ }
  return <div className={`chat-layout ${active && friend ? 'has-conversation' : ''}`}>
   <section className="conversation-panel" aria-label="Conversations">
    <header className="list-header"><Brand/><div className="list-title"><h1>Messages <span className="count">{conversations.length}</span></h1><Link href="/contacts" className="icon-button" aria-label="New conversation" title="New conversation"><SquarePen size={18}/></Link></div><label className="search-field"><Search size={18}/><input aria-label="Search conversations" placeholder="Search conversations" value={query} onChange={e=>setQuery(e.target.value)}/>{query&&<IconButton label="Clear search" onClick={()=>setQuery('')}><X size={15}/></IconButton>}</label><div className="chat-filters" role="group" aria-label="Conversation filters"><button className={filter==='all'?'is-active':''} aria-pressed={filter==='all'} onClick={()=>setFilter('all')}>All</button><button className={filter==='unread'?'is-active':''} aria-pressed={filter==='unread'} onClick={()=>setFilter('unread')}>Unread</button></div></header>
    <div className="conversation-rows">
     {ordered.map(conversation => {
      const person = users.find(u => conversation.participants.includes(u.id) && u.id !== me!.id);
-     if (!person||filter==='unread'&&!conversation.unread||!(person.name.toLowerCase().includes(query.toLowerCase())||person.username.toLowerCase().includes(query.toLowerCase().replace(/^@/,'')))) return null;
+     if (!person||filter==='unread'&&!conversation.unread||!(person.name.toLowerCase().includes(query.toLowerCase())||normalizeUsername(person.username).includes(normalizeUsername(query)))) return null;
      const last = messages.filter(m => m.conversationId === conversation.id).at(-1);
      return <button key={conversation.id} ref={node => { if (node) rowRefs.current.set(conversation.id, node); else rowRefs.current.delete(conversation.id); }}
       className={`conversation-row ${active?.id === conversation.id ? 'is-selected' : ''} ${conversation.unread?'is-unread':''}`}
@@ -75,18 +111,18 @@ export function Chats() {
       </span>
      </button>;
     })}
-    {!conversations.length?<Empty title="Your inbox is quiet" description="Find someone in your circle and start a private conversation."><Link className="button primary" href="/contacts">Find people</Link></Empty>:!ordered.some(c=>{const person=users.find(u=>c.participants.includes(u.id)&&u.id!==me!.id);return person&&(filter==='all'||c.unread>0)&&(person.name.toLowerCase().includes(query.toLowerCase())||person.username.includes(query.toLowerCase().replace(/^@/,'')))})&&<Empty title={filter==='unread'?'You are all caught up':'No conversations found'} description={filter==='unread'?'There are no unread conversations.':'Try another name or username.'}/>}
+    {!conversations.length?<Empty title="Your inbox is quiet" description="Find someone in your circle and start a private conversation."><Link className="button primary" href="/contacts">Find people</Link></Empty>:!ordered.some(c=>{const person=users.find(u=>c.participants.includes(u.id)&&u.id!==me!.id);return person&&(filter==='all'||c.unread>0)&&(person.name.toLowerCase().includes(query.toLowerCase())||normalizeUsername(person.username).includes(normalizeUsername(query)))})&&<Empty title={filter==='unread'?'You are all caught up':'No conversations found'} description={filter==='unread'?'There are no unread conversations.':'Try another name or username.'}/>}
    </div><footer className="list-footer"><PreviewNote/></footer>
   </section>
   {active && friend ? <section className="chat-panel" aria-label={`Conversation with ${friend.name}`}>
    <header className="chat-header"><IconButton label="Back to conversations" className="mobile-back" onClick={back}><ArrowLeft size={21}/></IconButton>
-    <Avatar user={friend} size="small"/><div className="chat-person"><h2 ref={heading} tabIndex={-1}>{friend.name}</h2><p>{active.typing?'typing…':friend.online ? 'Online' : friend.lastSeen ? `Last seen ${friend.lastSeen}` : `@${friend.username}`}</p></div><div className="chat-header-actions"><IconButton label="Search messages" onClick={()=>setSearchOpen(v=>!v)}><Search size={19}/></IconButton><IconButton label="Conversation options" onClick={()=>setInfoOpen(true)}><MoreHorizontal size={21}/></IconButton></div>
+    <Avatar user={friend} size="small"/><div className="chat-person"><h2 ref={heading} tabIndex={-1}>{friend.name}</h2><p>{active.typing ? 'typing…' : presence}</p></div><div className="chat-header-actions"><IconButton label="Search messages" onClick={()=>setSearchOpen(v=>!v)}><Search size={19}/></IconButton><IconButton label="Conversation options" onClick={()=>setInfoOpen(true)}><MoreHorizontal size={21}/></IconButton></div>
    </header>
    {searchOpen&&<div className="message-search"><label className="search-field"><Search size={17}/><input autoFocus aria-label="Search messages" placeholder="Search this conversation" value={messageQuery} onChange={e=>setMessageQuery(e.target.value)}/></label><span>{visibleMessages.length} results</span><IconButton label="Close message search" onClick={()=>{setSearchOpen(false);setMessageQuery('')}}><X size={18}/></IconButton></div>}
    <div className="timeline" ref={timeline} role="log" aria-label="Messages" aria-live="polite" aria-relevant="additions text" onScroll={e => { const el = e.currentTarget; nearBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}><div className="timeline-feed">
     {messageState==='loading'&&<div className="timeline-state" role="status">Loading messages…</div>}
     {messageState==='error'&&<div className="timeline-state"><p>{actionError}</p><button className="button secondary small" onClick={()=>{setMessageState('loading');void services.loadMessages(active.id).then(more=>{setHasOlder(more);setMessageState('loaded')}).catch(error=>{setActionError((error as Error).message);setMessageState('error')})}}>Retry</button></div>}
-    {messageState==='loaded'&&activeMessages.length>0&&hasOlder&&<button className="load-older" onClick={()=>void services.loadOlderMessages(active.id).then(setHasOlder).catch(error=>setActionError((error as Error).message))}>Load earlier messages</button>}
+    {messageState==='loaded'&&activeMessages.length>0&&hasOlder&&<button className="load-older" disabled={loadingOlder} onClick={()=>void loadEarlier()}>{loadingOlder && <LoaderCircle className="spin" size={15}/>} {loadingOlder ? 'Loading…' : 'Load earlier messages'}</button>}
     {visibleMessages.map((message, index) => {
      const day = new Date(message.createdAt).toDateString();
      const previous = visibleMessages[index - 1];
@@ -98,7 +134,7 @@ export function Chats() {
     {messageState==='loaded'&&!visibleMessages.length && <Empty title={messageQuery?'No messages found':'Start with a hello'} description={messageQuery?'Try another word or file name.':`Send the first message to ${friend.name.split(' ')[0]}.`}/>}</div>
    </div>
    <Composer key={`${me!.id}:${active.id}`} conversationId={active.id} blocked={preferences.blocked.includes(friend.id)} reply={reply} clearReply={()=>setReply(undefined)}/>
-   {infoOpen&&<Modal title="Conversation details" className="mobile-sheet" onClose={()=>setInfoOpen(false)}><div className="person-detail"><Avatar user={friend} size="large"/><h2>{friend.name}</h2><strong className="username">@{friend.username}</strong><p>{friend.about}</p>{friend.email&&<small>{friend.email}</small>}</div>{actionError&&<p className="inline-error" role="alert">{actionError}</p>}<div className="detail-actions"><button onClick={()=>void services.toggleConversation(active.id,'pinned').catch(e=>setActionError((e as Error).message))}><Pin size={18}/>{active.pinned?'Unpin conversation':'Pin conversation'}</button><button onClick={()=>void services.toggleConversation(active.id,'muted').catch(e=>setActionError((e as Error).message))}><BellOff size={18}/>{active.muted?'Unmute notifications':'Mute notifications'}</button><button onClick={()=>void services.block(friend.id).catch(e=>setActionError((e as Error).message))}><Ban size={18}/>{preferences.blocked.includes(friend.id)?'Unblock contact':'Block contact'}</button></div></Modal>}
+   {infoOpen&&<Modal title="Conversation details" className="mobile-sheet" onClose={()=>setInfoOpen(false)}><div className="person-detail"><Avatar user={friend} size="large"/><h2>{friend.name}</h2><strong className="username">{usernameLabel(friend.username)}</strong><p>{friend.about}</p>{friend.email&&<small>{friend.email}</small>}</div>{actionError&&<p className="inline-error" role="alert">{actionError}</p>}<div className="detail-actions" aria-busy={Boolean(detailBusy)}><button disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('pinned',()=>services.toggleConversation(active.id,'pinned'))}>{detailBusy==='pinned'?<LoaderCircle className="spin" size={18}/>:<Pin size={18}/>}<span>{active.pinned?'Unpin conversation':'Pin conversation'}</span></button><button disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('muted',()=>services.toggleConversation(active.id,'muted'))}>{detailBusy==='muted'?<LoaderCircle className="spin" size={18}/>:<BellOff size={18}/>}<span>{active.muted?'Unmute notifications':'Mute notifications'}</span></button><button className="danger-text" disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('blocked',()=>services.block(friend.id))}>{detailBusy==='blocked'?<LoaderCircle className="spin" size={18}/>:<Ban size={18}/>}<span>{preferences.blocked.includes(friend.id)?'Unblock contact':'Block contact'}</span></button></div></Modal>}
   </section> : <section className="chat-panel welcome-panel"><MessageCircle size={40}/><h2>{conversations.length ? 'A space for your conversations' : 'No conversations yet'}</h2><p>{conversations.length ? 'Choose someone from your messages to catch up.' : 'Find someone in your circle to begin.'}</p>{!conversations.length&&<Link className="button primary" href="/contacts">Find people</Link>}</section>}
  </div>;
 }

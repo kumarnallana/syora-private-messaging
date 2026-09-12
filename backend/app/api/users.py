@@ -2,6 +2,7 @@ import asyncio
 import uuid
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import and_, case, exists, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import api_error, current_user
 from app.db.session import get_db
@@ -16,7 +17,7 @@ def friendship_out(item:Friendship)->dict:return {"id":str(item.id),"from":str(i
 @router.get("/api/people/search",dependencies=[Depends(rate_limit("people-search",120,3600))])
 @router.get("/api/users/search",include_in_schema=False)
 async def search_users(q:str=Query(min_length=1,max_length=80),limit:int=Query(20,ge=1,le=30),user:User=Depends(current_user),db:AsyncSession=Depends(get_db)):
-    raw=q.strip();handle=raw.removeprefix("@").lower()
+    raw=q.strip();handle=raw.lstrip("@").lower()
     escaped=raw.replace("\\","\\\\").replace("%","\\%").replace("_","\\_")
     handle_escaped=handle.replace("\\","\\\\").replace("%","\\%").replace("_","\\_")
     blocked_pair=exists(select(Friendship.id).where(Friendship.status==FriendshipStatus.BLOCKED,pair_clause(user.id,User.id)))
@@ -78,7 +79,10 @@ async def update_profile(body:ProfileIn,user:User=Depends(current_user),db:Async
         if user.avatar_key and user.avatar_key!=body.avatar_key:
             await asyncio.to_thread(r2.delete,user.avatar_key)
         user.avatar_key=body.avatar_key
-    await db.commit();return await user_out(db,user,user.id)
+    try:await db.commit()
+    except IntegrityError:
+        await db.rollback();raise api_error(409,"USERNAME_EXISTS","That username is already taken.")
+    return await user_out(db,user,user.id)
 @router.get("/api/preferences")
 async def get_preferences(user:User=Depends(current_user),db:AsyncSession=Depends(get_db)):
     values=await preferences_out(db,user.id);blocked=(await db.scalars(select(Friendship.addressee_id).where(Friendship.requester_id==user.id,Friendship.status==FriendshipStatus.BLOCKED))).all();people=(await db.scalars(select(User).where(User.id.in_(blocked)))).all() if blocked else [];values["blocked"]=[str(x) for x in blocked];values["blockedUsers"]=[await user_out(db,x,user.id) for x in people];await db.commit();return values

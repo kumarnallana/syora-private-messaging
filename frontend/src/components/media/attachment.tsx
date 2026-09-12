@@ -2,7 +2,7 @@
 import { Modal, fileSize, pickAttachment } from "@/components/shared/ui";
 import { useApp } from "@/stores/use-app";
 import type { Attachment } from "@/types";
-import { Download, FileText, Paperclip } from "lucide-react";
+import { Download, FileText, LoaderCircle, Paperclip, RotateCcw } from "lucide-react";
 import { useRef, useState } from "react";
 export function FilePicker({
   onSelect,
@@ -64,6 +64,7 @@ export function AttachmentContent({
   const [view, setView] = useState(false);
   const [error, setError] = useState(false);
   const [retried, setRetried] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [url, setUrl] = useState(attachment.url);
   async function handleError() {
     if (retried) {
@@ -77,6 +78,20 @@ export function AttachmentContent({
       setError(false);
     } catch {
       setError(true);
+    }
+  }
+  async function retryAccess() {
+    if (refreshing) return;
+    setRefreshing(true);
+    setError(false);
+    try {
+      const newUrl = await services.getAccessUrl(attachment.id);
+      setUrl(newUrl);
+      setRetried(false);
+    } catch {
+      setError(true);
+    } finally {
+      setRefreshing(false);
     }
   }
   return (
@@ -134,12 +149,7 @@ export function AttachmentContent({
         </div>
       )}
       {error && (
-        <p role="alert" className="inline-error">
-          This media could not be displayed.{" "}
-          <a href={url} download={attachment.name}>
-            Download file
-          </a>
-        </p>
+        <div role="alert" className="media-error"><span>This media could not be displayed.</span><button type="button" className="button secondary small" disabled={refreshing} onClick={() => void retryAccess()}>{refreshing ? <LoaderCircle className="spin" size={15}/> : <RotateCcw size={15}/>} {refreshing ? 'Refreshing…' : 'Try again'}</button></div>
       )}
       {preview && (
         <p className="file-caption">

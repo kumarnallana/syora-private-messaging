@@ -62,7 +62,7 @@
   .blocked-row {
     @apply flex items-center gap-[12px];
   }
-  .account-summary > span {
+  .account-summary > .account-copy {
     @apply flex min-w-0 flex-1 flex-col gap-[5px];
   }
   .account-summary small {
@@ -96,7 +96,7 @@
   .mobile-account-row {
     @apply mb-[18px] min-h-[82px] rounded-[13px] border border-border bg-panel;
   }
-  .mobile-account-row > span {
+  .mobile-account-row > .account-copy {
     @apply flex min-w-0 flex-1 flex-col gap-[4px];
   }
   .mobile-account-row small {
@@ -107,7 +107,7 @@
     @apply ml-auto shrink-0 text-muted;
   }
   .settings-menu-row {
-    @apply min-h-[58px] bg-panel text-[14px];
+    @apply min-h-[58px] bg-panel text-[14px] transition-[background-color,color,transform] duration-150 hover:bg-surface active:bg-elevated;
   }
   .settings-menu-row:last-child {
     @apply border-b-0;
@@ -121,6 +121,12 @@
   .danger-text,
   .danger-text > svg:first-child {
     @apply text-danger;
+  }
+  .settings-progress {
+    @apply mb-[10px] flex items-center gap-[8px] text-[13px] text-muted;
+  }
+  .settings-notice {
+    @apply mb-[14px];
   }
 
   @media (max-width: 767px) {

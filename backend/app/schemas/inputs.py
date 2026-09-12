@@ -17,7 +17,7 @@ class RegisterIn(BaseModel):
     @field_validator("username")
     @classmethod
     def normalize_username(cls,v:str)->str:
-        value=v.strip().removeprefix("@").lower()
+        value=v.strip().lstrip("@").lower()
         if not re.fullmatch(r"[a-z0-9_]{3,32}",value):
             raise ValueError("Use 3–32 lowercase letters, numbers, or underscores.")
         return value
@@ -38,7 +38,7 @@ class ProfileIn(BaseModel):
     @classmethod
     def normalize_profile_username(cls,v:str|None)->str|None:
         if v is None:return None
-        value=v.strip().removeprefix("@").lower()
+        value=v.strip().lstrip("@").lower()
         if not re.fullmatch(r"[a-z0-9_]{3,32}",value):
             raise ValueError("Use 3–32 lowercase letters, numbers, or underscores.")
         return value

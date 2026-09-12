@@ -1,6 +1,9 @@
 @layer components {
   .avatar {
     @apply relative inline-flex shrink-0 items-center justify-center rounded-full bg-[#473a58] font-semibold text-[#e9dff6];
+    aspect-ratio: 1 / 1;
+    flex: 0 0 auto;
+    line-height: 1;
   }
   .avatar--peach {
     @apply bg-[#68433f] text-[#f5d8c4];
@@ -29,7 +32,8 @@
   }
 
   .avatar__image {
-    @apply size-full rounded-full object-cover;
+    @apply block size-full max-w-none rounded-full object-cover object-center;
+    aspect-ratio: 1 / 1;
   }
 
   .avatar__online-indicator {

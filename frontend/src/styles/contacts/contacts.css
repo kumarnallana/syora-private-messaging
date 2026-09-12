@@ -17,7 +17,7 @@
   .person-identity {
     @apply flex min-w-0 flex-1 items-center gap-[12px] text-left;
   }
-  .person-identity > span:last-child {
+  .person-identity > .person-copy {
     @apply min-w-0;
   }
   .person-identity small,
@@ -27,12 +27,21 @@
   .searching-state {
     @apply flex min-h-[120px] items-center justify-center gap-[10px] text-[14px] text-muted;
   }
+  .search-error {
+    @apply flex min-h-[140px] flex-col items-center justify-center gap-[14px] rounded-[11px] border border-danger/30 bg-[#2a1b20] px-[20px] text-center text-[14px] text-danger;
+  }
+  .page-notice {
+    @apply mt-[12px] mb-0;
+  }
   .page-error {
     @apply mt-[12px];
   }
 
   .row-actions {
     @apply flex items-center gap-[8px];
+  }
+  .row-actions .icon-button {
+    @apply size-10;
   }
 
   .status-pill {
@@ -63,7 +72,7 @@
       @apply flex-wrap gap-[10px];
     }
     .row-actions {
-      @apply ml-[56px] w-[calc(100%-56px)] justify-end;
+      @apply ml-[57px] w-[calc(100%-57px)] flex-wrap justify-start;
     }
     .contact-detail-screen {
       @apply px-[18px];

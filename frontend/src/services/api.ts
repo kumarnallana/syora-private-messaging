@@ -8,6 +8,7 @@ import type {
 } from "@/types";
 import { io, type Socket } from "socket.io-client";
 import type { Services } from "./contracts";
+import { normalizeUsername } from "@/utils/presentation";
 const API = process.env.NEXT_PUBLIC_API_URL || "";
 const SOCKET = process.env.NEXT_PUBLIC_SOCKET_URL || API;
 class ApiError extends Error {
@@ -76,7 +77,7 @@ export class ApiServices implements Services {
   private users(...groups: (User | undefined)[][]) {
     const map = new Map(this.state.users.map((x) => [x.id, x]));
     groups.flat().forEach((x) => {
-      if (x) map.set(x.id, x);
+      if (x) map.set(x.id, { ...x, username: normalizeUsername(x.username) });
     });
     return [...map.values()];
   }
@@ -101,14 +102,25 @@ export class ApiServices implements Services {
     if (init.body && !headers.has("Content-Type"))
       headers.set("Content-Type", "application/json");
     let response: Response;
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 20_000);
+    const abort = () => controller.abort();
+    if (init.signal?.aborted) controller.abort();
+    else init.signal?.addEventListener("abort", abort, { once: true });
     try {
       response = await fetch(`${API}${path}`, {
         ...init,
         headers,
         credentials: "include",
+        signal: controller.signal,
       });
-    } catch {
-      throw new ApiError("SYORA could not reach the server. Check your connection and try again.", 0, "NETWORK_UNAVAILABLE");
+    } catch (error) {
+      if (init.signal?.aborted) throw error;
+      throw new ApiError(timedOut ? "The request took too long. Try again." : "SYORA could not reach the server. Check your connection and try again.", 0, timedOut ? "REQUEST_TIMEOUT" : "NETWORK_UNAVAILABLE");
+    } finally {
+      clearTimeout(timeout);
+      init.signal?.removeEventListener("abort", abort);
     }
     if (response.status === 401 && retry && path !== "/api/auth/refresh") {
       const ok = await this.refresh();
@@ -234,7 +246,7 @@ export class ApiServices implements Services {
       if (error.message === "Authentication required")
         void this.refresh().then((ok) => {
           if (ok) socket.connect();
-        });
+        }).catch(() => this.update({ connection: "offline" }));
     });
     socket.on("message:new", (message: Message) => {
       if (!this.state.messages.some((x) => x.id === message.id))
@@ -369,7 +381,8 @@ export class ApiServices implements Services {
     const value = await this.fetch<any>("/api/status");
     this.update({ users: this.users(value.users), statuses: value.statuses });
   }
-  private async upload(attachment: Attachment, kind?: "avatar" | "status") {
+  private async upload(attachment: Attachment, kind?: "avatar" | "status", onProgress?: (percent: number) => void) {
+    onProgress?.(0);
     const mediaKind = kind || attachment.type;
     const signed = await this.fetch<any>("/api/media/upload-url", {
       method: "POST",
@@ -381,12 +394,20 @@ export class ApiServices implements Services {
       }),
     });
     const blob = await fetch(attachment.url).then((x) => x.blob());
-    const sent = await fetch(signed.uploadUrl, {
-      method: "PUT",
-      headers: signed.headers,
-      body: blob,
+    await new Promise<void>((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open("PUT", signed.uploadUrl);
+      Object.entries(signed.headers || {}).forEach(([name, value]) => request.setRequestHeader(name, String(value)));
+      request.timeout = 45_000;
+      request.upload.onprogress = event => {
+        if (event.lengthComputable) onProgress?.(Math.max(1, Math.min(99, Math.round(event.loaded / event.total * 100))));
+      };
+      request.onload = () => request.status >= 200 && request.status < 300 ? resolve() : reject(new Error("The file upload failed."));
+      request.onerror = () => reject(new Error("The file upload failed. Check your connection and retry."));
+      request.ontimeout = () => reject(new Error("The file upload took too long. Retry when your connection is stable."));
+      request.send(blob);
     });
-    if (!sent.ok) throw new Error("The file upload failed.");
+    onProgress?.(100);
     return {
       object_key: signed.objectKey,
       file_name: attachment.name,
@@ -406,7 +427,7 @@ export class ApiServices implements Services {
     this.update({
       sessionReady: true,
       currentUserId: result.user.id,
-      users: [result.user],
+      users: this.users([result.user]),
     });
     await this.loadAll();
     return result.user;
@@ -426,7 +447,7 @@ export class ApiServices implements Services {
     this.update({
       sessionReady: true,
       currentUserId: result.user.id,
-      users: [result.user],
+      users: this.users([result.user]),
     });
     await this.loadAll();
     return result.user;
@@ -457,6 +478,7 @@ export class ApiServices implements Services {
   }
   async updateProfile(
     values: Partial<Pick<User, "name" | "username" | "about" | "avatar">>,
+    onProgress?: (percent: number) => void,
   ) {
     const body: any = { display_name: values.name, username: values.username, about: values.about };
     if (values.avatar) {
@@ -469,7 +491,7 @@ export class ApiServices implements Services {
         size: blob.size,
         url: values.avatar,
       };
-      const uploaded = await this.upload(attachment, "avatar");
+      const uploaded = await this.upload(attachment, "avatar", onProgress);
       body.avatar_key = uploaded.object_key;
       body.avatar_mime = uploaded.mime_type;
       body.avatar_size = uploaded.file_size;
@@ -479,7 +501,7 @@ export class ApiServices implements Services {
       body: JSON.stringify(body),
     });
     this.update({
-      users: this.state.users.map((x) => (x.id === user.id ? user : x)),
+      users: this.state.users.map((x) => (x.id === user.id ? { ...user, username: normalizeUsername(user.username) } : x)),
     });
   }
   async send(
@@ -661,9 +683,9 @@ export class ApiServices implements Services {
     });
     await this.reloadContacts();
   }
-  async publish(text: string, color: string, attachment?: Attachment) {
+  async publish(text: string, color: string, attachment?: Attachment, onProgress?: (percent: number) => void) {
     const uploaded = attachment
-      ? await this.upload(attachment, "status")
+      ? await this.upload(attachment, "status", onProgress)
       : undefined;
     await this.fetch("/api/status", {
       method: "POST",
@@ -717,11 +739,12 @@ export class ApiServices implements Services {
       throw error;
     }
   }
-  async searchUsers(query: string) {
+  async searchUsers(query: string, signal?: AbortSignal) {
     if (!query.trim()) return [];
-    const users = await this.fetch<User[]>(
+    const users = (await this.fetch<User[]>(
       `/api/people/search?q=${encodeURIComponent(query.trim())}&limit=20`,
-    );
+      { signal },
+    )).map(user => ({ ...user, username: normalizeUsername(user.username) }));
     this.update({ users: this.users(users) });
     return users;
   }

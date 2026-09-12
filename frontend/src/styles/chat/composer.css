@@ -1,6 +1,6 @@
 @layer components {
   .composer-wrap {
-    @apply relative shrink-0 border-t border-border p-[15px_24px_17px];
+    @apply relative shrink-0 border-t border-border bg-background p-[15px_24px_17px];
   }
   .composer-wrap form {
     @apply m-0;
