@@ -56,7 +56,6 @@ export class ApiServices implements Services {
     return () => this.listeners.delete(fn);
   };
   getSnapshot = () => this.snapshot;
-  S;
   private update(values: Partial<AppState>) {
     this.state = { ...this.state, ...values };
     this.snapshot = this.state;
@@ -380,7 +379,7 @@ export class ApiServices implements Services {
     await this.loadAll();
     return result.user;
   }
-  async enterDemo() {
+  async enterDemo(): Promise<User> {
     throw new Error("Demo mode is disabled for real accounts.");
   }
   logout() {
