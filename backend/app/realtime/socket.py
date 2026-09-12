@@ -9,7 +9,8 @@ from app.db.session import SessionLocal
 from app.models import ConversationParticipant, Friendship, FriendshipStatus, Message, MessageReceipt, User, UserPreference, now
 
 settings=get_settings()
-sio=socketio.AsyncServer(async_mode="asgi",cors_allowed_origins=[settings.client_origin],logger=False,engineio_logger=False)
+sio=socketio.AsyncServer(async_mode="asgi",cors_allowed_origins=settings.client_origins,logger=False,engineio_logger=False)
+sio_app=socketio.ASGIApp(sio)
 online_users:set[uuid.UUID]=set()
 user_sids:dict[uuid.UUID,set[str]]=defaultdict(set)
 sid_users:dict[str,uuid.UUID]={}
