@@ -3,12 +3,12 @@ from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import api_error, current_user
-from app.config.security import create_access_token, hash_password, hash_refresh_token, new_refresh_token, verify_password
+from app.config.security import create_access_token, hash_password, hash_refresh_token, new_refresh_token, verify_password, create_reset_token, decode_reset_token
 from app.config.settings import get_settings
 from app.db.session import get_db
 from app.middleware.rate_limit import rate_limit
 from app.models import RefreshSession, User, UserPreference, now
-from app.schemas.inputs import LoginIn, RegisterIn
+from app.schemas.inputs import LoginIn, RegisterIn, ForgotPasswordIn, ResetPasswordIn, ForgotPasswordIn, ResetPasswordIn
 from app.services.serializers import user_out
 router=APIRouter(prefix="/api/auth",tags=["auth"]); settings=get_settings(); COOKIE="syora_refresh"
 
@@ -27,6 +27,45 @@ async def register(body:RegisterIn,response:Response,request:Request,db:AsyncSes
     if await db.scalar(select(User.id).where(User.email==email)):raise api_error(409,"EMAIL_EXISTS","An account already exists for this email.")
     if await db.scalar(select(User.id).where(User.username==body.username)):raise api_error(409,"USERNAME_EXISTS","That username is already taken.")
     user=User(display_name=body.display_name,username=body.username,email=email,password_hash=hash_password(body.password));db.add(user);await db.flush();db.add(UserPreference(user_id=user.id));await db.commit();await db.refresh(user);await issue_session(db,user,response,request);return await payload(db,user)
+@router.post("/forgot-password", dependencies=[Depends(rate_limit("forgot", 1000, 300))])
+async def forgot_password(body: ForgotPasswordIn, request: Request, db: AsyncSession = Depends(get_db)):
+    require_client_origin(request)
+    email = str(body.email).strip().lower()
+    user = await db.scalar(select(User).where(User.email == email))
+    if user:
+        token = create_reset_token(str(user.id), user.password_hash)
+        base_url = settings.app_frontend_url.rstrip('/')
+        reset_link = f"{base_url}/reset-password?token={token}"
+        # Development logger (Option A)
+        if not settings.production:
+            print(f"\n==================================================\n[DEV LOG] PASSWORD RESET LINK FOR {email}:\n{reset_link}\n==================================================\n")
+    # Always return a generic success message
+    return {"message": "If an account exists for that email, a password reset link has been sent."}
+
+@router.post("/reset-password", dependencies=[Depends(rate_limit("reset", 1000, 60))])
+async def reset_password(body: ResetPasswordIn, request: Request, db: AsyncSession = Depends(get_db)):
+    require_client_origin(request)
+    try:
+        payload = decode_reset_token(body.token)
+        user_id = payload.get("sub")
+        token_fingerprint = payload.get("psw")
+        
+        user = await db.scalar(select(User).where(User.id == user_id))
+        if not user or create_password_fingerprint(user.password_hash) != token_fingerprint:
+            raise api_error(400, "INVALID_TOKEN", "This password reset link is invalid or has already been used.")
+            
+        # Update the password transactionally
+        user.password_hash = hash_password(body.password)
+        
+        # Invalidate all existing refresh sessions for this user
+        from sqlalchemy import delete
+        await db.execute(delete(RefreshSession).where(RefreshSession.user_id == user.id))
+        
+        await db.commit()
+        return {"message": "Password updated successfully."}
+    except Exception as e:
+        raise api_error(400, "INVALID_TOKEN", "This password reset link is invalid or has expired.")
+
 @router.post("/login",dependencies=[Depends(rate_limit("login",1000,900))])
 async def login(body:LoginIn,response:Response,request:Request,db:AsyncSession=Depends(get_db)):
     require_client_origin(request)

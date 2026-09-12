@@ -28,7 +28,10 @@ export class MockServices implements Services {
  private conversation(id:string){const me=this.identity();const c=this.state.conversations.find(c=>c.id===id&&c.participants.includes(me));if(!c)throw new Error('Conversation unavailable.');return c;}
  private ownedMessage(id:string){const m=this.state.messages.find(m=>m.id===id);if(!m||m.senderId!==this.identity())throw new Error('Message unavailable.');this.conversation(m.conversationId);return m;}
  private signIn(id:string){const preferences=this.settings.get(id)||createSeed().preferences;this.settings.set(id,preferences);this.update({currentUserId:id,preferences});return this.user(id);}
- async enterDemo(){await pause();return this.signIn('demo');}
+ async forgotPassword(email: string) { await pause(); }
+ async resetPassword(token: string, password: string) { await pause(); }
+ async enterDemo(){
+await pause();return this.signIn('demo');}
  async login(email:string,password:string){await pause();if(password.length<8)throw new Error('Use at least 8 characters for the demo password.');const user=this.state.users.find(u=>u.email.toLowerCase()===email.trim().toLowerCase());if(!user)throw new Error('No profile found in this preview. Create a profile or explore the demo.');return this.signIn(user.id);}
  async register(name:string,username:string,email:string,password:string){await pause();name=name.trim();username=username.trim().replace(/^@/,'').toLowerCase();email=email.trim().toLowerCase();if(!name||name.length>80||password.length<8||!/^\S+@\S+\.\S+$/.test(email)||!/^[a-z0-9_]{3,32}$/.test(username))throw new Error('Check your profile details.');if(this.state.users.some(u=>u.email.toLowerCase()===email))throw new Error('This email already has a preview profile.');if(this.state.users.some(u=>u.username===username))throw new Error('That username is already taken.');const user:User={id:crypto.randomUUID(),name,username,email,about:'',color:'iris'};this.update({users:[...this.state.users,user]});return this.signIn(user.id);}
  logout(){this.update({currentUserId:null});}

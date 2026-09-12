@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     access_token_minutes: int = Field(default=15, ge=10, le=20, alias="ACCESS_TOKEN_MINUTES")
     refresh_token_days: int = Field(default=30, ge=1, le=90, alias="REFRESH_TOKEN_DAYS")
     client_origins: list[str] = Field(alias="CLIENT_ORIGINS")
+    app_frontend_url: str = Field(default="http://localhost:3000", alias="APP_FRONTEND_URL")
     r2_account_id: str = Field(default="", alias="R2_ACCOUNT_ID")
     r2_access_key_id: str = Field(default="", alias="R2_ACCESS_KEY_ID")
     r2_secret_access_key: str = Field(default="", alias="R2_SECRET_ACCESS_KEY")

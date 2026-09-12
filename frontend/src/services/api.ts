@@ -308,6 +308,7 @@ export class ApiServices implements Services {
     socket.on("conversation:update", () => void this.reloadConversations());
     socket.on("status:new", () => void this.reloadStatus());
     socket.on("status:deleted", () => void this.reloadStatus());
+    socket.on("disconnect", () => this.update({ connection: "offline" }));
   }
   private patchMessage(id: string, values: Partial<Message>) {
     this.update({
@@ -322,7 +323,6 @@ export class ApiServices implements Services {
         x.id === id ? { ...x, ...values } : x,
       ),
     });
-    socket.on("disconnect", () => this.update({ connection: "offline" }));
   }
   private mergeMessages(incoming: Message[]) {
     const map = new Map(this.state.messages.map((message) => [message.id, message]));
@@ -431,7 +431,16 @@ export class ApiServices implements Services {
     await this.loadAll();
     return result.user;
   }
+  async forgotPassword(email: string) {
+    await this.fetch("/api/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) });
+  }
+
+  async resetPassword(token: string, password: string) {
+    await this.fetch("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ token, password }) });
+  }
+
   async enterDemo(): Promise<User> {
+
     throw new Error("Demo mode is disabled for real accounts.");
   }
   logout() {

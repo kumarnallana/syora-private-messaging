@@ -13,7 +13,7 @@ export function Profile() {
   const [notice, setNotice] = useState<{ kind: 'success' | 'error'; text: string }>();
   const [busy, setBusy] = useState(false);
   const input = useRef<HTMLInputElement>(null);
-  const temporary = useRef<string>();
+  const temporary = useRef<string | null>(null);
   useEffect(() => () => { if (temporary.current) URL.revokeObjectURL(temporary.current); }, []);
 
   async function photo(file?: File) {

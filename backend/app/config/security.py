@@ -25,6 +25,31 @@ def decode_access_token(token: str) -> str:
     payload = jwt.decode(token, get_settings().jwt_access_secret, algorithms=["HS256"])
     return str(payload["sub"])
 
+import hmac
+
+def create_password_fingerprint(password_hash: str) -> str:
+    secret = get_settings().jwt_access_secret.encode()
+    return hmac.new(secret, password_hash.encode(), hashlib.sha256).hexdigest()
+
+def create_reset_token(user_id: str, password_hash: str) -> str:
+    settings = get_settings(); now = datetime.now(UTC)
+    fingerprint = create_password_fingerprint(password_hash)
+    payload = {
+        "sub": user_id,
+        "purpose": "password_reset",
+        "psw": fingerprint,
+        "iat": now,
+        "exp": now + timedelta(minutes=15),
+        "jti": secrets.token_urlsafe(16)
+    }
+    return jwt.encode(payload, settings.jwt_access_secret, algorithm="HS256")
+
+def decode_reset_token(token: str) -> dict:
+    payload = jwt.decode(token, get_settings().jwt_access_secret, algorithms=["HS256"])
+    if payload.get("purpose") != "password_reset":
+        raise jwt.InvalidTokenError("Invalid token purpose")
+    return payload
+
 def new_refresh_token() -> str:
     return secrets.token_urlsafe(48)
 
