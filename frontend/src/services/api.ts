@@ -55,6 +55,10 @@ export class ApiServices implements Services {
   private loadedMessages = new Set<string>();
   private messageCursors = new Map<string, string | null>();
   private refreshTask?: Promise<boolean>;
+  private conversationReloadTask?: Promise<void>;
+  private conversationReloadPending = false;
+  private statusReloadTask?: Promise<void>;
+  private statusReloadPending = false;
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
     if (!this.started && typeof window !== "undefined") {
@@ -317,9 +321,9 @@ export class ApiServices implements Services {
           ),
         }),
     );
-    socket.on("conversation:update", () => void this.reloadConversations());
-    socket.on("status:new", () => void this.reloadStatus());
-    socket.on("status:deleted", () => void this.reloadStatus());
+    socket.on("conversation:update", () => this.scheduleConversationReload());
+    socket.on("status:new", () => this.scheduleStatusReload());
+    socket.on("status:deleted", () => this.scheduleStatusReload());
     socket.on("disconnect", () => this.update({ connection: "offline" }));
   }
   private patchMessage(id: string, values: Partial<Message>) {
@@ -340,6 +344,21 @@ export class ApiServices implements Services {
     const map = new Map(this.state.messages.map((message) => [message.id, message]));
     incoming.forEach((message) => map.set(message.id, { ...map.get(message.id), ...message }));
     return [...map.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+  private scheduleConversationReload() {
+    this.conversationReloadPending = true;
+    if (this.conversationReloadTask) return;
+    this.conversationReloadTask = (async () => {
+      while (this.conversationReloadPending) {
+        this.conversationReloadPending = false;
+        await this.reloadConversations();
+      }
+    })()
+      .catch(() => this.update({ connection: "offline" }))
+      .finally(() => {
+        this.conversationReloadTask = undefined;
+        if (this.conversationReloadPending) this.scheduleConversationReload();
+      });
   }
   private async reloadConversations() {
     const rows = await this.fetch<any[]>("/api/conversations");
@@ -380,6 +399,21 @@ export class ApiServices implements Services {
   private async reloadStatus() {
     const value = await this.fetch<any>("/api/status");
     this.update({ users: this.users(value.users), statuses: value.statuses });
+  }
+  private scheduleStatusReload() {
+    this.statusReloadPending = true;
+    if (this.statusReloadTask) return;
+    this.statusReloadTask = (async () => {
+      while (this.statusReloadPending) {
+        this.statusReloadPending = false;
+        await this.reloadStatus();
+      }
+    })()
+      .catch(() => this.update({ connection: "offline" }))
+      .finally(() => {
+        this.statusReloadTask = undefined;
+        if (this.statusReloadPending) this.scheduleStatusReload();
+      });
   }
   private async upload(attachment: Attachment, kind?: "avatar" | "status", onProgress?: (percent: number) => void) {
     onProgress?.(0);
