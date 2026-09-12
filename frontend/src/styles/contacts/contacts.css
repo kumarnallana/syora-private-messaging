@@ -33,6 +33,9 @@
   .page-notice {
     @apply mt-[12px] mb-0;
   }
+  .search-initial-hint {
+    @apply mt-[10px] text-[13px] text-muted;
+  }
   .page-error {
     @apply mt-[12px];
   }
