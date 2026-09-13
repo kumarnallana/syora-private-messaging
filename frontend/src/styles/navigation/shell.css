@@ -1,9 +1,8 @@
 @layer components {
   .app-shell {
     --syora-nav-height: 65px;
-    @apply flex flex-col overflow-hidden md:flex-row md:pb-0;
-    height: var(--syora-viewport-height, 100dvh);
-    padding-bottom: calc(var(--syora-nav-height) + env(safe-area-inset-bottom));
+    @apply flex flex-col overflow-hidden md:flex-row;
+    height: 100dvh;
   }
   .app-shell.is-compact {
     /* Compact mode overrides if needed */
@@ -13,6 +12,10 @@
     @apply fixed bottom-0 left-0 z-[100] flex h-[65px] w-full flex-row items-center border-t border-border bg-panel px-[10px] md:static md:h-auto md:w-[64px] md:flex-col md:gap-9 md:border-r md:border-t-0 md:bg-panel md:p-[25px_9px_18px] lg:w-[76px];
   }
   @media (max-width: 767px) {
+    .app-shell {
+      height: var(--syora-viewport-height, 100dvh);
+      padding-bottom: calc(var(--syora-nav-height) + env(safe-area-inset-bottom));
+    }
     .rail {
       padding-bottom: max(6px, env(safe-area-inset-bottom));
     }

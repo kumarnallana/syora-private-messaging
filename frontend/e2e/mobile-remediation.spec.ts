@@ -45,6 +45,27 @@ async function noHorizontalOverflow(page: Page) {
   expect(size.document).toBeLessThanOrEqual(size.viewport + 1);
 }
 
+test('desktop shell ignores a visual viewport height reported in another zoom scale', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await mockApp(page);
+  await page.goto('/contacts');
+  await expect(page.locator('.app-shell')).toBeVisible();
+  await page.evaluate(() => document.documentElement.style.setProperty('--syora-viewport-height', '270px'));
+  const dimensions = await page.evaluate(() => {
+    const shell = document.querySelector<HTMLElement>('.app-shell')!;
+    const rail = document.querySelector<HTMLElement>('.rail')!;
+    return {
+      viewport: innerHeight,
+      document: document.documentElement.scrollHeight,
+      shell: shell.getBoundingClientRect().height,
+      rail: rail.getBoundingClientRect().height,
+    };
+  });
+  expect(dimensions.shell).toBe(dimensions.viewport);
+  expect(dimensions.rail).toBe(dimensions.viewport);
+  expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1);
+});
+
 test('login replacement, reload restoration, and nested browser Back preserve the app stack', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockApp(page, false);
