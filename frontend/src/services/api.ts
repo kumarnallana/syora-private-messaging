@@ -1,5 +1,6 @@
 import type {
   AppState,
+  AdminMetrics,
   Attachment,
   Conversation,
   Message,
@@ -913,6 +914,9 @@ export class ApiServices implements Services {
       .map(user => ({ ...user, username: normalizeUsername(user.username) }));
     this.update({ users: this.users(users) });
     return users;
+  }
+  async getAdminMetrics(): Promise<AdminMetrics> {
+    return this.fetch<AdminMetrics>("/api/admin/metrics");
   }
 }
 export const services: Services = new ApiServices();

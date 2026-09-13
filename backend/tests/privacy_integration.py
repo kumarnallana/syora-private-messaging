@@ -18,8 +18,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.api import auth, chat, media, status  # noqa: E402
-from app.api.deps import current_auth  # noqa: E402
+from app.api import admin, auth, chat, media, status  # noqa: E402
+from app.api.deps import current_admin, current_auth  # noqa: E402
 from app.config.security import create_access_token, hash_refresh_token  # noqa: E402
 from app.db.session import engine  # noqa: E402
 from app.models import (  # noqa: E402
@@ -115,6 +115,13 @@ async def main() -> None:
             )
             session.add_all([admin_session, idle_session, socket_session, idle_refresh_session])
             await session.flush()
+            await expect_denied(
+                "admin metrics",
+                403,
+                lambda: current_admin(user_a),
+            )
+            metrics = await admin.admin_metrics(user_b, session)
+            assert metrics["signedInUsers"] >= 2, "admin metrics omitted valid signed-in users"
             assert (await validate_session(session, user_b.id, admin_session.id)).user.role == "admin"
             try:
                 await validate_session(session, user_c.id, idle_session.id)

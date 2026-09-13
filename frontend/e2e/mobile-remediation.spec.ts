@@ -16,25 +16,28 @@ async function json(route: Route, body: unknown, status = 200) {
   await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 }
 
-async function mockApp(page: Page, initiallyAuthenticated = true) {
+async function mockApp(page: Page, initiallyAuthenticated = true, currentUser = me, signedInUsers = 3) {
   let authenticated = initiallyAuthenticated;
   await page.route('http://127.0.0.1:8000/**', async route => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/auth/login') {
       authenticated = true;
-      return json(route, { user: me, accessToken: 'access-token', idleExpiresAt: new Date(Date.now() + 300_000).toISOString() });
+      return json(route, { user: currentUser, accessToken: 'access-token', idleExpiresAt: currentUser.role === 'admin' ? null : new Date(Date.now() + 300_000).toISOString() });
     }
     if (path === '/api/auth/refresh') return authenticated
-      ? json(route, { user: me, accessToken: 'access-token', idleExpiresAt: new Date(Date.now() + 300_000).toISOString() })
+      ? json(route, { user: currentUser, accessToken: 'access-token', idleExpiresAt: currentUser.role === 'admin' ? null : new Date(Date.now() + 300_000).toISOString() })
       : json(route, { error: { code: 'REFRESH_REQUIRED', message: 'Sign in.' } }, 401);
     if (path === '/api/auth/logout') { authenticated = false; return json(route, {}); }
     if (path === '/api/auth/activity') return json(route, { idleExpiresAt: new Date(Date.now() + 300_000).toISOString() });
     if (path === '/api/conversations') return json(route, [{ ...conversation, participant: friend, latestMessage: outgoing }]);
     if (path === `/api/conversations/${ids.conversation}/messages`) return json(route, { messages: [incoming, outgoing], nextCursor: null });
-    if (path === '/api/contacts') return json(route, { users: [me, friend], friendships: [{ id: '77777777-7777-4777-8777-777777777777', from: ids.me, to: ids.friend, status: 'accepted' }] });
+    if (path === '/api/contacts') return json(route, { users: [currentUser, friend], friendships: [{ id: '77777777-7777-4777-8777-777777777777', from: ids.me, to: ids.friend, status: 'accepted' }] });
     if (path === '/api/friend-requests') return json(route, { users: [], friendships: [] });
-    if (path === '/api/status') return json(route, { users: [me, friend], statuses: [] });
+    if (path === '/api/status') return json(route, { users: [currentUser, friend], statuses: [] });
     if (path === '/api/preferences') return json(route, preferences);
+    if (path === '/api/admin/metrics') return currentUser.role === 'admin'
+      ? json(route, { signedInUsers })
+      : json(route, { error: { code: 'ADMIN_REQUIRED', message: 'Administrator access is required.' } }, 403);
     if (route.request().method() === 'PATCH' || route.request().method() === 'POST' || route.request().method() === 'DELETE') return json(route, {});
     return json(route, { error: { message: `Unhandled route ${path}` } }, 404);
   });
@@ -64,6 +67,20 @@ test('desktop shell ignores a visual viewport height reported in another zoom sc
   expect(dimensions.shell).toBe(dimensions.viewport);
   expect(dimensions.rail).toBe(dimensions.viewport);
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1);
+});
+
+test('administrator sees and can refresh the unique signed-in people count', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const adminUser = { ...me, role: 'admin' as const };
+  await mockApp(page, true, adminUser, 4);
+  await page.goto('/settings');
+  const mobileSettings = page.locator('.settings-mobile-main');
+  await expect(mobileSettings.getByLabel('4 signed-in people')).toBeVisible();
+  await mobileSettings.getByRole('button', { name: 'Refresh signed-in count' }).click();
+  await expect(mobileSettings.getByLabel('4 signed-in people')).toBeVisible();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.locator('.settings-desktop-content').getByLabel('4 signed-in people')).toBeVisible();
+  await noHorizontalOverflow(page);
 });
 
 test('login replacement, reload restoration, and nested browser Back preserve the app stack', async ({ page }) => {
@@ -130,6 +147,7 @@ for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }
     await noHorizontalOverflow(page);
 
     await page.goto('/settings');
+    await expect(page.getByLabel('Administrator overview')).toHaveCount(0);
     await page.getByRole('button', { name: 'Appearance' }).click();
     await page.getByRole('radio', { name: 'Light' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');

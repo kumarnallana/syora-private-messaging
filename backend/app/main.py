@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from app.api import auth, chat, media, status, users
+from app.api import admin, auth, chat, media, status, users
 from app.config.settings import get_settings
 from app.realtime.socket import sio
 settings=get_settings();api=FastAPI(title="SYORA API",version="0.1.0",docs_url="/api/docs" if not settings.production else None)
@@ -21,5 +21,5 @@ async def server_error(_:Request,exc:Exception):
     return JSONResponse(status_code=500,content={"error":{"code":"INTERNAL_ERROR","message":"The request could not be completed."}})
 @api.get("/api/health")
 async def health():return {"status":"ok"}
-for router in (auth.router,users.router,chat.router,media.router,status.router):api.include_router(router)
+for router in (auth.router,users.router,chat.router,media.router,status.router,admin.router):api.include_router(router)
 app=socketio.ASGIApp(sio,other_asgi_app=api,socketio_path="socket.io")

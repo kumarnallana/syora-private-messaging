@@ -81,6 +81,34 @@
   .account-summary small {
     @apply break-words text-[12px] text-muted;
   }
+  .admin-session-count {
+    @apply my-[18px] flex flex-wrap items-center justify-between gap-[14px] rounded-[11px] border border-accent/35 bg-surface p-[15px];
+  }
+  .admin-session-copy,
+  .admin-session-value {
+    @apply flex items-center gap-[11px];
+  }
+  .admin-session-copy > svg {
+    @apply size-[21px] text-accent;
+  }
+  .admin-session-copy > span {
+    @apply flex flex-col gap-[4px];
+  }
+  .admin-session-copy strong {
+    @apply text-[14px] font-medium;
+  }
+  .admin-session-copy small {
+    @apply text-[12px] text-muted;
+  }
+  .admin-session-value > strong {
+    @apply min-w-[42px] text-right text-[28px] font-medium text-accent;
+  }
+  .admin-session-value .icon-button {
+    @apply size-10;
+  }
+  .admin-session-count > .inline-error {
+    @apply basis-full pb-0;
+  }
   .blocked-row {
     @apply min-h-[58px] border-b border-border;
   }
@@ -150,6 +178,9 @@
     }
     .settings-mobile-subscreen {
       @apply pb-[20px];
+    }
+    .admin-session-count {
+      @apply mb-[14px] mt-0;
     }
     .choice-row {
       @apply flex-col items-stretch gap-[10px];

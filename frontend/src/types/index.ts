@@ -7,3 +7,4 @@ export interface Friendship { id: string; from: string; to: string; status: 'pen
 export interface StatusPost { id: string; userId: string; text: string; color: string; attachment?: Attachment; createdAt: string; expiresAt: string; viewedBy: string[] }
 export interface Preferences { lastSeen: string; photo: string; status: string; receipts: boolean; notifications: boolean; sound: boolean; appearance: 'dark' | 'light' | 'system'; compact: boolean; blocked: string[] }
 export interface AppState { sessionReady: boolean; sessionError?: string; connection: 'connecting' | 'online' | 'offline'; currentUserId: string | null; users: User[]; conversations: Conversation[]; messages: Message[]; friendships: Friendship[]; statuses: StatusPost[]; preferences: Preferences }
+export interface AdminMetrics { signedInUsers: number }

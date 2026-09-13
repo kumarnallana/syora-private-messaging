@@ -1,13 +1,13 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Bell, ChevronRight, LoaderCircle, Lock, LogOut, Monitor, Moon, Shield, Sun, UserRound, UserX } from 'lucide-react';
-import { useState } from 'react';
+import { Bell, ChevronRight, LoaderCircle, Lock, LogOut, Monitor, Moon, RefreshCw, Shield, Sun, UserRound, UsersRound, UserX } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { useApp } from '@/stores/use-app';
 import { Avatar, Modal } from '@/components/shared/ui';
 import { MobileScreenHeader, PageHeader } from '@/components/shell';
 import { usernameLabel } from '@/utils/presentation';
-import type { Preferences } from '@/types';
+import type { AdminMetrics, Preferences } from '@/types';
 
 type Subsection = 'privacy' | 'notifications' | 'appearance' | 'blocked';
 
@@ -21,6 +21,25 @@ export function Settings() {
   const section: Subsection | undefined = requestedSection === 'privacy' || requestedSection === 'notifications' || requestedSection === 'appearance' || requestedSection === 'blocked' ? requestedSection : undefined;
   const [pending, setPending] = useState<keyof Preferences>();
   const [blockingId, setBlockingId] = useState<string>();
+  const [adminMetrics, setAdminMetrics] = useState<AdminMetrics>();
+  const [adminMetricsLoading, setAdminMetricsLoading] = useState(false);
+  const [adminMetricsError, setAdminMetricsError] = useState('');
+
+  const loadAdminMetrics = useCallback(async () => {
+    if (me?.role !== 'admin') return;
+    setAdminMetricsLoading(true);
+    setAdminMetricsError('');
+    try { setAdminMetrics(await services.getAdminMetrics()); }
+    catch (cause) { setAdminMetricsError(cause instanceof Error ? cause.message : 'The signed-in count could not be loaded.'); }
+    finally { setAdminMetricsLoading(false); }
+  }, [me?.role, services]);
+
+  useEffect(() => {
+    if (me?.role !== 'admin') return;
+    void loadAdminMetrics();
+    const timer = window.setInterval(() => void loadAdminMetrics(), 30_000);
+    return () => window.clearInterval(timer);
+  }, [loadAdminMetrics, me?.role]);
 
   async function update(key: keyof Preferences, value: unknown) {
     if (pending) return;
@@ -52,11 +71,13 @@ export function Settings() {
   const blocked = preferences.blocked.length ? preferences.blocked.map(id => { const user = users.find(item => item.id === id); return user && <div className="blocked-row" key={id}><Avatar user={user} size="small"/><span>{user.name}</span><button className="button secondary small" disabled={Boolean(blockingId)} onClick={() => void unblock(id, user.name)}>{blockingId === id && <LoaderCircle className="spin" size={15}/>} Unblock</button></div>; }) : <p className="muted-copy">You have not blocked anyone.</p>;
   const subsectionContent = section === 'privacy' ? privacy : section === 'notifications' ? notifications : section === 'appearance' ? appearance : blocked;
   const subsectionTitle = section ? section[0].toUpperCase() + section.slice(1) : '';
+  const adminOverview = me!.role === 'admin' ? <AdminSessionCount metrics={adminMetrics} loading={adminMetricsLoading} error={adminMetricsError} onRefresh={() => void loadAdminMetrics()}/> : null;
 
   const openSection = (value: Subsection) => router.push(`/settings?section=${value}`);
-  return <div className="page-view settings-page"><MobileScreenHeader title={subsectionTitle || 'Settings'} onBack={section ? () => router.back() : undefined}/><PageHeader title="Settings" description="Privacy, notifications, and appearance."/>{pending && <p className="settings-progress" role="status"><LoaderCircle className="spin" size={15}/> Saving setting…</p>}{notice && <p className={`notice settings-notice is-${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>{notice.text}</p>}<div className="settings-mobile-main" hidden={Boolean(section)}><button className="mobile-account-row" onClick={() => router.push('/profile')}><Avatar user={me!}/><span className="account-copy"><strong>{me!.name}</strong><small>{usernameLabel(me!.username)}</small></span><ChevronRight size={20}/></button><nav className="settings-menu" aria-label="Settings sections"><SettingsLink icon={<UserRound/>} label="Account" onClick={() => router.push('/profile')}/><SettingsLink icon={<Lock/>} label="Privacy" onClick={() => openSection('privacy')}/><SettingsLink icon={<Bell/>} label="Notifications" onClick={() => openSection('notifications')}/><SettingsLink icon={<Moon/>} label="Appearance" onClick={() => openSection('appearance')}/><SettingsLink icon={<UserX/>} label={`Blocked users (${preferences.blocked.length})`} onClick={() => openSection('blocked')}/></nav><button className="settings-menu-row danger-text" onClick={() => setLogout(true)}><LogOut/><span>Log out</span><ChevronRight/></button></div>{section && <div className="settings-mobile-subscreen">{subsectionContent}</div>}<div className="settings-desktop-content"><SettingsSection icon={<Shield/>} title="Account"><div className="account-summary"><Avatar user={me!}/><span className="account-copy"><strong>{me!.name}</strong><small>{usernameLabel(me!.username)}</small></span><button className="button secondary small" onClick={() => router.push('/profile')}>Edit profile</button></div></SettingsSection><SettingsSection icon={<Lock/>} title="Privacy">{privacy}</SettingsSection><SettingsSection icon={<Bell/>} title="Notifications">{notifications}</SettingsSection><SettingsSection icon={<Moon/>} title="Appearance">{appearance}</SettingsSection><SettingsSection icon={<UserX/>} title={`Blocked users (${preferences.blocked.length})`}>{blocked}</SettingsSection><button className="button danger logout-setting" onClick={() => setLogout(true)}><LogOut size={18}/> Log out</button></div>{logout && <Modal title="Log out of SYORA?" className="mobile-sheet logout-dialog" onClose={() => setLogout(false)}><p className="modal-copy">You will need to sign in again to access your conversations.</p><div className="modal-actions"><button className="button secondary" onClick={() => setLogout(false)}>Cancel</button><button className="button danger" onClick={() => { services.logout(); router.replace('/login'); }}><LogOut size={17}/> Log out</button></div></Modal>}</div>;
+  return <div className="page-view settings-page"><MobileScreenHeader title={subsectionTitle || 'Settings'} onBack={section ? () => router.back() : undefined}/><PageHeader title="Settings" description="Privacy, notifications, and appearance."/>{pending && <p className="settings-progress" role="status"><LoaderCircle className="spin" size={15}/> Saving setting…</p>}{notice && <p className={`notice settings-notice is-${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>{notice.text}</p>}<div className="settings-mobile-main" hidden={Boolean(section)}><button className="mobile-account-row" onClick={() => router.push('/profile')}><Avatar user={me!}/><span className="account-copy"><strong>{me!.name}</strong><small>{usernameLabel(me!.username)}</small></span><ChevronRight size={20}/></button>{adminOverview}<nav className="settings-menu" aria-label="Settings sections"><SettingsLink icon={<UserRound/>} label="Account" onClick={() => router.push('/profile')}/><SettingsLink icon={<Lock/>} label="Privacy" onClick={() => openSection('privacy')}/><SettingsLink icon={<Bell/>} label="Notifications" onClick={() => openSection('notifications')}/><SettingsLink icon={<Moon/>} label="Appearance" onClick={() => openSection('appearance')}/><SettingsLink icon={<UserX/>} label={`Blocked users (${preferences.blocked.length})`} onClick={() => openSection('blocked')}/></nav><button className="settings-menu-row danger-text" onClick={() => setLogout(true)}><LogOut/><span>Log out</span><ChevronRight/></button></div>{section && <div className="settings-mobile-subscreen">{subsectionContent}</div>}<div className="settings-desktop-content"><SettingsSection icon={<Shield/>} title="Account"><div className="account-summary"><Avatar user={me!}/><span className="account-copy"><strong>{me!.name}</strong><small>{usernameLabel(me!.username)}</small></span><button className="button secondary small" onClick={() => router.push('/profile')}>Edit profile</button></div></SettingsSection>{adminOverview}<SettingsSection icon={<Lock/>} title="Privacy">{privacy}</SettingsSection><SettingsSection icon={<Bell/>} title="Notifications">{notifications}</SettingsSection><SettingsSection icon={<Moon/>} title="Appearance">{appearance}</SettingsSection><SettingsSection icon={<UserX/>} title={`Blocked users (${preferences.blocked.length})`}>{blocked}</SettingsSection><button className="button danger logout-setting" onClick={() => setLogout(true)}><LogOut size={18}/> Log out</button></div>{logout && <Modal title="Log out of SYORA?" className="mobile-sheet logout-dialog" onClose={() => setLogout(false)}><p className="modal-copy">You will need to sign in again to access your conversations.</p><div className="modal-actions"><button className="button secondary" onClick={() => setLogout(false)}>Cancel</button><button className="button danger" onClick={() => { services.logout(); router.replace('/login'); }}><LogOut size={17}/> Log out</button></div></Modal>}</div>;
 }
 
+function AdminSessionCount({ metrics, loading, error, onRefresh }: { metrics?: AdminMetrics; loading: boolean; error: string; onRefresh: () => void }) { return <section className="admin-session-count" aria-label="Administrator overview"><div className="admin-session-copy"><UsersRound/><span><strong>Signed-in people</strong><small>Unique accounts with a valid SYORA session.</small></span></div><div className="admin-session-value"><strong aria-label={metrics ? `${metrics.signedInUsers} signed-in people` : 'Signed-in count unavailable'}>{metrics?.signedInUsers ?? '—'}</strong><button type="button" className="icon-button" aria-label="Refresh signed-in count" disabled={loading} onClick={onRefresh}>{loading ? <LoaderCircle className="spin"/> : <RefreshCw/>}</button></div>{error && <p className="inline-error" role="alert">{error}</p>}</section>; }
 function SettingsLink({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) { return <button className="settings-menu-row" onClick={onClick}>{icon}<span>{label}</span><ChevronRight/></button>; }
 function SettingsSection({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) { return <section className="settings-section"><header>{icon}<h2>{title}</h2></header><div>{children}</div></section>; }
 function Toggle({ label, description, value, onChange, disabled }: { label: string; description: string; value: boolean; onChange: (value: boolean) => void; disabled?: boolean }) { return <div className="setting-row"><span><strong>{label}</strong><small>{description}</small></span><button disabled={disabled} className={`switch ${value ? 'is-on' : ''}`} role="switch" aria-checked={value} aria-label={label} onClick={() => onChange(!value)}><span/></button></div>; }
