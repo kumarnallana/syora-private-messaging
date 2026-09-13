@@ -1,6 +1,6 @@
 @layer components {
   .modal {
-    @apply max-h-[calc(100dvh-30px)] overflow-auto rounded-[14px] border border-border bg-panel p-6 text-text-primary backdrop:bg-[#090a11b8];
+    @apply fixed inset-0 m-auto max-h-[calc(100dvh-30px)] overflow-auto rounded-[14px] border border-border bg-panel p-6 text-text-primary shadow-[0_24px_70px_#0008] backdrop:bg-[#090a11c7];
   }
   .modal--normal {
     @apply w-[min(460px,calc(100vw-30px))];
@@ -25,5 +25,25 @@
   
   .modal-actions .button {
     @apply flex-1;
+  }
+  .modal-copy,
+  .modal__copy {
+    @apply text-[14px] leading-[1.6] text-muted;
+  }
+  .modal-actions {
+    @apply mt-[22px] flex justify-end gap-[10px];
+  }
+  .logout-dialog {
+    @apply w-[min(420px,calc(100vw-30px))];
+  }
+
+  @media (max-width: 767px) {
+    .mobile-sheet {
+      @apply inset-x-0 bottom-0 top-auto m-0 w-full max-w-none rounded-b-none border-x-0 border-b-0 px-[18px];
+      padding-bottom: max(18px, env(safe-area-inset-bottom));
+    }
+    .logout-dialog {
+      @apply inset-0 m-auto w-[calc(100vw-30px)] rounded-[14px] border;
+    }
   }
 }

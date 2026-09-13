@@ -1,100 +1,107 @@
 @layer components {
   .settings-page {
-    @apply m-auto max-w-[980px];
+    @apply mx-auto max-w-[820px];
+  }
+  .settings-desktop-content {
+    @apply overflow-hidden rounded-[12px] bg-panel px-[24px];
   }
   .settings-section {
-    @apply grid gap-[25px] border-b border-border p-[25px_0] [grid-template-columns:190px_1fr];
+    @apply border-b border-border py-[24px];
   }
   .settings-section > header {
-    @apply flex items-center gap-[10px] text-accent;
+    @apply mb-[10px] flex items-center gap-[10px] text-accent;
   }
   .settings-section > header h2 {
     @apply text-[16px] font-medium text-text-primary;
   }
   .settings-section > header svg {
-    @apply w-[19px];
+    @apply size-[19px];
   }
-
   .setting-row {
-    @apply flex min-h-[66px] items-center justify-between gap-[20px] border-b border-border;
+    @apply flex min-h-[64px] items-center justify-between gap-[20px] border-b border-border/70 py-[10px];
   }
   .setting-row:last-child {
     @apply border-b-0;
   }
   .setting-row > span {
-    @apply flex flex-col gap-[5px];
+    @apply flex min-w-0 flex-col gap-[4px];
   }
-  .setting-row strong {
+  .setting-row strong,
+  .choice-row legend {
     @apply text-[14px] font-medium;
   }
   .setting-row small,
   .muted-copy {
     @apply text-[12px] leading-[1.5] text-muted;
   }
-  .setting-row select {
-    @apply min-h-[40px] min-w-[160px] p-[8px_30px_8px_10px];
+  .choice-row {
+    @apply m-0 w-full p-0;
   }
-
+  .choice-options {
+    @apply flex shrink-0 rounded-[9px] bg-surface p-[3px];
+  }
+  .choice-options button {
+    @apply min-h-[36px] rounded-[7px] px-[11px] text-[12px] text-muted transition-colors duration-150;
+  }
+  .choice-options button.is-active {
+    @apply bg-elevated text-accent shadow-[0_1px_4px_#0004];
+  }
   .switch {
-    @apply h-[26px] w-[47px] shrink-0 rounded-[20px] border border-border bg-surface p-[3px];
+    @apply grid min-h-11 w-[52px] shrink-0 place-items-center rounded-[22px];
   }
-  .switch span {
-    @apply block h-[18px] w-[18px] rounded-full bg-muted transition-transform duration-150;
+  .switch > span {
+    @apply block h-[24px] w-[44px] rounded-[20px] border border-border bg-surface p-[3px];
   }
-  .switch.is-on {
+  .switch > span::after {
+    @apply block size-4 rounded-full bg-muted content-[''] transition-transform duration-150;
+  }
+  .switch.is-on > span {
     @apply border-accent bg-accent;
   }
-  .switch.is-on span {
-    @apply translate-x-[20px] bg-[#241e35];
+  .switch.is-on > span::after {
+    @apply translate-x-[18px] bg-[#241e35];
   }
-
   .theme-options {
-    @apply mb-[13px] grid grid-cols-3 gap-[10px];
+    @apply mb-[10px] flex gap-[8px];
   }
   .theme-options button {
-    @apply flex min-h-[46px] items-center justify-center gap-[8px] rounded-[9px] border border-border;
+    @apply flex min-h-11 flex-1 items-center justify-center gap-[7px] rounded-[8px] bg-surface px-[12px] text-[13px] text-muted;
   }
   .theme-options button.is-active {
-    @apply border-accent bg-[#302a42] text-accent;
+    @apply bg-[#302a42] text-accent ring-1 ring-accent/60;
   }
-
   .account-summary,
   .blocked-row {
     @apply flex items-center gap-[12px];
   }
   .account-summary > .account-copy {
-    @apply flex min-w-0 flex-1 flex-col gap-[5px];
+    @apply flex min-w-0 flex-1 flex-col gap-[4px];
   }
   .account-summary small {
     @apply break-words text-[12px] text-muted;
   }
-  
   .blocked-row {
     @apply min-h-[58px] border-b border-border;
   }
   .blocked-row > span:nth-child(2) {
     @apply flex-1;
   }
-
   .logout-setting {
-    @apply my-[28px];
+    @apply my-[24px];
   }
-
   .settings-mobile-main,
   .settings-mobile-subscreen {
     @apply hidden;
   }
-
   .settings-menu {
-    @apply overflow-hidden rounded-[13px] border border-border bg-panel;
+    @apply overflow-hidden rounded-[12px] bg-panel;
   }
-
   .mobile-account-row,
   .settings-menu-row {
     @apply flex w-full items-center gap-[13px] border-b border-border px-[15px] text-left;
   }
   .mobile-account-row {
-    @apply mb-[18px] min-h-[82px] rounded-[13px] border border-border bg-panel;
+    @apply mb-[14px] min-h-[78px] rounded-[12px] border-0 bg-panel;
   }
   .mobile-account-row > .account-copy {
     @apply flex min-w-0 flex-1 flex-col gap-[4px];
@@ -107,7 +114,7 @@
     @apply ml-auto shrink-0 text-muted;
   }
   .settings-menu-row {
-    @apply min-h-[58px] bg-panel text-[14px] transition-[background-color,color,transform] duration-150 hover:bg-surface active:bg-elevated;
+    @apply min-h-[58px] bg-panel text-[14px] transition-colors duration-150 hover:bg-surface active:bg-elevated;
   }
   .settings-menu-row:last-child {
     @apply border-b-0;
@@ -116,7 +123,7 @@
     @apply size-[19px] shrink-0 text-accent;
   }
   .settings-menu + .settings-menu-row {
-    @apply mt-[18px] rounded-[13px] border border-border;
+    @apply mt-[14px] rounded-[12px] border-0;
   }
   .danger-text,
   .danger-text > svg:first-child {
@@ -143,17 +150,17 @@
     .settings-mobile-subscreen {
       @apply pb-[20px];
     }
-    .settings-section {
-      @apply grid-cols-1 gap-[15px];
+    .choice-row {
+      @apply flex-col items-stretch gap-[10px];
     }
-    .setting-row select {
-      @apply min-w-[130px];
+    .choice-options {
+      @apply w-full;
+    }
+    .choice-options button {
+      @apply flex-1;
     }
     .account-summary {
       @apply flex-wrap;
-    }
-    .theme-options {
-      @apply grid-cols-3;
     }
   }
 }

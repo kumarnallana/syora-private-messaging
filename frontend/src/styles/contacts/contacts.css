@@ -2,8 +2,14 @@
   .card-list {
     @apply flex flex-col gap-[8px];
   }
+  .contacts-page {
+    @apply mx-auto max-w-[960px];
+  }
+  .people-workspace {
+    @apply max-w-[760px];
+  }
   .person-card {
-    @apply flex items-center gap-[14px] border-b border-border px-[4px] py-[14px];
+    @apply flex items-center gap-[14px] border-b border-border px-[4px] py-[12px];
   }
   .person-card > div:nth-child(2) {
     @apply min-w-0 flex-1;
@@ -41,7 +47,7 @@
   }
 
   .row-actions {
-    @apply flex items-center gap-[8px];
+    @apply ml-auto flex shrink-0 items-center gap-[8px];
   }
   .row-actions .icon-button {
     @apply size-10;
@@ -72,10 +78,13 @@
 
   @media (max-width: 767px) {
     .person-card {
-      @apply flex-wrap gap-[10px];
+      @apply gap-[10px];
     }
     .row-actions {
-      @apply ml-[57px] w-[calc(100%-57px)] flex-wrap justify-start;
+      @apply ml-auto w-auto flex-nowrap justify-end;
+    }
+    .row-actions .button {
+      @apply px-[11px];
     }
     .contact-detail-screen {
       @apply px-[18px];

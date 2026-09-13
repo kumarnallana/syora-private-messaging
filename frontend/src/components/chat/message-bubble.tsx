@@ -51,7 +51,7 @@ export function MessageBubble({ message, mine, original, onReply, groupedWithPre
       {error && <p className="inline-error" role="alert">{error}</p>}
     </div>
     {!message.deleted && <div className="message-actions-wrap" ref={actionMenu}>
-      <IconButton className="message-action-trigger" label="Message actions" onClick={() => setActionsOpen(value => !value)}><MoreHorizontal size={18} /></IconButton>
+      <button type="button" className="icon-button message-action-trigger" aria-label="Message actions" aria-expanded={actionsOpen} onClick={() => setActionsOpen(value => !value)}><MoreHorizontal size={18} /></button>
       {actionsOpen && <div className="message-action-menu" role="menu">
         {message.text && <button type="button" role="menuitem" onClick={() => void copy()}><Copy size={17} /><span>{copied ? 'Copied' : 'Copy'}</span></button>}
         <button type="button" role="menuitem" onClick={() => { setActionsOpen(false); onReply(); }}><Reply size={17} /><span>Reply</span></button>

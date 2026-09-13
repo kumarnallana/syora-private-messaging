@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { ArrowLeft, Ban, BellOff, LoaderCircle, MessageCircle, MoreHorizontal, Pin, Search, SquarePen, X } from 'lucide-react';
 import { useApp } from '@/stores/use-app';
 import { Avatar, Brand, Empty, IconButton, Modal, time } from '@/components/shared/ui';
-import { PreviewNote } from '@/components/shell';
 import { MessageBubble } from './message-bubble';
 import { Composer } from './composer';
 import { DeliveryReceipt } from './delivery-receipt';
@@ -41,24 +40,6 @@ export function Chats() {
  });
  useEffect(() => { setSelected(params.get('conversation')); }, [params]);
  useEffect(() => {
-  const viewport = window.visualViewport;
-  const update = () => {
-   document.documentElement.style.setProperty('--syora-viewport-height', `${Math.round(viewport?.height || window.innerHeight)}px`);
-   document.documentElement.style.setProperty('--syora-viewport-top', `${Math.round(viewport?.offsetTop || 0)}px`);
-  };
-  update();
-  viewport?.addEventListener('resize', update);
-  viewport?.addEventListener('scroll', update);
-  window.addEventListener('resize', update);
-  return () => {
-   viewport?.removeEventListener('resize', update);
-   viewport?.removeEventListener('scroll', update);
-   window.removeEventListener('resize', update);
-   document.documentElement.style.removeProperty('--syora-viewport-height');
-   document.documentElement.style.removeProperty('--syora-viewport-top');
-  };
- }, []);
- useEffect(() => {
   if (!active) return;
   let current=true;setMessageState('loading');setActionError('');setHasOlder(true);
   void services.loadMessages(active.id).then(more=>{if(current){setHasOlder(more);setMessageState('loaded')}}).catch(error=>{if(current){setMessageState('error');setActionError(error instanceof Error?error.message:'Messages could not be loaded.')}});
@@ -72,7 +53,14 @@ export function Chats() {
   if (nearBottom.current || last?.senderId === me?.id) timeline.current?.scrollTo({ top: timeline.current.scrollHeight });
  }, [active?.id, activeMessages.length, me?.id]);
  useEffect(() => {
-  if(active&&messageState==='loaded'&&active.unread>0)services.markRead(active.id);
+  if (!active || messageState !== 'loaded' || active.unread <= 0) return;
+  const markVisible = () => {
+   if (document.visibilityState === 'visible' && document.hasFocus()) services.markRead(active.id);
+  };
+  markVisible();
+  document.addEventListener('visibilitychange', markVisible);
+  window.addEventListener('focus', markVisible);
+  return () => { document.removeEventListener('visibilitychange', markVisible); window.removeEventListener('focus', markVisible); };
  },[active?.id,active?.unread,messageState,services]);
  function back() {
   const id = selected;
@@ -82,7 +70,15 @@ export function Chats() {
  async function loadEarlier() {
   if (!active || loadingOlder) return;
   setLoadingOlder(true); setActionError('');
-  try { setHasOlder(await services.loadOlderMessages(active.id)); }
+  const element = timeline.current;
+  const previousHeight = element?.scrollHeight || 0;
+  const previousTop = element?.scrollTop || 0;
+  try {
+   setHasOlder(await services.loadOlderMessages(active.id));
+   requestAnimationFrame(() => {
+    if (element) element.scrollTop = previousTop + element.scrollHeight - previousHeight;
+   });
+  }
   catch (error) { setActionError(error instanceof Error ? error.message : 'Earlier messages could not be loaded.'); }
   finally { setLoadingOlder(false); }
  }
@@ -95,7 +91,7 @@ export function Chats() {
  }
  return <div className={`chat-layout ${active && friend ? 'has-conversation' : ''}`}>
   <section className="conversation-panel" aria-label="Conversations">
-   <header className="list-header"><Brand/><div className="list-title"><h1>Messages <span className="count">{conversations.length}</span></h1><Link href="/contacts" className="icon-button" aria-label="New conversation" title="New conversation"><SquarePen size={18}/></Link></div><label className="search-field"><Search size={18}/><input aria-label="Search conversations" placeholder="Search conversations" value={query} onChange={e=>setQuery(e.target.value)}/>{query&&<IconButton label="Clear search" onClick={()=>setQuery('')}><X size={15}/></IconButton>}</label><div className="chat-filters" role="group" aria-label="Conversation filters"><button className={filter==='all'?'is-active':''} aria-pressed={filter==='all'} onClick={()=>setFilter('all')}>All</button><button className={filter==='unread'?'is-active':''} aria-pressed={filter==='unread'} onClick={()=>setFilter('unread')}>Unread</button></div></header>
+   <header className="list-header"><Brand/><div className="list-title"><h1>Messages <span className="count">{conversations.length}</span></h1><Link href="/contacts" className="icon-button" aria-label="New conversation" title="New conversation"><SquarePen size={18}/></Link></div><label className="search-field"><Search size={18}/><input aria-label="Search conversations" placeholder="Search conversations" value={query} autoComplete="off" spellCheck={false} onChange={e=>setQuery(e.target.value)}/>{query&&<IconButton label="Clear search" onClick={()=>setQuery('')}><X size={15}/></IconButton>}</label><div className="chat-filters" role="group" aria-label="Conversation filters"><button className={filter==='all'?'is-active':''} aria-pressed={filter==='all'} onClick={()=>setFilter('all')}>All</button><button className={filter==='unread'?'is-active':''} aria-pressed={filter==='unread'} onClick={()=>setFilter('unread')}>Unread</button></div></header>
    <div className="conversation-rows">
     {ordered.map(conversation => {
      const person = users.find(u => conversation.participants.includes(u.id) && u.id !== me!.id);
@@ -112,13 +108,13 @@ export function Chats() {
      </button>;
     })}
     {!conversations.length?<Empty title="Your inbox is quiet" description="Find someone in your circle and start a private conversation."><Link className="button primary" href="/contacts">Find people</Link></Empty>:!ordered.some(c=>{const person=users.find(u=>c.participants.includes(u.id)&&u.id!==me!.id);return person&&(filter==='all'||c.unread>0)&&(person.name.toLowerCase().includes(query.toLowerCase())||normalizeUsername(person.username).includes(normalizeUsername(query)))})&&<Empty title={filter==='unread'?'You are all caught up':'No conversations found'} description={filter==='unread'?'There are no unread conversations.':'Try another name or username.'}/>}
-   </div><footer className="list-footer"><PreviewNote/></footer>
+   </div>
   </section>
   {active && friend ? <section className="chat-panel" aria-label={`Conversation with ${friend.name}`}>
    <header className="chat-header"><IconButton label="Back to conversations" className="mobile-back" onClick={back}><ArrowLeft size={21}/></IconButton>
     <Avatar user={friend} size="small"/><div className="chat-person"><h2 ref={heading} tabIndex={-1}>{friend.name}</h2><p>{active.typing ? 'typing…' : presence}</p></div><div className="chat-header-actions"><IconButton label="Search messages" onClick={()=>setSearchOpen(v=>!v)}><Search size={19}/></IconButton><IconButton label="Conversation options" onClick={()=>setInfoOpen(true)}><MoreHorizontal size={21}/></IconButton></div>
    </header>
-   {searchOpen&&<div className="message-search"><label className="search-field"><Search size={17}/><input autoFocus aria-label="Search messages" placeholder="Search this conversation" value={messageQuery} onChange={e=>setMessageQuery(e.target.value)}/></label><span>{visibleMessages.length} results</span><IconButton label="Close message search" onClick={()=>{setSearchOpen(false);setMessageQuery('')}}><X size={18}/></IconButton></div>}
+   {searchOpen&&<div className="message-search"><label className="search-field"><Search size={17}/><input autoFocus aria-label="Search messages" placeholder="Search loaded messages" value={messageQuery} autoComplete="off" spellCheck={false} onChange={e=>setMessageQuery(e.target.value)}/></label><span>{visibleMessages.length} loaded results</span><IconButton label="Close message search" onClick={()=>{setSearchOpen(false);setMessageQuery('')}}><X size={18}/></IconButton></div>}
    <div className="timeline" ref={timeline} role="log" aria-label="Messages" aria-live="polite" aria-relevant="additions text" onScroll={e => { const el = e.currentTarget; nearBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}><div className="timeline-feed">
     {messageState==='loading'&&<div className="timeline-state" role="status">Loading messages…</div>}
     {messageState==='error'&&<div className="timeline-state"><p>{actionError}</p><button className="button secondary small" onClick={()=>{setMessageState('loading');void services.loadMessages(active.id).then(more=>{setHasOlder(more);setMessageState('loaded')}).catch(error=>{setActionError((error as Error).message);setMessageState('error')})}}>Retry</button></div>}
@@ -134,7 +130,7 @@ export function Chats() {
     {messageState==='loaded'&&!visibleMessages.length && <Empty title={messageQuery?'No messages found':'Start with a hello'} description={messageQuery?'Try another word or file name.':`Send the first message to ${friend.name.split(' ')[0]}.`}/>}</div>
    </div>
    <Composer key={`${me!.id}:${active.id}`} conversationId={active.id} blocked={preferences.blocked.includes(friend.id)} reply={reply} clearReply={()=>setReply(undefined)}/>
-   {infoOpen&&<Modal title="Conversation details" className="mobile-sheet" onClose={()=>setInfoOpen(false)}><div className="person-detail"><Avatar user={friend} size="large"/><h2>{friend.name}</h2><strong className="username">{usernameLabel(friend.username)}</strong><p>{friend.about}</p>{friend.email&&<small>{friend.email}</small>}</div>{actionError&&<p className="inline-error" role="alert">{actionError}</p>}<div className="detail-actions" aria-busy={Boolean(detailBusy)}><button disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('pinned',()=>services.toggleConversation(active.id,'pinned'))}>{detailBusy==='pinned'?<LoaderCircle className="spin" size={18}/>:<Pin size={18}/>}<span>{active.pinned?'Unpin conversation':'Pin conversation'}</span></button><button disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('muted',()=>services.toggleConversation(active.id,'muted'))}>{detailBusy==='muted'?<LoaderCircle className="spin" size={18}/>:<BellOff size={18}/>}<span>{active.muted?'Unmute notifications':'Mute notifications'}</span></button><button className="danger-text" disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('blocked',()=>services.block(friend.id))}>{detailBusy==='blocked'?<LoaderCircle className="spin" size={18}/>:<Ban size={18}/>}<span>{preferences.blocked.includes(friend.id)?'Unblock contact':'Block contact'}</span></button></div></Modal>}
-  </section> : <section className="chat-panel welcome-panel"><MessageCircle size={40}/><h2>{conversations.length ? 'A space for your conversations' : 'No conversations yet'}</h2><p>{conversations.length ? 'Choose someone from your messages to catch up.' : 'Find someone in your circle to begin.'}</p>{!conversations.length&&<Link className="button primary" href="/contacts">Find people</Link>}</section>}
+   {infoOpen&&<Modal title="Conversation details" className="mobile-sheet conversation-detail-dialog" onClose={()=>setInfoOpen(false)}><div className="person-detail"><Avatar user={friend} size="large"/><h2>{friend.name}</h2><strong className="username">{usernameLabel(friend.username)}</strong><p>{friend.about}</p></div>{actionError&&<p className="inline-error" role="alert">{actionError}</p>}<div className="detail-actions" aria-busy={Boolean(detailBusy)}><button disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('pinned',()=>services.toggleConversation(active.id,'pinned'))}>{detailBusy==='pinned'?<LoaderCircle className="spin" size={18}/>:<Pin size={18}/>}<span>{active.pinned?'Unpin conversation':'Pin conversation'}</span></button><button disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('muted',()=>services.toggleConversation(active.id,'muted'))}>{detailBusy==='muted'?<LoaderCircle className="spin" size={18}/>:<BellOff size={18}/>}<span>{active.muted?'Unmute notifications':'Mute notifications'}</span></button><button className="danger-text" disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('blocked',()=>services.block(friend.id))}>{detailBusy==='blocked'?<LoaderCircle className="spin" size={18}/>:<Ban size={18}/>}<span>{preferences.blocked.includes(friend.id)?'Unblock contact':'Block contact'}</span></button></div></Modal>}
+  </section> : <section className="chat-panel welcome-panel"><MessageCircle size={40}/><h2>{conversations.length ? 'A space for your conversations' : 'Your private conversations live here'}</h2><p>{conversations.length ? 'Choose someone from your messages to catch up.' : 'Use the new conversation button when you are ready to begin.'}</p></section>}
  </div>;
 }

@@ -16,7 +16,7 @@ async def user_out(db:AsyncSession,user:User,viewer_id:uuid.UUID|None=None)->dic
     show_photo=own or photo_visibility=="everyone" or (photo_visibility=="friends" and friendship)
     show_seen=own or seen_visibility=="everyone" or (seen_visibility=="friends" and friendship)
     avatar=r2.access_url(user.avatar_key) if show_photo and user.avatar_key and r2.configured else None
-    return {"id":str(user.id),"name":user.display_name,"username":user.username.lstrip("@").lower(),"email":user.email if own or friendship else "","about":user.about,"avatar":avatar,"color":"iris","online":user.id in online_users if show_seen else False,"lastSeen":user.last_seen_at.isoformat() if show_seen and user.last_seen_at else None}
+    return {"id":str(user.id),"name":user.display_name,"username":user.username.lstrip("@").lower(),"email":user.email if own else "","about":user.about,"avatar":avatar,"color":"iris","online":user.id in online_users if show_seen else False,"lastSeen":user.last_seen_at.isoformat() if show_seen and user.last_seen_at else None}
 async def message_out(db:AsyncSession,message:Message,viewer_id:uuid.UUID)->dict:
     attachment=await db.scalar(select(Attachment).where(Attachment.message_id==message.id));receipt="sent"
     if message.sender_id==viewer_id:
@@ -38,7 +38,11 @@ async def message_out(db:AsyncSession,message:Message,viewer_id:uuid.UUID)->dict
     if attachment and not message.deleted_at:data["attachment"]={"id":str(attachment.id),"name":attachment.file_name,"type":message.type.value.lower(),"mime":attachment.mime_type,"size":attachment.file_size,"url":r2.access_url(attachment.object_key) if r2.configured else ""}
     return data
 async def status_out(db:AsyncSession,status:StatusPost,viewer_id:uuid.UUID)->dict:
-    viewed=[str(v) for v in (await db.scalars(select(StatusView.viewer_id).where(StatusView.status_id==status.id))).all()]
+    if status.user_id==viewer_id:
+        viewed=[str(v) for v in (await db.scalars(select(StatusView.viewer_id).where(StatusView.status_id==status.id))).all()]
+    else:
+        has_viewed=await db.get(StatusView,{"status_id":status.id,"viewer_id":viewer_id})
+        viewed=[str(viewer_id)] if has_viewed else []
     data={"id":str(status.id),"userId":str(status.user_id),"text":status.text,"color":status.color,"createdAt":status.created_at.isoformat(),"expiresAt":status.expires_at.isoformat(),"viewedBy":viewed}
     if status.object_key:
         kind="video" if status.mime_type and status.mime_type.startswith("video/") else "image";data["attachment"]={"id":str(status.id),"name":status.file_name or "Status media","type":kind,"mime":status.mime_type or "","size":status.file_size or 0,"url":r2.access_url(status.object_key) if r2.configured else ""}

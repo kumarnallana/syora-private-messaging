@@ -27,9 +27,11 @@ export function Composer({conversationId,blocked,reply,clearReply}:{conversation
   const outgoingAttachment=attachment;
   const outgoingReply=reply?.id;
   services.typing(conversationId,false);setAttachment(undefined);setText('');clearReply();setEmoji(false);if(input.current)input.current.style.height='auto';
-  try{await services.send(conversationId,outgoingText,outgoingAttachment,outgoingReply);if(pending.current?.url.startsWith('blob:'))URL.revokeObjectURL(pending.current.url);pending.current=undefined;}
+  const request=services.send(conversationId,outgoingText,outgoingAttachment,outgoingReply);
+  if(!outgoingAttachment){submitting.current=false;setBusy(false);input.current?.focus();}
+  try{await request;if(pending.current?.url.startsWith('blob:'))URL.revokeObjectURL(pending.current.url);pending.current=undefined;}
   catch(error){setError(error instanceof Error?error.message:'Message could not be sent. Please try again.');}
-  finally{submitting.current=false;setBusy(false);input.current?.focus();}
+  finally{if(outgoingAttachment){submitting.current=false;setBusy(false);input.current?.focus();}}
  }
  return <div className="composer-wrap" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(blocked||busy)return;try{const file=e.dataTransfer.files[0];if(file)choose(pickAttachment(file));}catch(error){setError((error as Error).message)}}}>
   {error&&<p className="inline-error" role="alert">{error}</p>}

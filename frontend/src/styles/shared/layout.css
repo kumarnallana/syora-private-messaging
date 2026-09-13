@@ -1,6 +1,6 @@
 @layer components {
   .page-view {
-    @apply h-full overflow-auto p-[40px_clamp(24px,5vw,70px)_50px];
+    @apply h-full overflow-auto p-[32px_clamp(24px,4vw,56px)_48px];
   }
   .page-view.is-narrow {
     @apply m-auto max-w-[900px];
@@ -10,10 +10,10 @@
   }
 
   .page-header {
-    @apply mb-[28px] flex items-center justify-between gap-[22px] border-b border-border pb-[28px];
+    @apply mb-[22px] flex items-end justify-between gap-[22px] border-b border-border pb-[18px];
   }
   .page-header h1 {
-    @apply m-[12px_0_9px] text-[32px] font-medium tracking-[-1px];
+    @apply mb-[5px] text-[27px] font-medium tracking-[-0.6px];
   }
   .page-header p {
     @apply text-[14px] leading-[1.7] text-muted;
@@ -26,7 +26,7 @@
   }
 
   .section-heading {
-    @apply m-[29px_0_16px] flex items-center gap-[9px] text-[17px] font-medium;
+    @apply m-[24px_0_12px] flex items-center gap-[9px] text-[16px] font-medium;
   }
   .section-heading span {
     @apply rounded-[5px] bg-surface p-[3px_7px] text-[12px] text-muted;

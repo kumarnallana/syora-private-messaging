@@ -1,33 +1,67 @@
 @layer components {
-  .profile-editor {
-    @apply grid items-start gap-[45px] rounded-[14px] border border-border bg-panel p-[28px] [grid-template-columns:180px_1fr];
+  .profile-page {
+    @apply max-w-[1060px];
   }
-  .avatar-editor {
-    @apply relative m-auto w-max;
+  .profile-editor {
+    @apply grid items-start gap-[48px] [grid-template-columns:minmax(190px,240px)_minmax(0,620px)];
   }
   .avatar-column {
-    @apply flex flex-col items-center gap-[14px];
+    @apply flex flex-col items-center gap-[12px] py-[12px];
+  }
+  .avatar-editor {
+    @apply relative w-max;
+  }
+  .avatar-editor .avatar--large {
+    @apply size-[120px] text-[30px];
   }
   .avatar-editor .icon-button {
-    @apply absolute bottom-[-4px] right-[-6px] rounded-full border-[4px] border-panel bg-accent text-[#241e35];
+    @apply absolute bottom-0 right-[-4px] size-10 rounded-full border-[3px] border-background bg-elevated text-accent shadow-[0_8px_24px_#0005];
+  }
+  .profile-identity {
+    @apply flex max-w-[240px] flex-col items-center gap-[4px] text-center;
+  }
+  .profile-identity strong {
+    @apply break-words text-[18px] font-medium;
+  }
+  .profile-identity span {
+    @apply break-all text-[13px] text-accent;
   }
   .profile-editor form {
-    @apply min-w-0;
+    @apply min-w-0 rounded-[12px] bg-panel p-[24px];
   }
-  .readonly-field {
-    @apply flex min-h-[46px] items-center gap-[10px] break-words rounded-[8px] border border-border bg-surface p-[11px_13px] text-muted;
+  .username-control {
+    @apply grid min-h-[46px] overflow-hidden rounded-[8px] border border-border bg-surface [grid-template-columns:44px_minmax(0,1fr)] focus-within:border-accent;
   }
-  .input-with-icon {
-    @apply relative flex items-center;
+  .username-prefix {
+    @apply grid place-items-center border-r border-border text-muted;
   }
-  .input-with-icon > svg {
-    @apply pointer-events-none absolute left-[13px] text-muted;
+  .username-control > input {
+    @apply min-h-[44px] w-full border-0 bg-transparent px-[12px] outline-none;
   }
-  .input-with-icon > input {
-    @apply pl-[38px];
+  .field.has-error .username-control {
+    @apply border-danger bg-[#2a1b20];
   }
+  .about-field textarea {
+    @apply min-h-[96px] w-full resize-y p-[12px] leading-[1.55];
+  }
+  .field-label-row {
+    @apply flex items-center justify-between gap-[12px];
+  }
+  .field-label-row small {
+    @apply font-normal text-muted;
+  }
+  .account-email {
+    @apply mb-[20px] flex flex-col gap-[8px];
+  }
+  .account-email__label {
+    @apply text-[14px];
+  }
+  .account-email > small,
   .field small {
     @apply text-[12px] leading-[1.5] text-muted;
+  }
+  .readonly-field {
+    @apply flex min-h-[46px] items-center gap-[10px] break-words rounded-[8px] bg-surface/70 p-[11px_13px] text-muted;
   }
   .notice {
     @apply mb-[17px] rounded-[8px] bg-[#302a42] p-[12px] text-[13px] text-text-primary;
@@ -39,13 +73,13 @@
     @apply border border-[#6b9d87]/40 bg-[#1b2823];
   }
   .avatar-progress {
-    @apply flex w-full max-w-[180px] flex-col gap-[7px] text-center text-[12px] text-muted;
+    @apply flex w-full max-w-[190px] flex-col gap-[7px] text-center text-[12px] text-muted;
   }
   .avatar-progress progress {
     @apply h-[5px] w-full overflow-hidden rounded-full accent-accent;
   }
   .profile-actions {
-    @apply flex items-center justify-between gap-[14px];
+    @apply flex items-center justify-between gap-[14px] border-t border-border pt-[18px];
   }
   .profile-save-state {
     @apply text-[12px] text-muted;
@@ -53,16 +87,22 @@
 
   @media (max-width: 767px) {
     .profile-editor {
-      @apply grid-cols-1 gap-[30px] border-0 bg-transparent p-[18px_0_0];
+      @apply grid-cols-1 gap-[18px];
     }
-    .profile-editor .avatar--large {
-      @apply size-[112px] text-[30px];
+    .avatar-column {
+      @apply py-[4px_12px];
+    }
+    .profile-editor form {
+      @apply rounded-none bg-transparent p-0;
     }
     .profile-actions {
       @apply sticky z-10 -mx-[18px] px-[18px] py-[10px];
-      bottom: calc(65px + env(safe-area-inset-bottom));
-      background: color-mix(in srgb, var(--bg) 94%, transparent);
-      backdrop-filter: blur(12px);
+      bottom: 0;
+      background: var(--bg);
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    .app-shell:has(input:focus, textarea:focus) .profile-actions {
+      bottom: 0;
     }
   }
 }

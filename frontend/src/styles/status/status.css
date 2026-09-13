@@ -1,9 +1,15 @@
 @layer components {
+  .status-page {
+    @apply mx-auto max-w-[980px];
+  }
+  .status-page > section {
+    @apply border-b border-border/70 pb-[18px];
+  }
   .status-grid {
-    @apply grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-[10px];
+    @apply grid grid-cols-1 gap-[4px];
   }
   .status-card {
-    @apply flex items-center rounded-[11px] border border-border bg-panel p-[14px];
+    @apply flex items-center rounded-[9px] bg-panel p-[12px];
   }
   .status-open {
     @apply flex min-w-0 flex-1 items-center gap-[13px] text-left;
@@ -26,7 +32,7 @@
 
   .status-compose,
   .status-viewer {
-    @apply mb-[22px] grid min-h-[240px] place-items-center overflow-hidden rounded-[11px] p-[30px];
+    @apply mb-[22px] grid min-h-[220px] place-items-center overflow-hidden rounded-[11px] p-[24px];
   }
   .status-compose > p,
   .status-viewer > p {
@@ -70,6 +76,9 @@
     @apply origin-left bg-accent;
     animation: status-progress 5s linear both;
   }
+  .status-viewer-dialog:has(.video-message) .status-progress span.is-active {
+    animation: none;
+  }
   @keyframes status-progress {
     from { transform: scaleX(0); }
     to { transform: scaleX(1); }
@@ -99,14 +108,13 @@
       @apply size-[50px];
     }
     .status-grid {
-      @apply -mx-[18px] flex snap-x gap-[10px] overflow-x-auto px-[18px] pb-[8px];
-      scrollbar-width: none;
+      @apply mx-0 flex flex-col gap-[2px] overflow-visible p-0;
     }
     .status-grid::-webkit-scrollbar {
       display: none;
     }
     .status-card {
-      @apply min-w-[225px] snap-start;
+      @apply min-w-0;
     }
     .status-compose,
     .status-viewer {

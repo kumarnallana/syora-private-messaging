@@ -17,7 +17,7 @@
     @apply block w-full overflow-hidden rounded-[8px];
   }
   .image-message img {
-    @apply block max-h-[270px] w-full object-cover;
+    @apply block max-h-[270px] w-full bg-[#0b0c11] object-contain;
   }
   
   .video-message {
@@ -69,15 +69,27 @@
     @apply !flex !items-center !gap-[7px] !text-[14px] !italic !text-muted;
   }
 
-  .message-actions {
-    @apply flex opacity-0 transition-opacity;
+  .message-actions-wrap {
+    @apply relative flex shrink-0;
   }
-  .message-row:hover .message-actions,
-  .message-row:focus-within .message-actions {
+  .message-action-trigger {
+    @apply size-9 opacity-0 transition-opacity;
+  }
+  .message-row:hover .message-action-trigger,
+  .message-row:focus-within .message-action-trigger {
     @apply opacity-100;
   }
-  .message-actions .icon-button {
-    @apply h-[36px] w-[34px];
+  .message-action-menu {
+    @apply absolute bottom-[calc(100%+6px)] z-30 min-w-[150px] overflow-hidden rounded-[10px] border border-border bg-elevated p-[5px] shadow-[0_16px_40px_#0008];
+  }
+  .is-outgoing .message-action-menu {
+    @apply right-0;
+  }
+  .is-incoming .message-action-menu {
+    @apply left-0;
+  }
+  .message-action-menu button {
+    @apply flex min-h-10 w-full items-center gap-[10px] rounded-[7px] px-[10px] text-left text-[13px] hover:bg-white/[0.06];
   }
 
   .retry-button {
@@ -86,5 +98,25 @@
 
   .delete-choices {
     @apply mt-[22px] flex flex-col gap-[9px];
+  }
+
+  @media (max-width: 767px) {
+    .message-actions-wrap {
+      @apply relative transform-none;
+    }
+    .message-action-trigger {
+      @apply size-11 opacity-70;
+    }
+    .message-row:focus-within .message-action-trigger,
+    .message-action-trigger[aria-expanded='true'] {
+      @apply opacity-100;
+    }
+    .message-action-menu {
+      @apply fixed inset-x-[10px] bottom-[10px] top-auto flex min-w-0 gap-[5px] rounded-[12px] p-[7px];
+      padding-bottom: max(7px, env(safe-area-inset-bottom));
+    }
+    .message-action-menu button {
+      @apply min-h-11 flex-1 justify-center;
+    }
   }
 }

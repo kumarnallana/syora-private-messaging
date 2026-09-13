@@ -1,16 +1,16 @@
 @layer components {
   .composer-wrap {
-    @apply relative shrink-0 border-t border-border bg-background p-[15px_24px_17px];
+    @apply relative shrink-0 border-t border-border bg-background p-[10px_18px_12px];
   }
   .composer-wrap form {
     @apply m-0;
   }
   
   .composer {
-    @apply flex items-end gap-[8px] rounded-[11px] border border-border bg-surface p-[7px] focus-within:border-accent;
+    @apply flex items-end gap-[3px] rounded-[12px] bg-surface p-[3px] ring-1 ring-border focus-within:ring-accent;
   }
   .composer textarea {
-    @apply flex-1 resize-none border-0 bg-transparent p-[10px_8px] text-[16px] leading-[1.5] outline-none max-h-[140px];
+    @apply max-h-[120px] min-h-11 flex-1 resize-none border-0 bg-transparent p-[10px_7px] text-[15px] leading-[1.45] outline-none;
   }
   
   .composer-hint {
@@ -68,7 +68,7 @@
 
   @media (max-width: 767px) {
     .composer-wrap {
-      padding: 10px 10px max(12px, env(safe-area-inset-bottom));
+      padding: 7px 8px max(8px, env(safe-area-inset-bottom));
     }
     .composer-hint {
       @apply hidden;
@@ -77,7 +77,10 @@
       @apply px-[5px];
     }
     .composer {
-      @apply gap-[4px];
+      @apply gap-0;
+    }
+    .composer .icon-button {
+      @apply size-11;
     }
   }
 }

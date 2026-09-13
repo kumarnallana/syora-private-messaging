@@ -59,6 +59,29 @@ export class ApiServices implements Services {
   private conversationReloadPending = false;
   private statusReloadTask?: Promise<void>;
   private statusReloadPending = false;
+  private announceIncoming(message: Message) {
+    if (typeof window === "undefined") return;
+    const sender = this.state.users.find((user) => user.id === message.senderId);
+    if (this.state.preferences.notifications && document.visibilityState !== "visible" && "Notification" in window && Notification.permission === "granted") {
+      new Notification(sender?.name || "New SYORA message", { body: message.text || message.attachment?.name || "New attachment" });
+    }
+    if (this.state.preferences.sound) {
+      try {
+        const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (AudioContextClass) {
+          const context = new AudioContextClass();
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
+          oscillator.frequency.value = 520;
+          gain.gain.setValueAtTime(0.025, context.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.12);
+          oscillator.connect(gain); gain.connect(context.destination);
+          oscillator.start(); oscillator.stop(context.currentTime + 0.12);
+          oscillator.addEventListener("ended", () => void context.close());
+        }
+      } catch {}
+    }
+  }
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
     if (!this.started && typeof window !== "undefined") {
@@ -256,6 +279,7 @@ export class ApiServices implements Services {
       if (!this.state.messages.some((x) => x.id === message.id))
         this.update({ messages: [...this.state.messages, message] });
       if (message.senderId !== this.state.currentUserId) {
+        this.announceIncoming(message);
         const conversation = this.state.conversations.find(
           (x) => x.id === message.conversationId,
         );

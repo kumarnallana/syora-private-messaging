@@ -1,4 +1,5 @@
 from datetime import timedelta
+from html import escape
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from jwt import InvalidTokenError
@@ -25,7 +26,7 @@ async def payload(db:AsyncSession,user:User)->dict:return {"user":await user_out
 async def issue_session(db:AsyncSession,user:User,response:Response,request:Request)->None:
     raw=new_refresh_token();db.add(RefreshSession(user_id=user.id,token_hash=hash_refresh_token(raw),expires_at=now()+timedelta(days=settings.refresh_token_days),user_agent=(request.headers.get("user-agent") or "")[:300]));await db.commit();set_refresh_cookie(response,raw)
 
-@router.post("/register",dependencies=[Depends(rate_limit("register",1000,3600))],status_code=201)
+@router.post("/register",dependencies=[Depends(rate_limit("register",10,3600))],status_code=201)
 async def register(body:RegisterIn,response:Response,request:Request,db:AsyncSession=Depends(get_db)):
     require_client_origin(request)
     email=str(body.email).strip().lower()
@@ -39,7 +40,7 @@ async def register(body:RegisterIn,response:Response,request:Request,db:AsyncSes
         if await db.scalar(select(User.id).where(User.email==email)):raise api_error(409,"EMAIL_EXISTS","An account already exists for this email.")
         raise api_error(409,"USERNAME_EXISTS","That username is already taken.")
     await db.refresh(user);await issue_session(db,user,response,request);return await payload(db,user)
-@router.post("/forgot-password", dependencies=[Depends(rate_limit("forgot", 1000, 300))])
+@router.post("/forgot-password", dependencies=[Depends(rate_limit("forgot", 5, 300))])
 async def forgot_password(body: ForgotPasswordIn, request: Request, db: AsyncSession = Depends(get_db)):
     require_client_origin(request)
     email = str(body.email).strip().lower()
@@ -54,9 +55,9 @@ async def forgot_password(body: ForgotPasswordIn, request: Request, db: AsyncSes
             html_content = f"""
             <div style="font-family: sans-serif; padding: 20px;">
                 <h2>Password Reset</h2>
-                <p>Hello {user.display_name},</p>
+                <p>Hello {escape(user.display_name)},</p>
                 <p>We received a request to reset the password for your Syora account.</p>
-                <p><a href="{reset_link}" style="display: inline-block; padding: 10px 20px; background-color: #7b5ea7; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
+                <p><a href="{escape(reset_link, quote=True)}" style="display: inline-block; padding: 10px 20px; background-color: #7b5ea7; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
                 <p>If you didn't request this, you can safely ignore this email.</p>
             </div>
             """
@@ -75,7 +76,7 @@ async def forgot_password(body: ForgotPasswordIn, request: Request, db: AsyncSes
     # Always return a generic success message
     return {"message": "If an account exists for that email, a password reset link has been sent."}
 
-@router.post("/reset-password", dependencies=[Depends(rate_limit("reset", 1000, 60))])
+@router.post("/reset-password", dependencies=[Depends(rate_limit("reset", 10, 3600))])
 async def reset_password(body: ResetPasswordIn, request: Request, db: AsyncSession = Depends(get_db)):
     require_client_origin(request)
     try:
@@ -101,13 +102,13 @@ async def reset_password(body: ResetPasswordIn, request: Request, db: AsyncSessi
     except (InvalidTokenError, KeyError, ValueError):
         raise api_error(400, "INVALID_TOKEN", "This password reset link is invalid or has expired.")
 
-@router.post("/login",dependencies=[Depends(rate_limit("login",1000,900))])
+@router.post("/login",dependencies=[Depends(rate_limit("login",20,900))])
 async def login(body:LoginIn,response:Response,request:Request,db:AsyncSession=Depends(get_db)):
     require_client_origin(request)
     user=await db.scalar(select(User).where(User.email==str(body.email).strip().lower()))
     if not user or not verify_password(user.password_hash,body.password):raise api_error(401,"LOGIN_INVALID","Email or password is incorrect.")
     await issue_session(db,user,response,request);return await payload(db,user)
-@router.post("/refresh",dependencies=[Depends(rate_limit("refresh",1000,300))])
+@router.post("/refresh",dependencies=[Depends(rate_limit("refresh",120,300))])
 async def refresh(response:Response,request:Request,db:AsyncSession=Depends(get_db)):
     require_client_origin(request)
     raw=request.cookies.get(COOKIE)
