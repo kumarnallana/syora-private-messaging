@@ -21,11 +21,17 @@ export function Contacts() {
   const [searchRetry, setSearchRetry] = useState(0);
   const [notice, setNotice] = useState<{ kind: 'error' | 'success'; text: string }>();
   const [actingId, setActingId] = useState<string>();
-  const selected = users.find(user => user.id === searchParams.get('person'));
+  const selected = users.find(user => user.id !== me!.id && user.id === searchParams.get('person'));
   const searchSequence = useRef(0);
-  const relationship = (id: string) => friendships.find(item => [item.from, item.to].includes(me!.id) && [item.from, item.to].includes(id));
+  const relationship = (id: string) => {
+    if (id === me!.id) return undefined;
+    return friendships.find(item =>
+      (item.from === me!.id && item.to === id) ||
+      (item.to === me!.id && item.from === id),
+    );
+  };
   const incoming = friendships.filter(item => item.to === me!.id && item.status === 'pending');
-  const friends = users.filter(user => relationship(user.id)?.status === 'accepted');
+  const friends = users.filter(user => user.id !== me!.id && relationship(user.id)?.status === 'accepted');
 
   useEffect(() => {
     const value = query.trim();
@@ -36,7 +42,7 @@ export function Contacts() {
     const timer = window.setTimeout(() => {
       void services.searchUsers(value, controller.signal).then(found => {
         if (sequence !== searchSequence.current) return;
-        setResults(found.slice(0, 20));
+        setResults(found.filter(user => user.id !== me!.id).slice(0, 20));
         setSearchState('loaded');
       }).catch(cause => {
         if (sequence !== searchSequence.current) return;
@@ -46,7 +52,7 @@ export function Contacts() {
       });
     }, 180);
     return () => { window.clearTimeout(timer); controller.abort(); };
-  }, [query, searchRetry, services]);
+  }, [me, query, searchRetry, services]);
 
   async function open(user: User) {
     await act(user.id, `Opening your conversation with ${user.name}…`, async () => {

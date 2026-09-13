@@ -33,7 +33,7 @@
     @apply relative my-[8px] flex items-center gap-[4px];
   }
   .message-row.is-outgoing {
-    @apply justify-end flex-row-reverse;
+    @apply justify-start flex-row-reverse;
   }
   .message-row.grouped {
     @apply mt-[-3px];

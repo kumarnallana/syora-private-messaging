@@ -26,7 +26,7 @@ async def search_users(q:str=Query(min_length=1,max_length=80),limit:int=Query(2
     return [await user_out(db,x,user.id) for x in rows]
 @router.get("/api/contacts")
 async def contacts(user:User=Depends(current_user),db:AsyncSession=Depends(get_db)):
-    rels=(await db.scalars(select(Friendship).where(Friendship.status==FriendshipStatus.ACCEPTED,or_(Friendship.requester_id==user.id,Friendship.addressee_id==user.id)))).all();ids=[r.addressee_id if r.requester_id==user.id else r.requester_id for r in rels];people=(await db.scalars(select(User).where(User.id.in_(ids)))).all() if ids else [];return {"users":[await user_out(db,x,user.id) for x in people],"friendships":[friendship_out(x) for x in rels]}
+    rels=(await db.scalars(select(Friendship).where(Friendship.status==FriendshipStatus.ACCEPTED,or_(Friendship.requester_id==user.id,Friendship.addressee_id==user.id)))).all();ids={r.addressee_id if r.requester_id==user.id else r.requester_id for r in rels};ids.discard(user.id);people=(await db.scalars(select(User).where(User.id.in_(ids)))).all() if ids else [];return {"users":[await user_out(db,x,user.id) for x in people],"friendships":[friendship_out(x) for x in rels]}
 @router.get("/api/friend-requests")
 async def friend_requests(user:User=Depends(current_user),db:AsyncSession=Depends(get_db)):
     rels=(await db.scalars(select(Friendship).where(Friendship.status==FriendshipStatus.PENDING,or_(Friendship.requester_id==user.id,Friendship.addressee_id==user.id)))).all();ids={x.requester_id for x in rels}|{x.addressee_id for x in rels};ids.discard(user.id);people=(await db.scalars(select(User).where(User.id.in_(ids)))).all() if ids else [];return {"users":[await user_out(db,x,user.id) for x in people],"friendships":[friendship_out(x) for x in rels]}

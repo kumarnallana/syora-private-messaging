@@ -31,7 +31,7 @@ async function mockApp(page: Page, initiallyAuthenticated = true) {
     if (path === '/api/auth/activity') return json(route, { idleExpiresAt: new Date(Date.now() + 300_000).toISOString() });
     if (path === '/api/conversations') return json(route, [{ ...conversation, participant: friend, latestMessage: outgoing }]);
     if (path === `/api/conversations/${ids.conversation}/messages`) return json(route, { messages: [incoming, outgoing], nextCursor: null });
-    if (path === '/api/contacts') return json(route, { users: [friend], friendships: [{ id: '77777777-7777-4777-8777-777777777777', from: ids.me, to: ids.friend, status: 'accepted' }] });
+    if (path === '/api/contacts') return json(route, { users: [me, friend], friendships: [{ id: '77777777-7777-4777-8777-777777777777', from: ids.me, to: ids.friend, status: 'accepted' }] });
     if (path === '/api/friend-requests') return json(route, { users: [], friendships: [] });
     if (path === '/api/status') return json(route, { users: [me, friend], statuses: [] });
     if (path === '/api/preferences') return json(route, preferences);
@@ -81,8 +81,11 @@ test('message ownership controls sides and failed avatars render initials', asyn
   const sent = page.getByLabel('Sent by you').locator('.message-bubble');
   await expect(received).toBeVisible();
   await expect(sent).toBeVisible();
-  const [receivedBox, sentBox] = await Promise.all([received.boundingBox(), sent.boundingBox()]);
+  const timeline = page.locator('.timeline');
+  const [receivedBox, sentBox, timelineBox] = await Promise.all([received.boundingBox(), sent.boundingBox(), timeline.boundingBox()]);
   expect(receivedBox!.x).toBeLessThan(sentBox!.x);
+  expect(receivedBox!.x).toBeLessThanOrEqual(timelineBox!.x + 20);
+  expect(sentBox!.x + sentBox!.width).toBeGreaterThanOrEqual(timelineBox!.x + timelineBox!.width - 65);
   await expect(page.locator('.chat-header .avatar__image')).toHaveCount(0, { timeout: 5000 });
   await expect(page.locator('.chat-header .avatar__fallback')).toHaveText('NS');
 });
@@ -97,6 +100,8 @@ for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }
     await noHorizontalOverflow(page);
 
     await page.goto('/contacts');
+    await expect(page.locator('.person-card')).toHaveCount(1);
+    await expect(page.locator('.person-card', { hasText: me.name })).toHaveCount(0);
     const card = page.locator('.person-card').first();
     const identity = await card.locator('.person-identity').boundingBox();
     const actions = await card.locator('.row-actions').boundingBox();

@@ -908,7 +908,9 @@ export class ApiServices implements Services {
     const users = (await this.fetch<User[]>(
       `/api/people/search?q=${encodeURIComponent(query.trim())}&limit=20`,
       { signal },
-    )).map(user => ({ ...user, username: normalizeUsername(user.username) }));
+    ))
+      .filter(user => user.id !== this.state.currentUserId)
+      .map(user => ({ ...user, username: normalizeUsername(user.username) }));
     this.update({ users: this.users(users) });
     return users;
   }
