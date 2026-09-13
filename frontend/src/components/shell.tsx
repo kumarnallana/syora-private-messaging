@@ -33,6 +33,24 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [logout, setLogout] = useState(false);
   useEffect(() => {
+    const viewport = window.visualViewport;
+    const update = () => {
+      document.documentElement.style.setProperty("--syora-viewport-height", `${Math.round(viewport?.height || window.innerHeight)}px`);
+      document.documentElement.style.setProperty("--syora-viewport-top", `${Math.round(viewport?.offsetTop || 0)}px`);
+    };
+    update();
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      document.documentElement.style.removeProperty("--syora-viewport-height");
+      document.documentElement.style.removeProperty("--syora-viewport-top");
+    };
+  }, []);
+  useEffect(() => {
     if (sessionReady && !me) router.replace("/login");
   }, [sessionReady, me, router]);
   useEffect(() => {
@@ -107,24 +125,24 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {logout && (
         <Modal
           title="Leave your space?"
-          className="mobile-sheet"
+          className="mobile-sheet logout-dialog"
           onClose={() => setLogout(false)}
         >
           <p className="modal__copy">
             You can sign back in whenever you are ready.
           </p>
-          <div className="modal__actions">
+          <div className="modal-actions">
             <Button variant="secondary" onClick={() => setLogout(false)}>
               Stay here
             </Button>
             <Button
-              variant="primary"
+              variant="danger"
               onClick={() => {
                 services.logout();
                 router.push("/login");
               }}
             >
-              Log out
+              <LogOut size={17} /> Log out
             </Button>
           </div>
         </Modal>
@@ -133,12 +151,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 export function PageHeader({
-  eyebrow,
   title,
   description,
   action,
 }: {
-  eyebrow: string;
   title: string;
   description: string;
   action?: React.ReactNode;
@@ -146,12 +162,9 @@ export function PageHeader({
   return (
     <header className="page-header">
       <div>
-        <span className="page-header__eyebrow">
-          {eyebrow}
-        </span>
-        <h2>
+        <h1>
           {title}
-        </h2>
+        </h1>
         <p>{description}</p>
       </div>
       {action}

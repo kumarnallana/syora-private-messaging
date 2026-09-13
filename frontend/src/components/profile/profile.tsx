@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AlertCircle, AtSign, Camera, LoaderCircle, Mail, RotateCcw, Save } from 'lucide-react';
 import { useApp } from '@/stores/use-app';
 import { Avatar, pickAttachment } from '@/components/shared/ui';
-import { MobileScreenHeader, PageHeader, PreviewNote } from '@/components/shell';
+import { MobileScreenHeader, PageHeader } from '@/components/shell';
 import { normalizeUsername } from '@/utils/presentation';
 
 type Notice = { kind: 'success' | 'error'; text: string };
@@ -87,5 +87,36 @@ export function Profile() {
   }
 
   const avatarUser = { ...me!, avatar: preview || me!.avatar };
-  return <div className="page-view is-narrow profile-page"><MobileScreenHeader title="Profile" backHref="/settings"/><PageHeader eyebrow="YOUR PROFILE" title="Make it yours" description="Choose how people in your circle recognize you."/><div className="profile-editor"><div className="avatar-column"><div className="avatar-editor"><Avatar user={avatarUser} size="large"/><button type="button" className="icon-button" disabled={busy} onClick={() => input.current?.click()} aria-label="Change profile photo"><Camera size={19}/></button><input ref={input} hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { void photo(event.target.files?.[0]); event.target.value = ''; }}/></div>{uploading && <div className="avatar-progress" role="status"><span>Uploading photo… {avatarProgress}%</span><progress max={100} value={avatarProgress}/></div>}{failedPhoto && !uploading && <button type="button" className="button secondary small" onClick={() => void photo(failedPhoto)}><RotateCcw size={15}/> Retry photo upload</button>}</div><form onSubmit={save} aria-busy={saving}><label className={`field ${errors.name ? 'has-error' : ''}`}>Display name<input value={name} maxLength={80} disabled={busy} onChange={event => { setName(event.target.value); setErrors(value => ({ ...value, name: '' })); setNotice(undefined); }} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? 'profile-name-error' : undefined} required/>{errors.name && <small id="profile-name-error" className="field-error" role="alert"><AlertCircle size={14}/>{errors.name}</small>}</label><label className={`field ${errors.username ? 'has-error' : ''}`}>Username<span className="input-with-icon"><AtSign size={17}/><input value={username} maxLength={32} disabled={busy} autoComplete="username" onChange={event => { setUsername(normalizeUsername(event.target.value)); setErrors(value => ({ ...value, username: '' })); setNotice(undefined); }} aria-invalid={Boolean(errors.username)} aria-describedby={errors.username ? 'profile-username-error' : 'profile-username-help'} required/></span>{errors.username ? <small id="profile-username-error" className="field-error" role="alert"><AlertCircle size={14}/>{errors.username}</small> : <small id="profile-username-help">Use 3–32 lowercase letters, numbers, or underscores. Availability is checked when you save.</small>}</label><label className="field">About<textarea value={about} maxLength={160} disabled={busy} onChange={event => { setAbout(event.target.value); setNotice(undefined); }} placeholder="A little about you"/></label><label className="field">Email<div className="readonly-field"><Mail size={17}/><span>{me!.email}</span></div></label>{notice && <p className={`notice is-${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>{notice.text}</p>}<div className="profile-actions"><span className="profile-save-state" aria-live="polite">{dirty ? 'Unsaved changes' : notice?.kind === 'success' ? 'Saved' : ''}</span><button className="button primary" type="submit" disabled={busy || !dirty}>{saving ? <LoaderCircle className="spin" size={17}/> : <Save size={17}/>} {saving ? 'Saving…' : 'Save profile'}</button></div></form></div><PreviewNote/></div>;
+  return (
+    <div className="page-view is-narrow profile-page">
+      <MobileScreenHeader title="Profile" backHref="/settings" />
+      <PageHeader title="Profile" description="Choose how people in your circle recognize you." />
+      <div className="profile-editor">
+        <div className="avatar-column">
+          <div className="avatar-editor">
+            <Avatar user={avatarUser} size="large" />
+            <button type="button" className="icon-button" disabled={busy} onClick={() => input.current?.click()} aria-label="Change profile photo"><Camera size={19} /></button>
+            <input ref={input} hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { void photo(event.target.files?.[0]); event.target.value = ''; }} />
+          </div>
+          <div className="profile-identity"><strong>{name.trim() || me!.name}</strong><span>@{normalized || normalizeUsername(me!.username)}</span></div>
+          {uploading && <div className="avatar-progress" role="status"><span>Uploading photo… {avatarProgress}%</span><progress max={100} value={avatarProgress} /></div>}
+          {failedPhoto && !uploading && <button type="button" className="button secondary small" onClick={() => void photo(failedPhoto)}><RotateCcw size={15} /> Retry photo upload</button>}
+        </div>
+        <form onSubmit={save} aria-busy={saving}>
+          <label className={`field ${errors.name ? 'has-error' : ''}`}>Display name
+            <input value={name} maxLength={80} disabled={busy} autoComplete="name" onChange={event => { setName(event.target.value); setErrors(value => ({ ...value, name: '' })); setNotice(undefined); }} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? 'profile-name-error' : undefined} required />
+            {errors.name && <small id="profile-name-error" className="field-error" role="alert"><AlertCircle size={14} />{errors.name}</small>}
+          </label>
+          <label className={`field ${errors.username ? 'has-error' : ''}`}>Username
+            <span className="username-control"><span className="username-prefix" aria-hidden="true"><AtSign size={17} /></span><input value={username} maxLength={32} disabled={busy} autoComplete="off" autoCapitalize="none" spellCheck={false} onChange={event => { setUsername(normalizeUsername(event.target.value)); setErrors(value => ({ ...value, username: '' })); setNotice(undefined); }} aria-invalid={Boolean(errors.username)} aria-describedby={errors.username ? 'profile-username-error' : 'profile-username-help'} required /></span>
+            {errors.username ? <small id="profile-username-error" className="field-error" role="alert"><AlertCircle size={14} />{errors.username}</small> : <small id="profile-username-help">Lowercase letters, numbers, and underscores · 3–32 characters</small>}
+          </label>
+          <label className="field about-field"><span className="field-label-row"><span>About</span><small>{about.length}/160</small></span><textarea rows={3} value={about} maxLength={160} disabled={busy} onChange={event => { setAbout(event.target.value); setNotice(undefined); }} placeholder="A little about you" /></label>
+          <div className="account-email"><span className="account-email__label">Account email</span><div className="readonly-field"><Mail size={17} /><span>{me!.email}</span></div><small>Only you can see this address.</small></div>
+          {notice && <p className={`notice is-${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>{notice.text}</p>}
+          <div className="profile-actions"><span className="profile-save-state" aria-live="polite">{saving ? 'Saving your changes…' : dirty ? 'Unsaved changes' : notice?.kind === 'success' ? 'Saved' : 'Up to date'}</span><button className="button primary" type="submit" disabled={busy || !dirty}>{saving ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />} {saving ? 'Saving…' : 'Save profile'}</button></div>
+        </form>
+      </div>
+    </div>
+  );
 }
