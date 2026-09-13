@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { AlertCircle, ArrowLeft, ArrowRight, Eye, EyeOff, Feather, LoaderCircle, MessageCircle, Users } from 'lucide-react';
 import { Brand } from '@/components/shared/brand';
 import { publicAuth } from '@/services/public-auth';
+import { services } from '@/services/api';
 import { normalizeUsername } from '@/utils/presentation';
 
 type Mode = 'login' | 'register' | 'forgot' | 'reset';
@@ -86,7 +87,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
     setBusy(true);
     setNotice(undefined);
     try {
-      if (register) { await publicAuth.register(values.name.trim(), normalizeUsername(values.username), values.email.trim(), values.password); setValues({}); }
+      if (register) { await services.register(values.name.trim(), normalizeUsername(values.username), values.email.trim(), values.password); setValues({}); }
       else if (forgot) {
         await publicAuth.forgotPassword(values.email.trim());
         setValues({});
@@ -99,7 +100,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
         setNotice({ kind: 'success', text: 'Password updated. You can now sign in.' });
         router.replace('/login');
         return;
-      } else { await publicAuth.login(values.email.trim(), values.password); setValues({}); }
+      } else { await services.login(values.email.trim(), values.password); setValues({}); }
       router.replace('/chats');
     } catch (error) {
       setNotice({ kind: 'error', text: error instanceof Error ? error.message : 'This request could not be completed.' });
