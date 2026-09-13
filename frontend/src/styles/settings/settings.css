@@ -9,7 +9,7 @@
     @apply border-b border-border py-[24px];
   }
   .settings-section > header {
-    @apply mb-[10px] flex items-center gap-[10px] text-accent;
+    @apply mb-[16px] flex items-center gap-[10px] text-accent;
   }
   .settings-section > header h2 {
     @apply text-[16px] font-medium text-text-primary;
@@ -18,16 +18,17 @@
     @apply size-[19px];
   }
   .setting-row {
-    @apply flex min-h-[64px] items-center justify-between gap-[20px] border-b border-border/70 py-[10px];
+    @apply mb-[10px] flex min-h-[74px] items-center justify-between gap-[20px] rounded-[10px] border border-border/70 px-[14px] py-[13px];
+    background: color-mix(in srgb, var(--surface) 62%, transparent);
   }
   .setting-row:last-child {
-    @apply border-b-0;
+    @apply mb-0;
   }
   .setting-row > span {
     @apply flex min-w-0 flex-col gap-[4px];
   }
   .setting-row strong,
-  .choice-row legend {
+  .choice-row strong {
     @apply text-[14px] font-medium;
   }
   .setting-row small,
@@ -38,10 +39,10 @@
     @apply m-0 w-full p-0;
   }
   .choice-options {
-    @apply flex shrink-0 rounded-[9px] bg-surface p-[3px];
+    @apply flex shrink-0 gap-[3px] rounded-[9px] bg-background/70 p-[4px];
   }
   .choice-options button {
-    @apply min-h-[36px] rounded-[7px] px-[11px] text-[12px] text-muted transition-colors duration-150;
+    @apply min-h-[40px] rounded-[7px] px-[14px] text-[12px] text-muted transition-colors duration-150;
   }
   .choice-options button.is-active {
     @apply bg-elevated text-accent shadow-[0_1px_4px_#0004];
@@ -62,7 +63,7 @@
     @apply translate-x-[18px] bg-[#241e35];
   }
   .theme-options {
-    @apply mb-[10px] flex gap-[8px];
+    @apply mb-[12px] flex gap-[8px];
   }
   .theme-options button {
     @apply flex min-h-11 flex-1 items-center justify-center gap-[7px] rounded-[8px] bg-surface px-[12px] text-[13px] text-muted;
@@ -70,6 +71,43 @@
   .theme-options button.is-active {
     background: var(--selection);
     @apply text-accent ring-1 ring-accent/60;
+  }
+  .chat-wallpaper-setting {
+    @apply mb-[12px] grid grid-cols-[minmax(0,1fr)_160px] items-center gap-[14px] rounded-[10px] border border-border/70 p-[14px];
+    background: color-mix(in srgb, var(--surface) 62%, transparent);
+  }
+  .chat-wallpaper-copy {
+    @apply min-w-0;
+  }
+  .chat-wallpaper-copy > span {
+    @apply flex items-center gap-[8px];
+  }
+  .chat-wallpaper-copy svg {
+    @apply size-[18px] text-accent;
+  }
+  .chat-wallpaper-copy strong {
+    @apply text-[14px] font-medium;
+  }
+  .chat-wallpaper-copy small {
+    @apply mt-[6px] block text-[12px] leading-[1.5] text-muted;
+  }
+  .chat-wallpaper-preview {
+    @apply h-[88px] w-full overflow-hidden rounded-[8px] border border-border;
+    background-color: #0d0f14;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23a99bc7' stroke-width='1.5' opacity='.11'%3E%3Ccircle cx='20' cy='20' r='10'/%3E%3Cpath d='M16 20h8M20 16v8M58 12l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1zM88 16c6-7 17 0 13 8-2 5-13 12-13 12s-11-7-13-12c-4-8 7-15 13-8zM18 65h28a6 6 0 0 1 6 6v17a6 6 0 0 1-6 6H31l-8 7v-7h-5a6 6 0 0 1-6-6V71a6 6 0 0 1 6-6zM72 69l23-12-6 24-8-9-9-3zM82 72l7 9'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 120px 120px;
+  }
+  .chat-wallpaper-preview.has-custom-wallpaper {
+    @apply bg-cover bg-center bg-no-repeat;
+  }
+  .chat-wallpaper-actions {
+    @apply col-span-2 flex flex-wrap gap-[8px];
+  }
+  .chat-wallpaper-actions svg {
+    @apply size-[15px];
+  }
+  .chat-wallpaper-setting > .inline-error {
+    @apply col-span-2 pb-0;
   }
   .account-summary,
   .blocked-row {
@@ -183,13 +221,23 @@
       @apply mb-[14px] mt-0;
     }
     .choice-row {
-      @apply flex-col items-stretch gap-[10px];
+      @apply flex-col items-stretch gap-[12px] px-[14px] py-[15px];
     }
     .choice-options {
       @apply w-full;
     }
     .choice-options button {
       @apply flex-1;
+    }
+    .chat-wallpaper-setting {
+      @apply grid-cols-1;
+    }
+    .chat-wallpaper-preview {
+      @apply h-[110px];
+    }
+    .chat-wallpaper-actions,
+    .chat-wallpaper-setting > .inline-error {
+      @apply col-span-1;
     }
     .account-summary {
       @apply flex-wrap;

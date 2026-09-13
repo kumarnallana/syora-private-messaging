@@ -1,13 +1,14 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Bell, ChevronRight, LoaderCircle, Lock, LogOut, Monitor, Moon, RefreshCw, Shield, Sun, UserRound, UsersRound, UserX } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { Bell, ChevronRight, ImageIcon, LoaderCircle, Lock, LogOut, Monitor, Moon, RefreshCw, RotateCcw, Shield, Sun, Upload, UserRound, UsersRound, UserX } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '@/stores/use-app';
 import { Avatar, Modal } from '@/components/shared/ui';
 import { MobileScreenHeader, PageHeader } from '@/components/shell';
 import { usernameLabel } from '@/utils/presentation';
 import type { AdminMetrics, Preferences } from '@/types';
+import { clearChatWallpaper, getChatWallpaper, readChatWallpaper, saveChatWallpaper } from '@/utils/chat-wallpaper';
 
 type Subsection = 'privacy' | 'notifications' | 'appearance' | 'blocked';
 
@@ -67,7 +68,7 @@ export function Settings() {
 
   const privacy = <><Choice disabled={Boolean(pending)} label="Last seen" value={preferences.lastSeen} options={['Everyone','Friends','Nobody']} onChange={value => void update('lastSeen', value)}/><Choice disabled={Boolean(pending)} label="Profile photo" value={preferences.photo} options={['Everyone','Friends','Nobody']} onChange={value => void update('photo', value)}/><Choice disabled={Boolean(pending)} label="Status visibility" value={preferences.status} options={['Friends','Nobody']} onChange={value => void update('status', value)}/><Toggle disabled={Boolean(pending)} label="Read receipts" description="Let friends know when you have read a message." value={preferences.receipts} onChange={value => void update('receipts', value)}/></>;
   const notifications = <><Toggle disabled={Boolean(pending)} label="Message notifications" description="Show an alert when a message arrives while SYORA is in the background." value={preferences.notifications} onChange={value => void update('notifications', value)}/><Toggle disabled={Boolean(pending)} label="Conversation sounds" description="Play a quiet sound for incoming messages." value={preferences.sound} onChange={value => void update('sound', value)}/></>;
-  const appearance = <><div className="theme-options" role="radiogroup" aria-label="Appearance">{([['dark', Moon, 'Dark'], ['light', Sun, 'Light'], ['system', Monitor, 'System']] as const).map(([value, Icon, label]) => <button key={value} disabled={Boolean(pending)} role="radio" aria-checked={preferences.appearance === value} className={preferences.appearance === value ? 'is-active' : ''} onClick={() => void update('appearance', value)}><Icon size={18}/> {label}</button>)}</div><Toggle disabled={Boolean(pending)} label="Compact conversations" description="Reduce spacing in conversation lists and messages." value={preferences.compact} onChange={value => void update('compact', value)}/></>;
+  const appearance = <><div className="theme-options" role="radiogroup" aria-label="Appearance">{([['dark', Moon, 'Dark'], ['light', Sun, 'Light'], ['system', Monitor, 'System']] as const).map(([value, Icon, label]) => <button key={value} disabled={Boolean(pending)} role="radio" aria-checked={preferences.appearance === value} className={preferences.appearance === value ? 'is-active' : ''} onClick={() => void update('appearance', value)}><Icon size={18}/> {label}</button>)}</div><ChatWallpaperSetting/><Toggle disabled={Boolean(pending)} label="Compact conversations" description="Reduce spacing in conversation lists and messages." value={preferences.compact} onChange={value => void update('compact', value)}/></>;
   const blocked = preferences.blocked.length ? preferences.blocked.map(id => { const user = users.find(item => item.id === id); return user && <div className="blocked-row" key={id}><Avatar user={user} size="small"/><span>{user.name}</span><button className="button secondary small" disabled={Boolean(blockingId)} onClick={() => void unblock(id, user.name)}>{blockingId === id && <LoaderCircle className="spin" size={15}/>} Unblock</button></div>; }) : <p className="muted-copy">You have not blocked anyone.</p>;
   const subsectionContent = section === 'privacy' ? privacy : section === 'notifications' ? notifications : section === 'appearance' ? appearance : blocked;
   const subsectionTitle = section ? section[0].toUpperCase() + section.slice(1) : '';
@@ -78,7 +79,30 @@ export function Settings() {
 }
 
 function AdminSessionCount({ metrics, loading, error, onRefresh }: { metrics?: AdminMetrics; loading: boolean; error: string; onRefresh: () => void }) { return <section className="admin-session-count" aria-label="Administrator overview"><div className="admin-session-copy"><UsersRound/><span><strong>Signed-in people</strong><small>Unique accounts with a valid SYORA session.</small></span></div><div className="admin-session-value"><strong aria-label={metrics ? `${metrics.signedInUsers} signed-in people` : 'Signed-in count unavailable'}>{metrics?.signedInUsers ?? '—'}</strong><button type="button" className="icon-button" aria-label="Refresh signed-in count" disabled={loading} onClick={onRefresh}>{loading ? <LoaderCircle className="spin"/> : <RefreshCw/>}</button></div>{error && <p className="inline-error" role="alert">{error}</p>}</section>; }
+function ChatWallpaperSetting() {
+  const input = useRef<HTMLInputElement>(null);
+  const [wallpaper, setWallpaper] = useState('');
+  const [error, setError] = useState('');
+  useEffect(() => setWallpaper(getChatWallpaper()), []);
+  async function choose(file?: File) {
+    if (!file) return;
+    setError('');
+    try {
+      const value = await readChatWallpaper(file);
+      saveChatWallpaper(value);
+      setWallpaper(value);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'This background could not be saved.');
+    }
+  }
+  function reset() {
+    clearChatWallpaper();
+    setWallpaper('');
+    setError('');
+  }
+  return <div className="chat-wallpaper-setting"><div className="chat-wallpaper-copy"><span><ImageIcon/><strong>Chat background</strong></span><small>SYORA uses a quiet dark pattern by default. Your custom image stays in this browser.</small></div><div className={`chat-wallpaper-preview ${wallpaper ? 'has-custom-wallpaper' : ''}`} style={wallpaper ? { backgroundImage: `linear-gradient(#090a0f99, #090a0f99), url("${wallpaper}")` } : undefined} aria-label={wallpaper ? 'Custom chat background preview' : 'Default chat background preview'}/><input ref={input} hidden type="file" accept="image/*" aria-label="Choose chat background image" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; void choose(file); }}/><div className="chat-wallpaper-actions"><button type="button" className="button secondary small" onClick={() => input.current?.click()}><Upload/> Choose image</button>{wallpaper && <button type="button" className="button secondary small" onClick={reset}><RotateCcw/> Use default</button>}</div>{error && <p className="inline-error" role="alert">{error}</p>}</div>;
+}
 function SettingsLink({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) { return <button className="settings-menu-row" onClick={onClick}>{icon}<span>{label}</span><ChevronRight/></button>; }
 function SettingsSection({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) { return <section className="settings-section"><header>{icon}<h2>{title}</h2></header><div>{children}</div></section>; }
 function Toggle({ label, description, value, onChange, disabled }: { label: string; description: string; value: boolean; onChange: (value: boolean) => void; disabled?: boolean }) { return <div className="setting-row"><span><strong>{label}</strong><small>{description}</small></span><button disabled={disabled} className={`switch ${value ? 'is-on' : ''}`} role="switch" aria-checked={value} aria-label={label} onClick={() => onChange(!value)}><span/></button></div>; }
-function Choice({ label, value, options, onChange, disabled }: { label: string; value: string; options: string[]; onChange: (value: string) => void; disabled?: boolean }) { return <fieldset className="setting-row choice-row"><legend>{label}</legend><div className="choice-options" role="radiogroup" aria-label={label}>{options.map(option => <button type="button" key={option} role="radio" aria-checked={value === option} className={value === option ? 'is-active' : ''} disabled={disabled} onClick={() => onChange(option)}>{option}</button>)}</div></fieldset>; }
+function Choice({ label, value, options, onChange, disabled }: { label: string; value: string; options: string[]; onChange: (value: string) => void; disabled?: boolean }) { return <div className="setting-row choice-row"><span><strong>{label}</strong></span><div className="choice-options" role="radiogroup" aria-label={label}>{options.map(option => <button type="button" key={option} role="radio" aria-checked={value === option} className={value === option ? 'is-active' : ''} disabled={disabled} onClick={() => onChange(option)}>{option}</button>)}</div></div>; }

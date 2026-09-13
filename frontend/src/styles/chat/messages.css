@@ -18,6 +18,15 @@
 
   .timeline {
     @apply min-h-0 flex-1 overflow-auto p-[12px_clamp(18px,4vw,65px)_25px] overscroll-contain;
+    background-color: #0d0f14;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='%23a99bc7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' opacity='.075'%3E%3Ccircle cx='28' cy='31' r='14'/%3E%3Cpath d='M22 31h12M28 25v12M79 18l4 8 9 1-7 6 2 9-8-4-8 4 2-9-7-6 9-1zM126 18h36a9 9 0 0 1 9 9v19a9 9 0 0 1-9 9h-18l-10 9v-9h-8a9 9 0 0 1-9-9V27a9 9 0 0 1 9-9zM198 24c8-9 23-1 18 11-3 7-18 17-18 17s-15-10-18-17c-5-12 10-20 18-11zM39 91l30-16-8 32-9-12-13-4zM52 95l9 12M104 86c0-8 7-15 15-15s15 7 15 15-7 15-15 15h-15v-15zM164 82h42v31h-42zM171 89h28M171 97h20M24 146h39a8 8 0 0 1 8 8v24a8 8 0 0 1-8 8H42l-11 9v-9h-7a8 8 0 0 1-8-8v-24a8 8 0 0 1 8-8zM103 145l5 11 12 1-9 8 3 12-11-6-11 6 3-12-9-8 12-1zM162 151c7-8 20-1 16 9-3 6-16 15-16 15s-13-9-16-15c-4-10 9-17 16-9zM207 145a16 16 0 1 0 0 32 16 16 0 0 0 0-32zM201 161h12M207 155v12M79 211h30M94 196v30M145 205l25-13-7 27-8-10-10-4zM190 211h34'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 240px 240px;
+    background-attachment: local;
+  }
+  .timeline.has-custom-wallpaper {
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
   }
   .date-separator {
     @apply mx-auto mb-[24px] mt-[14px] w-max max-w-full rounded-[7px] bg-panel p-[6px_12px] text-[12px] text-muted;

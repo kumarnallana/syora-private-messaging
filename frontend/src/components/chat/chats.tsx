@@ -9,6 +9,7 @@ import { MessageBubble } from './message-bubble';
 import { Composer } from './composer';
 import { DeliveryReceipt } from './delivery-receipt';
 import { formatLastSeen, normalizeUsername, usernameLabel } from '@/utils/presentation';
+import { CHAT_WALLPAPER_EVENT, getChatWallpaper } from '@/utils/chat-wallpaper';
 
 export function Chats() {
  const { me, users, conversations, messages, services, preferences } = useApp();
@@ -26,6 +27,7 @@ export function Chats() {
  const [detailBusy,setDetailBusy]=useState<string>();
  const [actionError,setActionError]=useState('');
  const [reply,setReply]=useState<import('@/types').Message>();
+ const [wallpaper,setWallpaper]=useState('');
  const timeline = useRef<HTMLDivElement>(null);
  const heading = useRef<HTMLHeadingElement>(null);
  const rowRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -40,6 +42,13 @@ export function Chats() {
   return latest(b.id).localeCompare(latest(a.id));
  });
  useEffect(() => { setSelected(params.get('conversation')); }, [params]);
+ useEffect(() => {
+  const syncWallpaper = () => setWallpaper(getChatWallpaper());
+  syncWallpaper();
+  window.addEventListener('storage', syncWallpaper);
+  window.addEventListener(CHAT_WALLPAPER_EVENT, syncWallpaper);
+  return () => { window.removeEventListener('storage', syncWallpaper); window.removeEventListener(CHAT_WALLPAPER_EVENT, syncWallpaper); };
+ }, []);
  useEffect(() => {
   if (!active) return;
   let current=true;setMessageState('loading');setActionError('');setHasOlder(true);
@@ -119,7 +128,7 @@ export function Chats() {
     <Avatar user={friend} size="small"/><div className="chat-person"><h2 ref={heading} tabIndex={-1}>{friend.name}</h2><p>{active.typing ? 'typing…' : presence}</p></div><div className="chat-header-actions"><IconButton label="Search messages" onClick={()=>setSearchOpen(v=>!v)}><Search size={19}/></IconButton><IconButton label="Conversation options" onClick={()=>setInfoOpen(true)}><MoreHorizontal size={21}/></IconButton></div>
    </header>
    {searchOpen&&<div className="message-search"><label className="search-field"><Search size={17}/><input autoFocus aria-label="Search messages" placeholder="Search loaded messages" value={messageQuery} autoComplete="off" spellCheck={false} onChange={e=>setMessageQuery(e.target.value)}/></label><span>{visibleMessages.length} loaded results</span><IconButton label="Close message search" onClick={()=>{setSearchOpen(false);setMessageQuery('')}}><X size={18}/></IconButton></div>}
-   <div className="timeline" ref={timeline} role="log" aria-label="Messages" aria-live="polite" aria-relevant="additions text" onScroll={e => { const el = e.currentTarget; nearBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}><div className="timeline-feed">
+   <div className={`timeline ${wallpaper ? 'has-custom-wallpaper' : ''}`} style={wallpaper ? { backgroundImage: `linear-gradient(#090a0fba, #090a0fba), url("${wallpaper}")` } : undefined} ref={timeline} role="log" aria-label="Messages" aria-live="polite" aria-relevant="additions text" onScroll={e => { const el = e.currentTarget; nearBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}><div className="timeline-feed">
     {messageState==='loading'&&<div className="timeline-state" role="status">Loading messages…</div>}
     {messageState==='error'&&<div className="timeline-state"><p>{actionError}</p><button className="button secondary small" onClick={()=>{setMessageState('loading');void services.loadMessages(active.id).then(more=>{setHasOlder(more);setMessageState('loaded')}).catch(error=>{setActionError((error as Error).message);setMessageState('error')})}}>Retry</button></div>}
     {messageState==='loaded'&&activeMessages.length>0&&hasOlder&&<button className="load-older" disabled={loadingOlder} onClick={()=>void loadEarlier()}>{loadingOlder && <LoaderCircle className="spin" size={15}/>} {loadingOlder ? 'Loading…' : 'Load earlier messages'}</button>}
