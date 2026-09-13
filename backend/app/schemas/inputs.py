@@ -34,6 +34,7 @@ class ProfileIn(BaseModel):
     avatar_key:str|None=Field(default=None,max_length=600)
     avatar_mime:str|None=Field(default=None,max_length=150)
     avatar_size:int|None=Field(default=None,gt=0)
+    remove_avatar:bool|None=Field(default=None)
     @field_validator("username")
     @classmethod
     def normalize_profile_username(cls,v:str|None)->str|None:

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, AtSign, Camera, LoaderCircle, Mail, RotateCcw, Save } from 'lucide-react';
+import { AlertCircle, AtSign, Camera, LoaderCircle, Mail, RotateCcw, Save, Image as ImageIcon, Trash2, Upload } from 'lucide-react';
 import { useApp } from '@/stores/use-app';
 import { Avatar, Modal, pickAttachment } from '@/components/shared/ui';
 import { MobileScreenHeader, PageHeader } from '@/components/shell';
@@ -24,7 +24,10 @@ export function Profile() {
   const [failedPhoto, setFailedPhoto] = useState<File>();
   const [preview, setPreview] = useState<string>();
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const captureInput = useRef<HTMLInputElement>(null);
   const temporary = useRef<string | null>(null);
   const dirtyRef = useRef(false);
   const guardAtTop = useRef(false);
@@ -105,6 +108,25 @@ export function Profile() {
     }
   }
 
+  async function removePhoto() {
+    if (busy) return;
+    setUploading(true);
+    setNotice(undefined);
+    try {
+      await services.updateProfile({ removeAvatar: true } as any);
+      setNotice({ kind: 'success', text: 'Profile photo removed.' });
+      setPreview(undefined);
+      if (temporary.current) {
+        URL.revokeObjectURL(temporary.current);
+        temporary.current = null;
+      }
+    } catch (cause) {
+      setNotice({ kind: 'error', text: cause instanceof Error ? cause.message : 'Profile photo could not be removed.' });
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function save(event: React.FormEvent) {
     event.preventDefault();
     if (busy || !dirty) return;
@@ -136,9 +158,20 @@ export function Profile() {
       <div className="profile-editor">
         <div className="avatar-column">
           <div className="avatar-editor">
-            <Avatar user={avatarUser} size="large" />
-            <button type="button" className="icon-button" disabled={busy} onClick={() => input.current?.click()} aria-label="Change profile photo"><Camera size={19} /></button>
+            <button type="button" className="avatar-button" disabled={busy} onClick={() => setMenuOpen(!menuOpen)}>
+              <Avatar user={avatarUser} size="large" />
+              <span className="avatar-badge"><Camera size={19} /></span>
+            </button>
+            {menuOpen && (
+              <div className="avatar-menu">
+                {avatarUser.avatar && <button type="button" onClick={() => { setMenuOpen(false); setViewerOpen(true); }}><ImageIcon size={17} /> View photo</button>}
+                <button type="button" onClick={() => { setMenuOpen(false); captureInput.current?.click(); }}><Camera size={17} /> Take photo</button>
+                <button type="button" onClick={() => { setMenuOpen(false); input.current?.click(); }}><Upload size={17} /> Upload photo</button>
+                {avatarUser.avatar && <button type="button" className="danger" onClick={() => { setMenuOpen(false); void removePhoto(); }}><Trash2 size={17} /> Remove photo</button>}
+              </div>
+            )}
             <input ref={input} hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { void photo(event.target.files?.[0]); event.target.value = ''; }} />
+            <input ref={captureInput} hidden type="file" accept="image/*" capture="user" onChange={event => { void photo(event.target.files?.[0]); event.target.value = ''; }} />
           </div>
           <div className="profile-identity"><strong>{name.trim() || me!.name}</strong><span>@{normalized || normalizeUsername(me!.username)}</span></div>
           {uploading && <div className="avatar-progress" role="status"><span>Uploading photo… {avatarProgress}%</span><progress max={100} value={avatarProgress} /></div>}
@@ -160,6 +193,13 @@ export function Profile() {
         </form>
       </div>
       {discardOpen && <Modal title="Discard unsaved changes?" className="mobile-sheet" onClose={stayOnProfile}><p className="modal-copy">Your profile edits have not been saved.</p><div className="modal-actions"><button className="button secondary" onClick={stayOnProfile}>Stay</button><button className="button danger" onClick={discardChanges}>Discard changes</button></div></Modal>}
+      {viewerOpen && (
+         <Modal title="Profile photo" className="mobile-sheet photo-viewer-modal" onClose={() => setViewerOpen(false)}>
+            <div className="photo-viewer-container">
+               <img src={avatarUser.avatar} alt="Profile photo" />
+            </div>
+         </Modal>
+      )}
     </div>
   );
 }

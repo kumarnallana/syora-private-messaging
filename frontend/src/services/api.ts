@@ -644,11 +644,13 @@ export class ApiServices implements Services {
     this.endLocalSession();
   }
   async updateProfile(
-    values: Partial<Pick<User, "name" | "username" | "about" | "avatar">>,
+    values: Partial<Pick<User, "name" | "username" | "about" | "avatar">> & { removeAvatar?: boolean },
     onProgress?: (percent: number) => void,
   ) {
     const body: any = { display_name: values.name, username: values.username, about: values.about };
-    if (values.avatar) {
+    if (values.removeAvatar) {
+      body.remove_avatar = true;
+    } else if (values.avatar) {
       const blob = await fetch(values.avatar).then((x) => x.blob());
       const attachment: Attachment = {
         id: crypto.randomUUID(),

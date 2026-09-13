@@ -14,8 +14,26 @@
   .avatar-editor .avatar--large {
     @apply size-[120px] text-[30px];
   }
-  .avatar-editor .icon-button {
-    @apply absolute bottom-0 right-[-4px] size-10 rounded-full border-[3px] border-background bg-elevated text-accent shadow-[0_8px_24px_#0005];
+  .avatar-button {
+    @apply relative flex items-center justify-center rounded-full p-0 transition-opacity duration-200 hover:opacity-90;
+  }
+  .avatar-badge {
+    @apply absolute bottom-0 right-[-4px] flex size-10 items-center justify-center rounded-full border-[3px] border-background bg-elevated text-accent shadow-[0_8px_24px_#0005];
+  }
+  .avatar-menu {
+    @apply absolute left-1/2 top-[105%] z-10 flex w-max -translate-x-1/2 flex-col gap-1 rounded-[12px] border border-border bg-panel p-[6px] shadow-[0_12px_40px_#0006];
+  }
+  .avatar-menu button {
+    @apply flex items-center gap-[12px] rounded-[8px] p-[10px_14px] text-[14px] font-medium transition-colors hover:bg-surface;
+  }
+  .avatar-menu button.danger {
+    @apply text-danger hover:bg-danger-soft;
+  }
+  .photo-viewer-container {
+    @apply flex h-[70vh] w-full items-center justify-center bg-black overflow-hidden rounded-[8px];
+  }
+  .photo-viewer-container img {
+    @apply max-h-full max-w-full object-contain;
   }
   .profile-identity {
     @apply flex max-w-[240px] flex-col items-center gap-[4px] text-center;
