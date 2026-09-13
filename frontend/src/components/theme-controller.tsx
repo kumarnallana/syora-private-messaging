@@ -1,22 +1,27 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useApp } from '@/stores/use-app';
 
 export function ThemeController() {
-  const { preferences } = useApp();
-
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: light)');
     const apply = () => {
-      document.documentElement.dataset.theme = preferences.appearance === 'system'
+      let appearance: 'dark' | 'light' | 'system' = 'dark';
+      try { appearance = JSON.parse(localStorage.getItem('syora:preferences') || '{}').appearance || 'dark'; } catch {}
+      document.documentElement.dataset.theme = appearance === 'system'
         ? (media.matches ? 'light' : 'dark')
-        : preferences.appearance;
+        : appearance;
     };
     apply();
-    if (preferences.appearance === 'system') media.addEventListener('change', apply);
-    return () => media.removeEventListener('change', apply);
-  }, [preferences.appearance]);
+    media.addEventListener('change', apply);
+    window.addEventListener('storage', apply);
+    window.addEventListener('syora:preferences-changed', apply);
+    return () => {
+      media.removeEventListener('change', apply);
+      window.removeEventListener('storage', apply);
+      window.removeEventListener('syora:preferences-changed', apply);
+    };
+  }, []);
 
   return null;
 }

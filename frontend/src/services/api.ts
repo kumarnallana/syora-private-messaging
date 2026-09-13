@@ -7,7 +7,7 @@ import type {
   Preferences,
   User,
 } from "@/types";
-import { io, type Socket } from "socket.io-client";
+import type { Socket } from "socket.io-client";
 import type { Services } from "./contracts";
 import { normalizeUsername } from "@/utils/presentation";
 const API = process.env.NEXT_PUBLIC_API_URL || "";
@@ -358,11 +358,13 @@ export class ApiServices implements Services {
       preferences: { ...defaults, ...local, ...preferences },
       sessionError: undefined,
     });
-    this.connectSocket();
+    void this.connectSocket();
   }
-  private connectSocket() {
+  private async connectSocket() {
     if (!this.token || this.socket?.connected) return;
     this.socket?.disconnect();
+    const { io } = await import("socket.io-client");
+    if (!this.token || this.socket?.connected) return;
     const socket = (this.socket = io(SOCKET, {
       path: "/socket.io",
       auth: { token: this.token },
@@ -886,6 +888,7 @@ export class ApiServices implements Services {
           sound: preferences.sound,
         }),
       );
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("syora:preferences-changed"));
     const body: any = {};
     if (values.receipts !== undefined) body.read_receipts = values.receipts;
     if (values.lastSeen !== undefined)

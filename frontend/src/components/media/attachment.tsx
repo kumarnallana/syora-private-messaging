@@ -107,6 +107,7 @@ export function AttachmentContent({
             src={url}
             alt={attachment.name}
             loading="lazy"
+            decoding="async"
             onError={handleError}
           />
         </button>
@@ -164,7 +165,7 @@ export function AttachmentContent({
           onClose={() => setView(false)}
         >
           {attachment.type === "image" ? (
-            <img className="media-viewer" src={url} alt={attachment.name} onError={handleError} />
+            <img className="media-viewer" src={url} alt={attachment.name} decoding="async" onError={handleError} />
           ) : attachment.mime === "application/pdf" ? (
             <iframe className="pdf-viewer" title={attachment.name} src={url} onError={handleError} />
           ) : (

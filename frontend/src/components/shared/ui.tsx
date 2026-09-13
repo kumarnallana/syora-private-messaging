@@ -2,28 +2,9 @@
 import type { Attachment, User } from "@/types";
 import { cn } from "@/utils/cn";
 import { motion, useReducedMotion } from "framer-motion";
-import { Heart, LoaderCircle, Sparkles, X } from "lucide-react";
+import { LoaderCircle, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-export function LogoMark() {
-  return (
-    <span
-      className="logo-mark"
-      aria-hidden="true"
-    >
-      <Heart size={21} strokeWidth={2.25} fill="currentColor" />
-    </span>
-  );
-}
-export function Brand() {
-  return (
-    <span className="brand-logo">
-      <LogoMark />
-      <span>
-        SYORA<span className="brand-logo__dot">.</span>
-      </span>
-    </span>
-  );
-}
+export { Brand, LogoMark } from "./brand";
 export function Avatar({
   user,
   size = "normal",
@@ -49,7 +30,7 @@ export function Avatar({
       )}
     >
       <span className="avatar__fallback" aria-hidden={Boolean(user.avatar && !failed)}>{initials || '?'}</span>
-      {user.avatar && !failed && <img src={user.avatar} alt={`${user.name} profile`} className="avatar__image" onError={() => setFailed(true)} />}
+      {user.avatar && !failed && <img src={user.avatar} alt={`${user.name} profile`} className="avatar__image" width={96} height={96} loading="lazy" decoding="async" onError={() => setFailed(true)} />}
       {user.online && <span className="avatar__online-indicator" />}
     </span>
   );
