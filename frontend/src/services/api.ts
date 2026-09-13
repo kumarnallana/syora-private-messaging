@@ -11,6 +11,10 @@ import type { Services } from "./contracts";
 import { normalizeUsername } from "@/utils/presentation";
 const API = process.env.NEXT_PUBLIC_API_URL || "";
 const SOCKET = process.env.NEXT_PUBLIC_SOCKET_URL || API;
+const IDLE_LIMIT_MS = 5 * 60 * 1000;
+const ACTIVITY_HEARTBEAT_MS = 30 * 1000;
+const IDLE_MESSAGE = "Your session ended after 5 minutes of inactivity. Sign in again to continue.";
+type AuthResult = { user: User; accessToken: string; idleExpiresAt: string | null };
 class ApiError extends Error {
   constructor(message: string, readonly status: number, readonly code?: string) {
     super(message);
@@ -59,6 +63,13 @@ export class ApiServices implements Services {
   private conversationReloadPending = false;
   private statusReloadTask?: Promise<void>;
   private statusReloadPending = false;
+  private idleTimer?: ReturnType<typeof setTimeout>;
+  private idleDeadline = 0;
+  private lastHeartbeatAt = 0;
+  private activityTracking = false;
+  private endingSession = false;
+  private sessionChannel?: BroadcastChannel;
+  private activeRequests = new Set<AbortController>();
   private announceIncoming(message: Message) {
     if (typeof window === "undefined") return;
     const sender = this.state.users.find((user) => user.id === message.senderId);
@@ -89,6 +100,13 @@ export class ApiServices implements Services {
       this.loadLocalPreferences();
       window.addEventListener("online", this.handleOnline);
       window.addEventListener("offline", this.handleOffline);
+      if ("BroadcastChannel" in window) {
+        this.sessionChannel = new BroadcastChannel("syora:session");
+        this.sessionChannel.addEventListener("message", event => {
+          if (event.data?.type === "logout") this.endLocalSession(undefined, false);
+          if (event.data?.type === "idle") this.endLocalSession(IDLE_MESSAGE, false);
+        });
+      }
       void this.bootstrap();
     }
     return () => this.listeners.delete(fn);
@@ -119,6 +137,102 @@ export class ApiServices implements Services {
   private error(data: any, status: number) {
     return new ApiError(data?.error?.message || `Request failed (${status}).`, status, data?.error?.code);
   }
+  private applyAuth(result: AuthResult) {
+    const reconnectSocket = Boolean(this.socket?.connected);
+    this.token = result.accessToken;
+    if (this.socket) {
+      this.socket.auth = { token: this.token };
+      if (reconnectSocket) { this.socket.disconnect(); this.socket.connect(); }
+    }
+    this.update({ currentUserId: result.user.id, users: this.users([result.user]) });
+    this.startIdleTracking(result.user, result.idleExpiresAt);
+  }
+  private startIdleTracking(user: User, idleExpiresAt: string | null) {
+    this.stopIdleTracking();
+    if (user.role === "admin" || typeof window === "undefined") return;
+    const serverDeadline = idleExpiresAt ? Date.parse(idleExpiresAt) : Number.NaN;
+    this.idleDeadline = Number.isFinite(serverDeadline) ? serverDeadline : Date.now() + IDLE_LIMIT_MS;
+    this.lastHeartbeatAt = 0;
+    this.activityTracking = true;
+    window.addEventListener("pointerdown", this.recordActivity, { passive: true });
+    window.addEventListener("touchstart", this.recordActivity, { passive: true });
+    window.addEventListener("keydown", this.recordActivity);
+    window.addEventListener("wheel", this.recordActivity, { passive: true });
+    this.scheduleIdleExpiration();
+  }
+  private stopIdleTracking() {
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    this.idleTimer = undefined;
+    if (!this.activityTracking || typeof window === "undefined") return;
+    this.activityTracking = false;
+    window.removeEventListener("pointerdown", this.recordActivity);
+    window.removeEventListener("touchstart", this.recordActivity);
+    window.removeEventListener("keydown", this.recordActivity);
+    window.removeEventListener("wheel", this.recordActivity);
+  }
+  private scheduleIdleExpiration() {
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    this.idleTimer = setTimeout(() => this.expireForIdle(), Math.max(0, this.idleDeadline - Date.now()));
+  }
+  private recordActivity = (event: Event) => {
+    if (!event.isTrusted || !this.activityTracking || document.visibilityState !== "visible") return;
+    const current = Date.now();
+    this.idleDeadline = current + IDLE_LIMIT_MS;
+    this.scheduleIdleExpiration();
+    if (current - this.lastHeartbeatAt < ACTIVITY_HEARTBEAT_MS) return;
+    this.lastHeartbeatAt = current;
+    void this.sendActivityHeartbeat();
+  };
+  private async sendActivityHeartbeat() {
+    try {
+      const result = await this.fetch<{ idleExpiresAt: string | null }>("/api/auth/activity", { method: "POST" }, false);
+      if (result.idleExpiresAt) {
+        this.idleDeadline = Date.parse(result.idleExpiresAt);
+        this.scheduleIdleExpiration();
+      }
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) return;
+    }
+  }
+  private revokeBlobUrls() {
+    const urls = new Set<string>();
+    this.state.users.forEach(user => { if (user.avatar?.startsWith("blob:")) urls.add(user.avatar); });
+    this.state.messages.forEach(message => { if (message.attachment?.url.startsWith("blob:")) urls.add(message.attachment.url); });
+    this.state.statuses.forEach(status => { if (status.attachment?.url.startsWith("blob:")) urls.add(status.attachment.url); });
+    urls.forEach(url => URL.revokeObjectURL(url));
+  }
+  private endLocalSession(message?: string, broadcast = true) {
+    if (this.endingSession) return;
+    this.endingSession = true;
+    this.stopIdleTracking();
+    const socket = this.socket;
+    this.socket = undefined;
+    socket?.disconnect();
+    this.revokeBlobUrls();
+    this.token = null;
+    this.loadedMessages.clear();
+    this.messageCursors.clear();
+    this.retries.clear();
+    this.activeRequests.forEach(controller => controller.abort());
+    this.activeRequests.clear();
+    const localPreferences = {
+      appearance: this.state.preferences.appearance,
+      compact: this.state.preferences.compact,
+      notifications: this.state.preferences.notifications,
+      sound: this.state.preferences.sound,
+    };
+    this.state = empty();
+    this.state.preferences = { ...this.state.preferences, ...localPreferences };
+    this.update({ sessionReady: true, sessionError: message });
+    if (broadcast) this.sessionChannel?.postMessage({ type: message ? "idle" : "logout" });
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) window.location.replace(message ? "/login?reason=idle" : "/login");
+    this.endingSession = false;
+  }
+  private expireForIdle() {
+    const token = this.token;
+    if (token) void fetch(`${API}/api/auth/logout`, { method: "POST", credentials: "include", headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    this.endLocalSession(IDLE_MESSAGE);
+  }
   private async fetch<T>(
     path: string,
     init: RequestInit = {},
@@ -130,6 +244,7 @@ export class ApiServices implements Services {
       headers.set("Content-Type", "application/json");
     let response: Response;
     const controller = new AbortController();
+    this.activeRequests.add(controller);
     let timedOut = false;
     const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 20_000);
     const abort = () => controller.abort();
@@ -147,18 +262,23 @@ export class ApiServices implements Services {
       throw new ApiError(timedOut ? "The request took too long. Try again." : "SYORA could not reach the server. Check your connection and try again.", 0, timedOut ? "REQUEST_TIMEOUT" : "NETWORK_UNAVAILABLE");
     } finally {
       clearTimeout(timeout);
+      this.activeRequests.delete(controller);
       init.signal?.removeEventListener("abort", abort);
+    }
+    let errorData: any;
+    if (!response.ok) {
+      try { errorData = await response.clone().json(); } catch {}
+    }
+    if (response.status === 401 && errorData?.error?.code === "SESSION_IDLE_TIMEOUT") {
+      this.endLocalSession(IDLE_MESSAGE);
+      throw this.error(errorData, response.status);
     }
     if (response.status === 401 && retry && path !== "/api/auth/refresh") {
       const ok = await this.refresh();
       if (ok) return this.fetch<T>(path, init, false);
     }
     if (!response.ok) {
-      let data;
-      try {
-        data = await response.json();
-      } catch {}
-      throw this.error(data, response.status);
+      throw this.error(errorData, response.status);
     }
     return response.status === 204 ? (undefined as T) : response.json();
   }
@@ -171,21 +291,17 @@ export class ApiServices implements Services {
   }
   private async performRefresh() {
     try {
-      const result = await this.fetch<{ user: User; accessToken: string }>(
+      const result = await this.fetch<AuthResult>(
         "/api/auth/refresh",
         { method: "POST" },
         false,
       );
-      this.token = result.accessToken;
-      if (this.socket) this.socket.auth = { token: this.token };
-      this.update({
-        currentUserId: result.user.id,
-        users: this.users([result.user]),
-      });
+      this.applyAuth(result);
       return true;
     } catch (error) {
       if (error instanceof ApiError && error.status !== 401) throw error;
       this.token = null;
+      if (this.state.currentUserId) this.endLocalSession();
       return false;
     }
   }
@@ -348,6 +464,7 @@ export class ApiServices implements Services {
     socket.on("conversation:update", () => this.scheduleConversationReload());
     socket.on("status:new", () => this.scheduleStatusReload());
     socket.on("status:deleted", () => this.scheduleStatusReload());
+    socket.on("session:expired", () => this.endLocalSession(IDLE_MESSAGE));
     socket.on("disconnect", () => this.update({ connection: "offline" }));
   }
   private patchMessage(id: string, values: Partial<Message>) {
@@ -476,16 +593,14 @@ export class ApiServices implements Services {
   async login(email: string, password: string) {
     this.started = true;
     if (this.refreshTask) await this.refreshTask;
-    const result = await this.fetch<{ user: User; accessToken: string }>(
+    const result = await this.fetch<AuthResult>(
       "/api/auth/login",
       { method: "POST", body: JSON.stringify({ email, password }) },
       false,
     );
-    this.token = result.accessToken;
+    this.applyAuth(result);
     this.update({
       sessionReady: true,
-      currentUserId: result.user.id,
-      users: this.users([result.user]),
     });
     await this.loadAll();
     return result.user;
@@ -493,7 +608,7 @@ export class ApiServices implements Services {
   async register(name: string, username: string, email: string, password: string) {
     this.started = true;
     if (this.refreshTask) await this.refreshTask;
-    const result = await this.fetch<{ user: User; accessToken: string }>(
+    const result = await this.fetch<AuthResult>(
       "/api/auth/register",
       {
         method: "POST",
@@ -501,11 +616,9 @@ export class ApiServices implements Services {
       },
       false,
     );
-    this.token = result.accessToken;
+    this.applyAuth(result);
     this.update({
       sessionReady: true,
-      currentUserId: result.user.id,
-      users: this.users([result.user]),
     });
     await this.loadAll();
     return result.user;
@@ -523,16 +636,9 @@ export class ApiServices implements Services {
     throw new Error("Demo mode is disabled for real accounts.");
   }
   logout() {
-    const socket = this.socket;
-    this.socket = undefined;
-    socket?.disconnect();
-    void this.fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
-    this.token = null;
-    this.loadedMessages.clear();
-    this.messageCursors.clear();
-    this.retries.clear();
-    this.state = empty();
-    this.update({ sessionReady: true });
+    const token = this.token;
+    if (token) void fetch(`${API}/api/auth/logout`, { method: "POST", credentials: "include", headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    this.endLocalSession();
   }
   async updateProfile(
     values: Partial<Pick<User, "name" | "username" | "about" | "avatar">>,

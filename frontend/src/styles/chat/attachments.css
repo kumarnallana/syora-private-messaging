@@ -105,7 +105,7 @@
       @apply relative transform-none;
     }
     .message-action-trigger {
-      @apply size-11 opacity-70;
+      @apply size-11 opacity-0;
     }
     .message-row:focus-within .message-action-trigger,
     .message-action-trigger[aria-expanded='true'] {

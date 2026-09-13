@@ -18,11 +18,12 @@
   }
   
   .inline-error {
-    @apply pb-[10px] text-[14px] text-[#ffb4b4];
+    @apply pb-[10px] text-[14px] text-danger;
   }
 
   .composer-reply {
-    @apply flex items-center gap-[10px] rounded-[10px_10px_0_0] bg-[#302a42] p-[9px_12px] text-accent;
+    @apply flex items-center gap-[10px] rounded-[10px_10px_0_0] p-[9px_12px] text-accent;
+    background: var(--accent-soft);
   }
   .composer-reply > span {
     @apply flex min-w-0 flex-1 flex-col gap-[4px];

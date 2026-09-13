@@ -34,7 +34,8 @@
     @apply flex min-h-[120px] items-center justify-center gap-[10px] text-[14px] text-muted;
   }
   .search-error {
-    @apply flex min-h-[140px] flex-col items-center justify-center gap-[14px] rounded-[11px] border border-danger/30 bg-[#2a1b20] px-[20px] text-center text-[14px] text-danger;
+    @apply flex min-h-[140px] flex-col items-center justify-center gap-[14px] rounded-[11px] border border-danger/30 px-[20px] text-center text-[14px] text-danger;
+    background: var(--danger-soft);
   }
   .page-notice {
     @apply mt-[12px] mb-0;
@@ -78,10 +79,14 @@
 
   @media (max-width: 767px) {
     .person-card {
-      @apply gap-[10px];
+      @apply grid gap-[9px_10px] py-[14px];
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .person-identity {
+      @apply w-full;
     }
     .row-actions {
-      @apply ml-auto w-auto flex-nowrap justify-end;
+      @apply ml-0 w-full flex-wrap justify-start pl-[55px];
     }
     .row-actions .button {
       @apply px-[11px];

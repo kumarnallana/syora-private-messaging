@@ -1,20 +1,18 @@
 @import "tailwindcss";
 
-@theme {
-  --color-background: #111217;
-  --color-panel: #17181e;
-  --color-surface: #1e2027;
-  --color-elevated: #24262f;
-  --color-border: #373847;
-
-  --color-text-primary: #f4f2f8;
-  --color-muted: #97939f;
-  --color-subtle: #716e79;
-
-  --color-accent: #ad97f4;
-  --color-accent-strong: #c0adff;
-  --color-danger: #f18b99;
-  --color-success: #8cc8a8;
+@theme inline {
+  --color-background: var(--bg);
+  --color-panel: var(--panel);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-border: var(--border);
+  --color-text-primary: var(--text);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
 }
 
 @import "./shared/buttons.css";
@@ -36,13 +34,18 @@
 @import "./auth/auth.css";
 :root {
   color-scheme: dark;
-  --bg: var(--color-background);
-  --panel: var(--color-panel);
-  --surface: var(--color-surface);
-  --border: var(--color-border);
-  --text: var(--color-text-primary);
-  --muted: var(--color-muted);
-  --accent: var(--color-accent);
+  --bg: #111217;
+  --panel: #17181e;
+  --surface: #1e2027;
+  --elevated: #24262f;
+  --border: #373847;
+  --text: #f4f2f8;
+  --muted: #97939f;
+  --subtle: #716e79;
+  --accent: #ad97f4;
+  --accent-strong: #c0adff;
+  --danger: #f18b99;
+  --success: #8cc8a8;
   --accent-soft: #302a42;
   --selection: #332d42;
   --message-outgoing: #403551;
@@ -139,10 +142,15 @@
   --bg: #f4f3f7;
   --panel: #fbfafc;
   --surface: #eeecf3;
+  --elevated: #e4e0ea;
   --border: #d9d5e1;
   --text: #282331;
   --muted: #696274;
+  --subtle: #81798b;
   --accent: #6952ad;
+  --accent-strong: #594493;
+  --danger: #b63f59;
+  --success: #347253;
   --accent-soft: #e6def5;
   --selection: #e6def5;
   --message-outgoing: #e2d9f2;
@@ -150,15 +158,6 @@
   --danger-soft: #f7e2e6;
   --success-soft: #e2f0e8;
   --overlay: #1d17265c;
-}
-:root[data-theme="light"] .conversation-row.is-selected,
-:root[data-theme="light"] .theme-options button.is-active,
-:root[data-theme="light"] .composer-reply,
-:root[data-theme="light"] .notice {
-  background: #e6def5;
-}
-:root[data-theme="light"] .message-row.is-outgoing .message-bubble {
-  background: #e2d9f2;
 }
 :root[data-theme="light"] .button.primary,
 :root[data-theme="light"] .button--primary,
@@ -196,9 +195,6 @@
   .profile-link {
     display: grid;
     place-items: center;
-  }
-  .message-actions {
-    opacity: 1;
   }
   .message-search {
     padding: 8px 10px;

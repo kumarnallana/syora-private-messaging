@@ -39,7 +39,8 @@
     @apply min-h-[44px] w-full border-0 bg-transparent px-[12px] outline-none;
   }
   .field.has-error .username-control {
-    @apply border-danger bg-[#2a1b20];
+    @apply border-danger;
+    background: var(--danger-soft);
   }
   .about-field textarea {
     @apply min-h-[96px] w-full resize-y p-[12px] leading-[1.55];
@@ -64,13 +65,16 @@
     @apply flex min-h-[46px] items-center gap-[10px] break-words rounded-[8px] bg-surface/70 p-[11px_13px] text-muted;
   }
   .notice {
-    @apply mb-[17px] rounded-[8px] bg-[#302a42] p-[12px] text-[13px] text-text-primary;
+    @apply mb-[17px] rounded-[8px] p-[12px] text-[13px] text-text-primary;
+    background: var(--accent-soft);
   }
   .notice.is-error {
-    @apply border border-danger/40 bg-[#2a1b20] text-danger;
+    @apply border border-danger/40 text-danger;
+    background: var(--danger-soft);
   }
   .notice.is-success {
-    @apply border border-[#6b9d87]/40 bg-[#1b2823];
+    @apply border border-success/40;
+    background: var(--success-soft);
   }
   .avatar-progress {
     @apply flex w-full max-w-[190px] flex-col gap-[7px] text-center text-[12px] text-muted;
@@ -96,13 +100,7 @@
       @apply rounded-none bg-transparent p-0;
     }
     .profile-actions {
-      @apply sticky z-10 -mx-[18px] px-[18px] py-[10px];
-      bottom: 0;
-      background: var(--bg);
-      padding-bottom: max(10px, env(safe-area-inset-bottom));
-    }
-    .app-shell:has(input:focus, textarea:focus) .profile-actions {
-      bottom: 0;
+      @apply static mx-0 flex-wrap px-0 py-[14px_0_0];
     }
   }
 }

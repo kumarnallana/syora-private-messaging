@@ -53,17 +53,17 @@
   }
   
   .message-meta {
-    @apply mt-[5px] flex flex-wrap items-center justify-end gap-[7px] text-[11px] text-[#b6afc2];
+    @apply mt-[5px] flex flex-wrap items-center justify-end gap-[7px] text-[11px] text-muted;
   }
 
   .receipt {
     @apply inline-flex items-center gap-[4px] text-[12px];
   }
   .receipt.is-read {
-    @apply text-[#d2beff];
+    @apply text-accent;
   }
   .receipt.is-failed {
-    @apply text-[#ffb4b4];
+    @apply text-danger;
   }
 
   .message-search {

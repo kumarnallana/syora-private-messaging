@@ -32,8 +32,11 @@
   }
 
   .avatar__image {
-    @apply block size-full max-w-none rounded-full object-cover object-center;
+    @apply absolute inset-0 block size-full max-w-none rounded-full object-cover object-center;
     aspect-ratio: 1 / 1;
+  }
+  .avatar__fallback {
+    @apply grid size-full place-items-center rounded-full;
   }
 
   .avatar__online-indicator {

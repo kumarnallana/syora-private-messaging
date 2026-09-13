@@ -53,18 +53,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (sessionReady && !me) router.replace("/login");
   }, [sessionReady, me, router]);
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: light)");
-    const apply = () => {
-      document.documentElement.dataset.theme = preferences.appearance === "system" ? (media.matches ? "light" : "dark") : preferences.appearance;
-    };
-    apply();
-    if (preferences.appearance === "system") media.addEventListener("change", apply);
-    return () => {
-      media.removeEventListener("change", apply);
-      delete document.documentElement.dataset.theme;
-    };
-  }, [preferences.appearance]);
   if (!sessionReady) return <Loading />;
   if (sessionError) return <div className="recovery-state" role="alert"><Shield size={28}/><h1>Your space could not be loaded</h1><p>{sessionError}</p><Button variant="secondary" onClick={() => void services.retryBootstrap()}>Try again</Button></div>;
   if (!me) return <Loading />;
@@ -139,7 +127,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               variant="danger"
               onClick={() => {
                 services.logout();
-                router.push("/login");
+                router.replace("/login");
               }}
             >
               <LogOut size={17} /> Log out

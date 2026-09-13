@@ -16,7 +16,7 @@ async def user_out(db:AsyncSession,user:User,viewer_id:uuid.UUID|None=None)->dic
     show_photo=own or photo_visibility=="everyone" or (photo_visibility=="friends" and friendship)
     show_seen=own or seen_visibility=="everyone" or (seen_visibility=="friends" and friendship)
     avatar=r2.access_url(user.avatar_key) if show_photo and user.avatar_key and r2.configured else None
-    return {"id":str(user.id),"name":user.display_name,"username":user.username.lstrip("@").lower(),"email":user.email if own else "","about":user.about,"avatar":avatar,"color":"iris","online":user.id in online_users if show_seen else False,"lastSeen":user.last_seen_at.isoformat() if show_seen and user.last_seen_at else None}
+    return {"id":str(user.id),"name":user.display_name,"username":user.username.lstrip("@").lower(),"email":user.email if own else "","role":user.role if own else "user","about":user.about,"avatar":avatar,"color":"iris","online":user.id in online_users if show_seen else False,"lastSeen":user.last_seen_at.isoformat() if show_seen and user.last_seen_at else None}
 async def message_out(db:AsyncSession,message:Message,viewer_id:uuid.UUID)->dict:
     attachment=await db.scalar(select(Attachment).where(Attachment.message_id==message.id));receipt="sent"
     if message.sender_id==viewer_id:

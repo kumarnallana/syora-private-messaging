@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from collections import defaultdict
 import socketio
@@ -7,6 +8,7 @@ from app.config.security import decode_access_token
 from app.config.settings import get_settings
 from app.db.session import SessionLocal
 from app.models import ConversationParticipant, Friendship, FriendshipStatus, Message, MessageReceipt, User, UserPreference, now
+from app.services.sessions import SessionValidationError, validate_session
 
 settings=get_settings()
 sio=socketio.AsyncServer(async_mode="asgi",cors_allowed_origins=settings.client_origins,logger=False,engineio_logger=False)
@@ -14,6 +16,8 @@ sio_app=socketio.ASGIApp(sio)
 online_users:set[uuid.UUID]=set()
 user_sids:dict[uuid.UUID,set[str]]=defaultdict(set)
 sid_users:dict[str,uuid.UUID]={}
+sid_sessions:dict[str,uuid.UUID]={}
+session_watchdogs:dict[str,asyncio.Task]={}
 async def conversation_room(conversation_id:uuid.UUID)->str:return f"conversation:{conversation_id}"
 async def emit_conversation(conversation_id:uuid.UUID,event:str,data:dict,skip_sid:str|None=None):
     await sio.emit(event,data,room=await conversation_room(conversation_id),skip_sid=skip_sid)
@@ -22,16 +26,41 @@ async def friend_ids(db,user_id:uuid.UUID)->list[uuid.UUID]:
     rows=(await db.scalars(select(Friendship).where(Friendship.status==FriendshipStatus.ACCEPTED,((Friendship.requester_id==user_id)|(Friendship.addressee_id==user_id))))).all()
     return [r.addressee_id if r.requester_id==user_id else r.requester_id for r in rows]
 
+async def _authenticated(sid:str):
+    user_id=sid_users.get(sid);session_id=sid_sessions.get(sid)
+    if not user_id or not session_id:return None
+    async with SessionLocal() as db:
+        try:await validate_session(db,user_id,session_id)
+        except SessionValidationError:return None
+    return user_id
+
+async def _watch_session(sid:str):
+    try:
+        while sid in sid_users:
+            await asyncio.sleep(15)
+            user_id=sid_users.get(sid);session_id=sid_sessions.get(sid)
+            if not user_id or not session_id:return
+            async with SessionLocal() as db:
+                try:await validate_session(db,user_id,session_id)
+                except SessionValidationError as error:
+                    if error.code=="SESSION_IDLE_TIMEOUT":await sio.emit("session:expired",{"code":error.code},to=sid)
+                    await sio.disconnect(sid);return
+    except asyncio.CancelledError:
+        return
+
 @sio.event
 async def connect(sid,environ,auth):
     token=auth.get("token") if isinstance(auth,dict) else None
-    try: user_id=uuid.UUID(decode_access_token(token or ""))
+    try:
+        claims=decode_access_token(token or "");user_id=uuid.UUID(str(claims["sub"]));session_id=uuid.UUID(str(claims["sid"]))
     except (InvalidTokenError,ValueError,KeyError): raise ConnectionRefusedError("Authentication required")
     async with SessionLocal() as db:
-        if not await db.get(User,user_id): raise ConnectionRefusedError("Authentication required")
+        try:await validate_session(db,user_id,session_id)
+        except SessionValidationError:raise ConnectionRefusedError("Authentication required")
         conversations=(await db.scalars(select(ConversationParticipant.conversation_id).where(ConversationParticipant.user_id==user_id))).all()
         friends=await friend_ids(db,user_id);preference=await db.get(UserPreference,user_id)
-    sid_users[sid]=user_id;user_sids[user_id].add(sid);online_users.add(user_id)
+    sid_users[sid]=user_id;sid_sessions[sid]=session_id;user_sids[user_id].add(sid);online_users.add(user_id)
+    session_watchdogs[sid]=asyncio.create_task(_watch_session(sid))
     await sio.enter_room(sid,f"user:{user_id}")
     for conversation_id in conversations: await sio.enter_room(sid,await conversation_room(conversation_id))
     if not preference or preference.last_seen_visibility!="Nobody":
@@ -40,6 +69,9 @@ async def connect(sid,environ,auth):
 @sio.event
 async def disconnect(sid):
     user_id=sid_users.pop(sid,None)
+    sid_sessions.pop(sid,None)
+    watchdog=session_watchdogs.pop(sid,None)
+    if watchdog and watchdog is not asyncio.current_task():watchdog.cancel()
     if not user_id:return
     user_sids[user_id].discard(sid)
     if user_sids[user_id]:return
@@ -52,7 +84,7 @@ async def disconnect(sid):
     for conversation_id in conversations:await emit_conversation(conversation_id,"typing:stop",{"conversationId":str(conversation_id),"userId":str(user_id)})
 
 async def _authorized(sid:str,conversation_id:str):
-    user_id=sid_users.get(sid)
+    user_id=await _authenticated(sid)
     if not user_id:return None,None
     try: cid=uuid.UUID(conversation_id)
     except ValueError:return None,None
@@ -87,7 +119,7 @@ async def typing_stop(sid,data):
     if user_id:await emit_conversation(cid,"typing:stop",{"conversationId":str(cid),"userId":str(user_id)},sid)
 @sio.on("message:delivered")
 async def delivered(sid,data):
-    user_id=sid_users.get(sid)
+    user_id=await _authenticated(sid)
     try: message_id=uuid.UUID(str(data.get("messageId")))
     except (ValueError,TypeError):return
     async with SessionLocal() as db:

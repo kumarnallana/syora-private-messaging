@@ -17,13 +17,15 @@ def verify_password(password_hash: str, password: str) -> bool:
     except (VerifyMismatchError, InvalidHashError):
         return False
 
-def create_access_token(user_id: str) -> str:
+def create_access_token(user_id: str, session_id: str) -> str:
     settings = get_settings(); now = datetime.now(UTC)
-    return jwt.encode({"sub": user_id, "iat": now, "exp": now + timedelta(minutes=settings.access_token_minutes)}, settings.jwt_access_secret, algorithm="HS256")
+    return jwt.encode({"sub": user_id, "sid": session_id, "iat": now, "exp": now + timedelta(minutes=settings.access_token_minutes)}, settings.jwt_access_secret, algorithm="HS256")
 
-def decode_access_token(token: str) -> str:
+def decode_access_token(token: str) -> dict:
     payload = jwt.decode(token, get_settings().jwt_access_secret, algorithms=["HS256"])
-    return str(payload["sub"])
+    if not payload.get("sub") or not payload.get("sid"):
+        raise jwt.InvalidTokenError("Access token is missing its session identifier")
+    return payload
 
 import hmac
 

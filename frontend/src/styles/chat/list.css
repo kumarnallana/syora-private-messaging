@@ -14,7 +14,7 @@
     @apply hidden; /* Hide the brand logo in the list header to avoid duplication if it's there */
   }
   .list-title {
-    @apply mt-[29px] flex items-center justify-between;
+    @apply flex items-center justify-between;
   }
   .list-title h1 {
     @apply flex items-center gap-[10px] text-[24px] font-medium tracking-[-0.5px];
@@ -31,7 +31,8 @@
     @apply m-[3px_0] flex w-full items-center gap-[12px] rounded-[10px] border border-transparent p-[16px_11px] text-left transition-colors hover:bg-surface;
   }
   .conversation-row.is-selected {
-    @apply border-[#5b4d75] bg-[#322c43];
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+    background: var(--selection);
   }
 
   .conversation-copy {
@@ -80,7 +81,8 @@
     @apply min-h-[34px] rounded-full border border-border px-[14px] text-[12px] font-medium text-muted transition-colors duration-150;
   }
   .chat-filters button.is-active {
-    @apply border-accent bg-[#302a42] text-accent;
+    background: var(--selection);
+    @apply border-accent text-accent;
   }
 
   @media (max-width: 1100px) {
@@ -112,7 +114,7 @@
       @apply h-full w-full border-0;
     }
     .list-header {
-      @apply p-[24px_20px_19px];
+      @apply p-[20px_18px_17px];
     }
     .conversation-row {
       @apply gap-[13px] p-[17px_10px];

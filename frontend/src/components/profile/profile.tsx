@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AlertCircle, AtSign, Camera, LoaderCircle, Mail, RotateCcw, Save } from 'lucide-react';
 import { useApp } from '@/stores/use-app';
-import { Avatar, pickAttachment } from '@/components/shared/ui';
+import { Avatar, Modal, pickAttachment } from '@/components/shared/ui';
 import { MobileScreenHeader, PageHeader } from '@/components/shell';
 import { normalizeUsername } from '@/utils/presentation';
 
@@ -11,6 +12,7 @@ type Notice = { kind: 'success' | 'error'; text: string };
 
 export function Profile() {
   const { me, services } = useApp();
+  const router = useRouter();
   const [name, setName] = useState(me!.name);
   const [username, setUsername] = useState(normalizeUsername(me!.username));
   const [about, setAbout] = useState(me!.about);
@@ -21,11 +23,17 @@ export function Profile() {
   const [avatarProgress, setAvatarProgress] = useState(0);
   const [failedPhoto, setFailedPhoto] = useState<File>();
   const [preview, setPreview] = useState<string>();
+  const [discardOpen, setDiscardOpen] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const temporary = useRef<string | null>(null);
+  const dirtyRef = useRef(false);
+  const guardAtTop = useRef(false);
+  const leaving = useRef(false);
   const normalized = normalizeUsername(username);
   const dirty = name.trim() !== me!.name || normalized !== normalizeUsername(me!.username) || about.trim() !== me!.about;
   const busy = saving || uploading;
+
+  dirtyRef.current = dirty || busy;
 
   useEffect(() => () => { if (temporary.current) URL.revokeObjectURL(temporary.current); }, []);
   useEffect(() => {
@@ -34,6 +42,40 @@ export function Profile() {
     window.addEventListener('beforeunload', protect);
     return () => window.removeEventListener('beforeunload', protect);
   }, [busy, dirty]);
+  useEffect(() => {
+    if (!dirty || guardAtTop.current) return;
+    window.history.pushState({ ...window.history.state, syoraProfileGuard: true }, '', window.location.href);
+    guardAtTop.current = true;
+  }, [dirty]);
+  useEffect(() => {
+    const protectBack = () => {
+      if (leaving.current) return;
+      if (guardAtTop.current) guardAtTop.current = false;
+      if (dirtyRef.current) setDiscardOpen(true);
+      else window.history.back();
+    };
+    window.addEventListener('popstate', protectBack);
+    return () => window.removeEventListener('popstate', protectBack);
+  }, []);
+
+  function requestBack() {
+    if (dirtyRef.current) setDiscardOpen(true);
+    else router.back();
+  }
+
+  function stayOnProfile() {
+    setDiscardOpen(false);
+    if (!guardAtTop.current) {
+      window.history.pushState({ ...window.history.state, syoraProfileGuard: true }, '', window.location.href);
+      guardAtTop.current = true;
+    }
+  }
+
+  function discardChanges() {
+    setDiscardOpen(false);
+    leaving.current = true;
+    window.history.go(guardAtTop.current ? -2 : -1);
+  }
 
   async function photo(file?: File) {
     if (!file || busy) return;
@@ -89,7 +131,7 @@ export function Profile() {
   const avatarUser = { ...me!, avatar: preview || me!.avatar };
   return (
     <div className="page-view is-narrow profile-page">
-      <MobileScreenHeader title="Profile" backHref="/settings" />
+      <MobileScreenHeader title="Profile" onBack={requestBack} />
       <PageHeader title="Profile" description="Choose how people in your circle recognize you." />
       <div className="profile-editor">
         <div className="avatar-column">
@@ -117,6 +159,7 @@ export function Profile() {
           <div className="profile-actions"><span className="profile-save-state" aria-live="polite">{saving ? 'Saving your changes…' : dirty ? 'Unsaved changes' : notice?.kind === 'success' ? 'Saved' : 'Up to date'}</span><button className="button primary" type="submit" disabled={busy || !dirty}>{saving ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />} {saving ? 'Saving…' : 'Save profile'}</button></div>
         </form>
       </div>
+      {discardOpen && <Modal title="Discard unsaved changes?" className="mobile-sheet" onClose={stayOnProfile}><p className="modal-copy">Your profile edits have not been saved.</p><div className="modal-actions"><button className="button secondary" onClick={stayOnProfile}>Stay</button><button className="button danger" onClick={discardChanges}>Discard changes</button></div></Modal>}
     </div>
   );
 }

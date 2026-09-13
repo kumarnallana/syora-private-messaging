@@ -68,7 +68,8 @@
     @apply flex min-h-11 flex-1 items-center justify-center gap-[7px] rounded-[8px] bg-surface px-[12px] text-[13px] text-muted;
   }
   .theme-options button.is-active {
-    @apply bg-[#302a42] text-accent ring-1 ring-accent/60;
+    background: var(--selection);
+    @apply text-accent ring-1 ring-accent/60;
   }
   .account-summary,
   .blocked-row {

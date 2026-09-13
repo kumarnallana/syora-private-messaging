@@ -3,7 +3,7 @@ import type { Attachment, User } from "@/types";
 import { cn } from "@/utils/cn";
 import { motion, useReducedMotion } from "framer-motion";
 import { Heart, LoaderCircle, Sparkles, X } from "lucide-react";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 export function LogoMark() {
   return (
     <span
@@ -31,6 +31,15 @@ export function Avatar({
   user: User;
   size?: "small" | "normal" | "large";
 }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [user.avatar]);
+  const initials = user.name
+    .split(" ")
+    .filter(Boolean)
+    .map((name) => name[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
   return (
     <span
       className={cn(
@@ -39,15 +48,8 @@ export function Avatar({
         `avatar--${size}`
       )}
     >
-      {user.avatar ? (
-        <img src={user.avatar} alt={user.name} className="avatar__image" />
-      ) : (
-        user.name
-          .split(" ")
-          .map((n) => n[0])
-          .slice(0, 2)
-          .join("")
-      )}
+      <span className="avatar__fallback" aria-hidden={Boolean(user.avatar && !failed)}>{initials || '?'}</span>
+      {user.avatar && !failed && <img src={user.avatar} alt={`${user.name} profile`} className="avatar__image" onError={() => setFailed(true)} />}
       {user.online && <span className="avatar__online-indicator" />}
     </span>
   );

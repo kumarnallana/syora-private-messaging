@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Ban, BellOff, LoaderCircle, MessageCircle, MoreHorizontal, Pin, Search, SquarePen, X } from 'lucide-react';
 import { useApp } from '@/stores/use-app';
@@ -13,6 +13,7 @@ import { formatLastSeen, normalizeUsername, usernameLabel } from '@/utils/presen
 export function Chats() {
  const { me, users, conversations, messages, services, preferences } = useApp();
  const params = useSearchParams();
+ const router = useRouter();
  const [selected, setSelected] = useState<string | null>(params.get('conversation'));
  const [query,setQuery]=useState('');
  const [messageQuery,setMessageQuery]=useState('');
@@ -64,8 +65,11 @@ export function Chats() {
  },[active?.id,active?.unread,messageState,services]);
  function back() {
   const id = selected;
-  setSelected(null);
+  router.back();
   requestAnimationFrame(() => { if (id) rowRefs.current.get(id)?.focus(); });
+ }
+ function selectConversation(id: string) {
+  router.push(`/chats?conversation=${encodeURIComponent(id)}`);
  }
  async function loadEarlier() {
   if (!active || loadingOlder) return;
@@ -100,7 +104,7 @@ export function Chats() {
      return <button key={conversation.id} ref={node => { if (node) rowRefs.current.set(conversation.id, node); else rowRefs.current.delete(conversation.id); }}
       className={`conversation-row ${active?.id === conversation.id ? 'is-selected' : ''} ${conversation.unread?'is-unread':''}`}
       aria-label={`Open conversation with ${person.name}${conversation.unread ? `, ${conversation.unread} unread` : ''}`}
-      aria-current={active?.id === conversation.id ? 'true' : undefined} onClick={() => setSelected(conversation.id)}>
+      aria-current={active?.id === conversation.id ? 'true' : undefined} onClick={() => selectConversation(conversation.id)}>
       <Avatar user={person}/><span className="conversation-copy">
        <span className="conversation-top"><strong>{person.name}</strong>{last && <time dateTime={last.createdAt}>{time(last.createdAt)}</time>}</span>
        <span className="conversation-bottom"><span className={conversation.typing?'typing-text':''}>{conversation.typing?'typing…':last ? `${last.senderId === me!.id ? 'You: ' : ''}${last.deleted?'Message deleted':last.text||last.attachment?.name||'Attachment'}` : 'No messages yet'}</span><span className="row-indicators">{last?.senderId===me!.id&&!last.deleted&&<DeliveryReceipt state={last.receipt}/>} {conversation.muted&&<BellOff size={13}/>} {conversation.pinned&&<Pin size={13}/>} {conversation.unread > 0 && <span className="unread-badge">{conversation.unread}</span>}</span></span>

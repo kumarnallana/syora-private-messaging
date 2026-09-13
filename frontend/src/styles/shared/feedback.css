@@ -3,7 +3,8 @@
     @apply flex flex-col items-center gap-[14px] p-[45px_20px] text-center;
   }
   .empty-state__icon {
-    @apply grid size-[58px] place-items-center rounded-[15px] bg-[#302a42] text-accent;
+    @apply grid size-[58px] place-items-center rounded-[15px] text-accent;
+    background: var(--accent-soft);
   }
   .empty-state h2 {
     @apply text-[19px] font-medium;

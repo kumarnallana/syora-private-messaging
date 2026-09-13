@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     r2_secret_access_key: str = Field(default="", alias="R2_SECRET_ACCESS_KEY")
     r2_bucket: str = Field(default="", alias="R2_BUCKET")
     environment: str = Field(default="development", alias="ENVIRONMENT")
+    admin_email: str = Field(default="", alias="SYORA_ADMIN_EMAIL")
+    admin_bootstrap_password: str = Field(default="", alias="SYORA_ADMIN_BOOTSTRAP_PASSWORD")
+    admin_display_name: str = Field(default="SYORA Admin", alias="SYORA_ADMIN_DISPLAY_NAME")
+    admin_username: str = Field(default="syora_admin", alias="SYORA_ADMIN_USERNAME")
 
     @field_validator("database_url",mode="before")
     @classmethod

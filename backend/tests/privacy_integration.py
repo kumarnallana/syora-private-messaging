@@ -12,12 +12,15 @@ from contextlib import asynccontextmanager
 from datetime import timedelta
 from pathlib import Path
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request, Response
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.api import chat, media, status  # noqa: E402
+from app.api import auth, chat, media, status  # noqa: E402
+from app.api.deps import current_auth  # noqa: E402
+from app.config.security import create_access_token, hash_refresh_token  # noqa: E402
 from app.db.session import engine  # noqa: E402
 from app.models import (  # noqa: E402
     Attachment,
@@ -29,6 +32,7 @@ from app.models import (  # noqa: E402
     Message,
     MessageReceipt,
     MessageType,
+    RefreshSession,
     StatusPost,
     StatusType,
     User,
@@ -37,6 +41,7 @@ from app.models import (  # noqa: E402
 )
 from app.realtime import socket  # noqa: E402
 from app.schemas.inputs import MessageIn  # noqa: E402
+from app.services.sessions import SessionValidationError, validate_session  # noqa: E402
 
 
 async def expect_denied(label: str, expected: int, operation) -> None:
@@ -82,6 +87,66 @@ async def main() -> None:
             )
             session.add_all([user_a, user_b, user_c])
             await session.flush()
+            user_b.role = "admin"
+            admin_session = RefreshSession(
+                user_id=user_b.id,
+                token_hash=f"admin-{suffix}",
+                expires_at=now() + timedelta(days=1),
+                last_activity_at=now() - timedelta(minutes=10),
+            )
+            idle_session = RefreshSession(
+                user_id=user_c.id,
+                token_hash=f"idle-{suffix}",
+                expires_at=now() + timedelta(days=1),
+                last_activity_at=now() - timedelta(minutes=5),
+            )
+            socket_session = RefreshSession(
+                user_id=user_c.id,
+                token_hash=f"socket-{suffix}",
+                expires_at=now() + timedelta(days=1),
+                last_activity_at=now(),
+            )
+            raw_idle_refresh = f"raw-idle-{suffix}"
+            idle_refresh_session = RefreshSession(
+                user_id=user_c.id,
+                token_hash=hash_refresh_token(raw_idle_refresh),
+                expires_at=now() + timedelta(days=1),
+                last_activity_at=now() - timedelta(minutes=5),
+            )
+            session.add_all([admin_session, idle_session, socket_session, idle_refresh_session])
+            await session.flush()
+            assert (await validate_session(session, user_b.id, admin_session.id)).user.role == "admin"
+            try:
+                await validate_session(session, user_c.id, idle_session.id)
+            except SessionValidationError as error:
+                assert error.code == "SESSION_IDLE_TIMEOUT"
+            else:
+                raise AssertionError("normal user idle session was accepted")
+            access_token = create_access_token(str(user_c.id), str(idle_session.id))
+            try:
+                await current_auth(HTTPAuthorizationCredentials(scheme="Bearer", credentials=access_token), session)
+            except HTTPException as error:
+                assert error.status_code == 401 and error.detail["code"] == "SESSION_INVALID"
+            else:
+                raise AssertionError("revoked idle session access token was accepted")
+            origin = auth.settings.client_origins[0].encode()
+            request = Request({
+                "type": "http",
+                "method": "POST",
+                "path": "/api/auth/refresh",
+                "headers": [(b"origin", origin), (b"cookie", f"{auth.COOKIE}={raw_idle_refresh}".encode())],
+            })
+            try:
+                await auth.refresh(Response(), request, session)
+            except HTTPException as error:
+                assert error.status_code == 401 and error.detail["code"] == "SESSION_IDLE_TIMEOUT"
+            else:
+                raise AssertionError("idle refresh session was restored")
+            before_activity = socket_session.last_activity_at
+            activity_result = await auth.activity(
+                auth.AuthenticatedSession(user=user_c, session=socket_session), session
+            )
+            assert activity_result["idleExpiresAt"] and socket_session.last_activity_at >= before_activity
             session.add_all(
                 [
                     UserPreference(user_id=user_a.id),
@@ -180,15 +245,20 @@ async def main() -> None:
 
             socket.SessionLocal = shared_session
             socket.sid_users[sid] = user_c.id
+            socket.sid_sessions[sid] = socket_session.id
             socket_user, socket_conversation = await socket._authorized(
                 sid, str(conversation.id)
             )
+            socket_activity = socket_session.last_activity_at
+            await socket._authorized(sid, str(conversation.id))
+            assert socket_session.last_activity_at == socket_activity, "socket traffic changed user activity"
             assert socket_user is None and socket_conversation is None, (
                 "socket: User C was authorized for the A-B room"
             )
-            print("A/B/C privacy checks passed: conversation, messages, send, media, receipts, socket, status")
+            print("Session and A/B/C privacy checks passed: roles, idle access, refresh, activity, socket, conversation, messages, media, receipts, status")
         finally:
             socket.sid_users.pop(sid, None)
+            socket.sid_sessions.pop(sid, None)
             socket.SessionLocal = original_session_factory
             await session.close()
             await transaction.rollback()

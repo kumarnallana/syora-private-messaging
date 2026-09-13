@@ -10,6 +10,7 @@ import { normalizeUsername } from '@/utils/presentation';
 
 type Mode = 'login' | 'register' | 'forgot' | 'reset';
 type Notice = { kind: 'error' | 'success'; text: string };
+const IDLE_MESSAGE = 'Your SYORA session ended after 5 minutes of inactivity. Sign in again to continue.';
 
 export function AuthScreen({ mode }: { mode: Mode }) {
   const router = useRouter();
@@ -28,6 +29,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
   const reset = mode === 'reset';
   const token = searchParams.get('token');
   const demoEnabled = process.env.NEXT_PUBLIC_ENABLE_DEMO === 'true';
+  const idleExpired = searchParams.get('reason') === 'idle';
 
   useEffect(() => { if (sessionReady && me) router.replace('/chats'); }, [sessionReady, me, router]);
 
@@ -66,19 +68,21 @@ export function AuthScreen({ mode }: { mode: Mode }) {
     setBusy(true);
     setNotice(undefined);
     try {
-      if (register) await services.register(values.name.trim(), normalizeUsername(values.username), values.email.trim(), values.password);
+      if (register) { await services.register(values.name.trim(), normalizeUsername(values.username), values.email.trim(), values.password); setValues({}); }
       else if (forgot) {
         await services.forgotPassword(values.email.trim());
+        setValues({});
         setNotice({ kind: 'success', text: 'If an account exists, a reset link has been sent.' });
         return;
       } else if (reset) {
         if (!token) throw new Error('This reset link is incomplete. Request a new password reset link.');
         await services.resetPassword(token, values.password);
+        setValues({});
         setNotice({ kind: 'success', text: 'Password updated. You can now sign in.' });
         router.replace('/login');
         return;
-      } else await services.login(values.email.trim(), values.password);
-      router.push('/chats');
+      } else { await services.login(values.email.trim(), values.password); setValues({}); }
+      router.replace('/chats');
     } catch (error) {
       setNotice({ kind: 'error', text: error instanceof Error ? error.message : 'This request could not be completed.' });
     } finally {
@@ -92,7 +96,7 @@ export function AuthScreen({ mode }: { mode: Mode }) {
     submitting.current = true;
     setBusy(true);
     setNotice(undefined);
-    try { await services.enterDemo(); router.push('/chats'); }
+    try { await services.enterDemo(); router.replace('/chats'); }
     catch (error) { setNotice({ kind: 'error', text: error instanceof Error ? error.message : 'Demo access is unavailable.' }); }
     finally { submitting.current = false; setBusy(false); }
   }
@@ -111,5 +115,5 @@ export function AuthScreen({ mode }: { mode: Mode }) {
 
   const submitLabel = register ? 'Create account' : reset ? 'Save password' : forgot ? 'Send reset link' : 'Sign in';
 
-  return <main className="auth-page"><section className="auth-story"><Brand/><div className="auth-copy"><span className="eyebrow">A LITTLE CLOSER. A LITTLE QUIETER.</span><h1>Your people.<br/>Your own <em>space.</em></h1><p>Private conversations.<br/>Real connection.</p><div className="auth-notes"><span><MessageCircle size={18}/> Conversations that matter</span><span><Users size={18}/> A circle you choose</span><span><Feather size={18}/> Room to be yourself</span></div></div><span className="auth-foot">Thoughtfully made for your inner circle.</span></section><section className="auth-form-wrap"><div className="auth-mobile-brand"><Brand/></div><div className="auth-form-shell"><div key={mode} className="auth-form auth-form-transition">{(forgot || reset) && <Link href="/login" className="icon-button" aria-label="Back to login"><ArrowLeft/></Link>}<span className="eyebrow">WELCOME TO SYORA</span><h2>{register ? 'Make yourself at home.' : reset ? 'Set new password.' : forgot ? 'Find your way back.' : 'Good to have you here.'}</h2><p>{register ? 'A new space for you and your people.' : reset ? 'Choose a strong new password for your account.' : forgot ? 'Enter your email to receive a password reset link.' : 'Sign in to continue to your conversations.'}</p><form onSubmit={submit} noValidate aria-busy={busy}>{register && inputField('name', 'Display name', { autoComplete: 'name', autoFocus: true, maxLength: 80 })}{register && inputField('username', 'Username', { autoComplete: 'username', placeholder: '@username', maxLength: 33 })}{!reset && inputField('email', 'Email', { type: 'email', autoComplete: 'email', autoFocus: !register })}{!forgot && passwordField('password', reset ? 'New password' : 'Password')}{(register || reset) && passwordField('confirm', 'Confirm password')}{mode === 'login' && <Link className="forgot-link" href="/forgot-password">Forgot password?</Link>}{notice && <p className={`notice is-${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>{notice.text}</p>}{sessionError && <div className="auth-session-error" role="alert"><span>{sessionError}</span><button type="button" className="button secondary small" disabled={busy} onClick={() => void services.retryBootstrap()}>Retry</button></div>}<button className="button primary full" disabled={busy || !sessionReady}>{busy && <LoaderCircle className="spin" size={17}/>} {busy ? `${submitLabel}…` : submitLabel}</button></form>{!forgot && !reset && <p className="auth-switch">{register ? 'Already have an account?' : 'New to SYORA?'} <Link href={register ? '/login' : '/register'}>{register ? 'Sign in' : 'Create account'}</Link></p>}{demoEnabled && !forgot && !reset && <><div className="divider"><span>or take a look around</span></div><button className="button secondary full" onClick={demo} disabled={busy || !sessionReady}>Explore the demo <ArrowRight size={17}/></button></>}<p className="demo-disclosure">Protected by a short-lived session and a secure rotating sign-in cookie.</p></div></div></section></main>;
+  return <main className="auth-page"><section className="auth-story"><Brand/><div className="auth-copy"><span className="eyebrow">A LITTLE CLOSER. A LITTLE QUIETER.</span><h1>Your people.<br/>Your own <em>space.</em></h1><p>Private conversations.<br/>Real connection.</p><div className="auth-notes"><span><MessageCircle size={18}/> Conversations that matter</span><span><Users size={18}/> A circle you choose</span><span><Feather size={18}/> Room to be yourself</span></div></div><span className="auth-foot">Thoughtfully made for your inner circle.</span></section><section className="auth-form-wrap"><div className="auth-mobile-brand"><Brand/></div><div className="auth-form-shell"><div key={mode} className="auth-form auth-form-transition">{(forgot || reset) && <Link href="/login" className="icon-button" aria-label="Back to login"><ArrowLeft/></Link>}<span className="eyebrow">WELCOME TO SYORA</span><h2>{register ? 'Make yourself at home.' : reset ? 'Set new password.' : forgot ? 'Find your way back.' : 'Good to have you here.'}</h2><p>{register ? 'A new space for you and your people.' : reset ? 'Choose a strong new password for your account.' : forgot ? 'Enter your email to receive a password reset link.' : 'Sign in to continue to your conversations.'}</p>{mode === 'login' && idleExpired && <div className="notice is-error" role="status"><strong>Session expired</strong><span>{IDLE_MESSAGE}</span></div>}<form onSubmit={submit} noValidate aria-busy={busy}>{register && inputField('name', 'Display name', { autoComplete: 'name', autoFocus: true, maxLength: 80 })}{register && inputField('username', 'Username', { autoComplete: 'username', placeholder: '@username', maxLength: 33 })}{!reset && inputField('email', 'Email', { type: 'email', autoComplete: 'email', autoFocus: !register })}{!forgot && passwordField('password', reset ? 'New password' : 'Password')}{(register || reset) && passwordField('confirm', 'Confirm password')}{mode === 'login' && <Link className="forgot-link" href="/forgot-password">Forgot password?</Link>}{notice && <p className={`notice is-${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>{notice.text}</p>}{sessionError && !idleExpired && <div className="auth-session-error" role="alert"><span>{sessionError}</span><button type="button" className="button secondary small" disabled={busy} onClick={() => void services.retryBootstrap()}>Retry</button></div>}<button className="button primary full" disabled={busy}>{busy && <LoaderCircle className="spin" size={17}/>} {busy ? `${submitLabel}…` : submitLabel}</button></form>{!forgot && !reset && <p className="auth-switch">{register ? 'Already have an account?' : 'New to SYORA?'} <Link href={register ? '/login' : '/register'}>{register ? 'Sign in' : 'Create account'}</Link></p>}{demoEnabled && !forgot && !reset && <><div className="divider"><span>or take a look around</span></div><button className="button secondary full" onClick={demo} disabled={busy}>Explore the demo <ArrowRight size={17}/></button></>}<p className="demo-disclosure">Protected by a short-lived session and a secure rotating sign-in cookie.</p></div></div></section></main>;
 }

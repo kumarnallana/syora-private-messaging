@@ -19,11 +19,13 @@ class User(Base):
     username:Mapped[str]=mapped_column(String(32),unique=True,index=True)
     email:Mapped[str]=mapped_column(String(320),unique=True)
     password_hash:Mapped[str]=mapped_column(Text)
+    role:Mapped[str]=mapped_column(String(16),default="user")
     avatar_key:Mapped[str|None]=mapped_column(Text)
     about:Mapped[str]=mapped_column(String(160),default="")
     last_seen_at:Mapped[datetime|None]=mapped_column(DateTime(timezone=True))
     created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
     updated_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now,onupdate=now)
+    __table_args__=(CheckConstraint("role IN ('admin', 'user')",name="ck_users_role"),)
 
 class RefreshSession(Base):
     __tablename__="refresh_sessions"
@@ -32,6 +34,7 @@ class RefreshSession(Base):
     token_hash:Mapped[str]=mapped_column(String(64),unique=True)
     expires_at:Mapped[datetime]=mapped_column(DateTime(timezone=True))
     created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
+    last_activity_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
     revoked_at:Mapped[datetime|None]=mapped_column(DateTime(timezone=True))
     user_agent:Mapped[str|None]=mapped_column(String(300))
 

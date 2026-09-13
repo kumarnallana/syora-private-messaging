@@ -72,7 +72,8 @@
     @apply flex items-center gap-[6px] text-[13px] font-medium text-danger;
   }
   .field.has-error input {
-    @apply border-danger bg-[#2a1b20];
+    @apply border-danger;
+    background: var(--danger-soft);
   }
   .field.has-error input:focus-visible {
     outline-color: var(--color-danger);
@@ -101,10 +102,15 @@
   }
   .notice.is-error,
   .auth-session-error {
-    @apply mb-[17px] rounded-[8px] border border-danger/40 bg-[#2a1b20] p-[12px] text-[13px] leading-[1.5] text-danger;
+    @apply mb-[17px] rounded-[8px] border border-danger/40 p-[12px] text-[13px] leading-[1.5] text-danger;
+    background: var(--danger-soft);
   }
   .notice.is-success {
-    @apply mb-[17px] rounded-[8px] border border-[#6b9d87]/40 bg-[#1b2823] p-[12px] text-[13px];
+    @apply mb-[17px] rounded-[8px] border border-success/40 p-[12px] text-[13px];
+    background: var(--success-soft);
+  }
+  .auth-form > .notice {
+    @apply grid gap-[3px];
   }
   .auth-session-error {
     @apply flex items-center justify-between gap-[12px];
@@ -131,7 +137,7 @@
       @apply hidden;
     }
     .auth-form-wrap {
-      @apply min-h-[100dvh] flex-col gap-[42px] p-[28px_22px];
+      @apply min-h-[100dvh] flex-col gap-[30px] p-[24px_22px];
     }
     .auth-form-shell {
       @apply min-h-0 items-start;
