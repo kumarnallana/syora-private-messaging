@@ -2,6 +2,16 @@
   .chat-panel {
     @apply flex min-w-0 flex-1 flex-col bg-background;
   }
+  .chat-panel.has-chat-wallpaper {
+    background-color: var(--wallpaper-color);
+    background-image: var(--wallpaper-pattern);
+    background-size: 80px 80px;
+  }
+  .chat-panel.has-custom-wallpaper {
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+  }
   .chat-header {
     @apply flex h-[80px] shrink-0 items-center gap-[13px] border-b border-border bg-panel p-[15px_28px];
   }
@@ -18,15 +28,7 @@
 
   .timeline {
     @apply min-h-0 flex-1 overflow-auto p-[12px_clamp(18px,4vw,65px)_25px] overscroll-contain;
-    background-color: var(--wallpaper-color);
-    background-image: var(--wallpaper-pattern);
-    background-size: 80px 80px;
-    background-attachment: local;
-  }
-  .timeline.has-custom-wallpaper {
-    background-position: center;
-    background-size: cover;
-    background-repeat: no-repeat;
+    background: transparent;
   }
   .date-separator {
     @apply mx-auto mb-[24px] mt-[14px] w-max max-w-full rounded-[7px] bg-panel p-[6px_12px] text-[12px] text-muted;
