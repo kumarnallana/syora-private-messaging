@@ -199,6 +199,35 @@
   .danger-text > svg:first-child {
     @apply text-danger;
   }
+  .admin-notification-settings {
+    @apply mt-[16px] overflow-hidden rounded-[13px] border border-accent/25 bg-surface;
+  }
+  .admin-notification-settings > header {
+    @apply flex items-start gap-[10px] border-b border-border p-[15px];
+  }
+  .admin-notification-settings > header > svg {
+    @apply mt-[1px] size-[19px] shrink-0 text-accent;
+  }
+  .admin-notification-settings > header > span,
+  .admin-push-control > span {
+    @apply grid gap-[3px];
+  }
+  .admin-notification-settings small,
+  .admin-push-control small {
+    @apply text-[12px] leading-[1.45] text-muted;
+  }
+  .admin-notification-settings > .setting-row {
+    @apply rounded-none border-x-0 border-t-0;
+  }
+  .admin-push-control {
+    @apply flex items-center justify-between gap-[14px] p-[15px];
+  }
+  .admin-push-control .button {
+    @apply shrink-0;
+  }
+  .admin-push-control .button > svg {
+    @apply size-[15px];
+  }
   .settings-toast {
     @apply fixed left-1/2 z-[240] flex min-w-[220px] max-w-[calc(100vw-28px)] -translate-x-1/2 items-center gap-[10px] rounded-[11px] border px-[15px] py-[12px] text-[13px] font-medium shadow-[0_12px_38px_#0008];
     top: max(18px, env(safe-area-inset-top));

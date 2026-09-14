@@ -11,6 +11,7 @@ import { useApp } from "@/stores/use-app";
 import { cn } from "@/utils/cn";
 import {
   ArrowLeft,
+  Bell,
   CircleDot,
   LogOut,
   MessageCircle,
@@ -21,6 +22,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { AdminNotificationEvent } from "@/types";
 const nav = [
   { href: "/chats", label: "Chats", icon: MessageCircle },
   { href: "/status", label: "Status", icon: CircleDot },
@@ -32,6 +34,25 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [logout, setLogout] = useState(false);
+  const [adminNotification, setAdminNotification] = useState<AdminNotificationEvent>();
+  useEffect(() => {
+    window.dispatchEvent(new Event("syora:navigation"));
+  }, [pathname]);
+  useEffect(() => {
+    const receive = (event: Event) => {
+      const notification = (event as CustomEvent<AdminNotificationEvent>).detail;
+      const activeConversation = pathname === "/chats" ? new URLSearchParams(window.location.search).get("conversation") : null;
+      if (document.visibilityState === "visible" && notification.conversationId === activeConversation) return;
+      setAdminNotification(notification);
+    };
+    window.addEventListener("syora:admin-notification", receive);
+    return () => window.removeEventListener("syora:admin-notification", receive);
+  }, [pathname]);
+  useEffect(() => {
+    if (!adminNotification) return;
+    const timer = window.setTimeout(() => setAdminNotification(undefined), 5000);
+    return () => window.clearTimeout(timer);
+  }, [adminNotification]);
   useEffect(() => {
     const viewport = window.visualViewport;
     const update = () => {
@@ -110,6 +131,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <div className="app-content">{children}</div>
       {connection === "connecting" && <div className="connection-banner" role="status">Connecting…</div>}
       {connection === "offline" && <div className="connection-banner" role="status">Offline — new activity will reconnect automatically.</div>}
+      {adminNotification && <button className="admin-notification-toast" type="button" onClick={() => { router.push(adminNotification.url); setAdminNotification(undefined); }}><span className="admin-notification-icon"><Bell size={18}/></span><span><strong>{adminNotification.title}</strong><small>{adminNotification.body}</small></span></button>}
       {logout && (
         <Modal
           title="Leave your space?"

@@ -1,4 +1,30 @@
 @layer components {
+  .admin-notification-toast {
+    @apply fixed right-[18px] top-[18px] z-[260] flex max-w-[min(390px,calc(100vw-28px))] items-start gap-[11px] rounded-[13px] border border-accent/35 bg-panel p-[13px_15px] text-left text-text-primary shadow-[0_15px_45px_#0009];
+    animation: admin-notification-in 180ms ease-out both;
+  }
+  .admin-notification-toast > span:last-child {
+    @apply grid gap-[3px];
+  }
+  .admin-notification-toast strong {
+    @apply text-[13px] font-semibold;
+  }
+  .admin-notification-toast small {
+    @apply line-clamp-2 text-[12px] leading-[1.45] text-muted;
+  }
+  .admin-notification-icon {
+    @apply flex size-[31px] shrink-0 items-center justify-center rounded-full text-accent;
+    background: var(--accent-soft);
+  }
+  @keyframes admin-notification-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @media (max-width: 767px) {
+    .admin-notification-toast {
+      @apply left-[14px] right-[14px] top-[calc(env(safe-area-inset-top)+12px)] max-w-none;
+    }
+  }
   .empty-state {
     @apply flex flex-col items-center gap-[14px] p-[45px_20px] text-center;
   }

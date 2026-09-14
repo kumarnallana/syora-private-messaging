@@ -1,5 +1,5 @@
 import { createSeed } from '@/data/seed';
-import type { AdminMetrics, Attachment, AppState, Preferences, User } from '@/types';
+import type { AdminMetrics, AdminNotificationSettings, Attachment, AppState, Preferences, User } from '@/types';
 import type { Services } from './contracts';
 import { normalizeUsername } from '@/utils/presentation';
 const pause = () => new Promise<void>(resolve=>setTimeout(resolve,350));
@@ -57,6 +57,10 @@ await pause();return this.signIn('demo');}
  async searchUsers(query:string,signal?:AbortSignal){if(signal?.aborted)throw new DOMException('Aborted','AbortError');const value=normalizeUsername(query);return this.state.users.filter(user=>user.id!==this.state.currentUserId&&(normalizeUsername(user.username).startsWith(value)||user.name.toLowerCase().includes(value))).slice(0,20)}
  async getAccessUrl(_attachmentId:string){return ""}
  async getAdminMetrics():Promise<AdminMetrics>{const me=this.user(this.identity());if(me.role!=="admin")throw new Error("Administrator access is required.");return {signedInUsers:1};}
+ async getAdminNotificationSettings():Promise<AdminNotificationSettings>{const me=this.user(this.identity());if(me.role!=="admin")throw new Error("Administrator access is required.");return {loginAlerts:true,messageAlerts:true,messagePreview:true,pushEnabled:false,pushSupported:false};}
+ async updateAdminNotificationSettings(values:Partial<Pick<AdminNotificationSettings,'loginAlerts'|'messageAlerts'|'messagePreview'>>){return {...await this.getAdminNotificationSettings(),...values};}
+ async enableAdminPush():Promise<AdminNotificationSettings>{throw new Error('Push delivery is unavailable in preview mode.');}
+ async disableAdminPush(){return this.getAdminNotificationSettings();}
  async updatePreferences(values:Partial<Preferences>){const me=this.identity();const preferences={...this.state.preferences,...values};this.settings.set(me,preferences);this.update({preferences});}
 }
 export const services:Services=new MockServices();

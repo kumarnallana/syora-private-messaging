@@ -132,6 +132,8 @@ async def send_message(conversation_id: uuid.UUID, body: MessageIn, user: User =
     if conversation:
         conversation.last_message_at = item.created_at
     await db.commit()
+    from app.services.admin_notifications import schedule_admin_message
+    schedule_admin_message(item.id)
     data = await message_out(db, item, user.id)
     await emit_conversation(conversation_id, "message:new", data)
     for other_id in other_ids:

@@ -7,7 +7,7 @@ import { useApp } from '@/stores/use-app';
 import { Avatar, Modal } from '@/components/shared/ui';
 import { MobileScreenHeader, PageHeader } from '@/components/shell';
 import { usernameLabel } from '@/utils/presentation';
-import type { AdminMetrics, Preferences } from '@/types';
+import type { AdminMetrics, AdminNotificationSettings, Preferences } from '@/types';
 import { clearChatWallpaper, getChatWallpaper, readChatWallpaper, saveChatWallpaper } from '@/utils/chat-wallpaper';
 
 type Subsection = 'privacy' | 'notifications' | 'appearance' | 'blocked';
@@ -25,6 +25,8 @@ export function Settings() {
   const [adminMetrics, setAdminMetrics] = useState<AdminMetrics>();
   const [adminMetricsLoading, setAdminMetricsLoading] = useState(false);
   const [adminMetricsError, setAdminMetricsError] = useState('');
+  const [adminNotifications, setAdminNotifications] = useState<AdminNotificationSettings>();
+  const [adminNotificationPending, setAdminNotificationPending] = useState(false);
 
   const loadAdminMetrics = useCallback(async () => {
     if (me?.role !== 'admin') return;
@@ -41,6 +43,11 @@ export function Settings() {
     const timer = window.setInterval(() => void loadAdminMetrics(), 30_000);
     return () => window.clearInterval(timer);
   }, [loadAdminMetrics, me?.role]);
+
+  useEffect(() => {
+    if (me?.role !== 'admin') return;
+    void services.getAdminNotificationSettings().then(setAdminNotifications).catch(cause => setNotice({ kind: 'error', text: cause instanceof Error ? cause.message : 'Admin notification settings could not be loaded.' }));
+  }, [me?.role, services]);
 
   useEffect(() => {
     if (!notice) return;
@@ -72,8 +79,26 @@ export function Settings() {
     finally { setBlockingId(undefined); }
   }
 
+  async function updateAdminNotifications(values: Partial<Pick<AdminNotificationSettings, 'loginAlerts' | 'messageAlerts' | 'messagePreview'>>) {
+    if (adminNotificationPending) return;
+    setAdminNotificationPending(true); setNotice(undefined);
+    try { setAdminNotifications(await services.updateAdminNotificationSettings(values)); setNotice({ kind: 'success', text: 'Admin notifications updated.' }); }
+    catch (cause) { setNotice({ kind: 'error', text: cause instanceof Error ? cause.message : 'Admin notifications could not be updated.' }); }
+    finally { setAdminNotificationPending(false); }
+  }
+
+  async function toggleAdminPush() {
+    if (adminNotificationPending || !adminNotifications) return;
+    setAdminNotificationPending(true); setNotice(undefined);
+    try {
+      setAdminNotifications(await (adminNotifications.pushEnabled ? services.disableAdminPush() : services.enableAdminPush()));
+      setNotice({ kind: 'success', text: adminNotifications.pushEnabled ? 'Push notifications disabled on this device.' : 'Push notifications enabled on this device.' });
+    } catch (cause) { setNotice({ kind: 'error', text: cause instanceof Error ? cause.message : 'Push notifications could not be changed.' }); }
+    finally { setAdminNotificationPending(false); }
+  }
+
   const privacy = <><Choice disabled={Boolean(pending)} label="Last seen" value={preferences.lastSeen} options={['Everyone','Friends','Nobody']} onChange={value => void update('lastSeen', value)}/><Choice disabled={Boolean(pending)} label="Profile photo" value={preferences.photo} options={['Everyone','Friends','Nobody']} onChange={value => void update('photo', value)}/><Choice disabled={Boolean(pending)} label="Status visibility" value={preferences.status} options={['Friends','Nobody']} onChange={value => void update('status', value)}/><Toggle disabled={Boolean(pending)} label="Read receipts" description="Let friends know when you have read a message." value={preferences.receipts} onChange={value => void update('receipts', value)}/></>;
-  const notifications = <><Toggle disabled={Boolean(pending)} label="Message notifications" description="Show an alert when a message arrives while SYORA is in the background." value={preferences.notifications} onChange={value => void update('notifications', value)}/><Toggle disabled={Boolean(pending)} label="Conversation sounds" description="Play a quiet sound for incoming messages." value={preferences.sound} onChange={value => void update('sound', value)}/></>;
+  const notifications = <><Toggle disabled={Boolean(pending)} label="Message notifications" description="Show an alert when a message arrives while SYORA is in the background." value={preferences.notifications} onChange={value => void update('notifications', value)}/><Toggle disabled={Boolean(pending)} label="Conversation sounds" description="Play a quiet sound for incoming messages." value={preferences.sound} onChange={value => void update('sound', value)}/>{me?.role === 'admin' && <section className="admin-notification-settings" aria-label="Admin notifications"><header><Bell/><span><strong>Admin notifications</strong><small>Alerts reserved for the authenticated SYORA administrator.</small></span></header>{adminNotifications ? <><Toggle disabled={adminNotificationPending} label="User login alerts" description="Notify me after a member creates a new authenticated session." value={adminNotifications.loginAlerts} onChange={value => void updateAdminNotifications({ loginAlerts: value })}/><Toggle disabled={adminNotificationPending} label="Messages to me" description="Notify me only when a direct message is addressed to my admin account." value={adminNotifications.messageAlerts} onChange={value => void updateAdminNotifications({ messageAlerts: value })}/><Toggle disabled={adminNotificationPending} label="Message preview" description="Include message text in notifications that may appear on a lock screen." value={adminNotifications.messagePreview} onChange={value => void updateAdminNotifications({ messagePreview: value })}/><div className="admin-push-control"><span><strong>Push notifications</strong><small>{adminNotifications.pushSupported ? 'Receive alerts on this device while SYORA is in the background.' : 'Server push keys must be configured before this device can subscribe.'}</small></span><button type="button" className={`button small ${adminNotifications.pushEnabled ? 'secondary' : ''}`} disabled={adminNotificationPending || !adminNotifications.pushSupported} onClick={() => void toggleAdminPush()}>{adminNotificationPending && <LoaderCircle className="spin"/>}{adminNotifications.pushEnabled ? 'Disable' : 'Enable notifications'}</button></div></> : <p className="muted-copy">Loading admin notification settings…</p>}</section>}</>;
   const appearance = <><div className="theme-options" role="radiogroup" aria-label="Appearance">{([['dark', Moon, 'Dark'], ['light', Sun, 'Light'], ['system', Monitor, 'System']] as const).map(([value, Icon, label]) => <button key={value} disabled={Boolean(pending)} role="radio" aria-checked={preferences.appearance === value} className={preferences.appearance === value ? 'is-active' : ''} onClick={() => void update('appearance', value)}><Icon size={18}/> {label}</button>)}</div><ChatWallpaperSetting/><Toggle disabled={Boolean(pending)} label="Compact conversations" description="Reduce spacing in conversation lists and messages." value={preferences.compact} onChange={value => void update('compact', value)}/></>;
   const blocked = preferences.blocked.length ? preferences.blocked.map(id => { const user = users.find(item => item.id === id); return user && <div className="blocked-row" key={id}><Avatar user={user} size="small"/><span>{user.name}</span><button className="button secondary small" disabled={Boolean(blockingId)} onClick={() => void unblock(id, user.name)}>{blockingId === id && <LoaderCircle className="spin" size={15}/>} Unblock</button></div>; }) : <p className="muted-copy">You have not blocked anyone.</p>;
   const subsectionContent = section === 'privacy' ? privacy : section === 'notifications' ? notifications : section === 'appearance' ? appearance : blocked;

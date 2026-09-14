@@ -1,6 +1,8 @@
 import type {
   AppState,
   AdminMetrics,
+  AdminNotificationEvent,
+  AdminNotificationSettings,
   Attachment,
   Conversation,
   Message,
@@ -71,10 +73,13 @@ export class ApiServices implements Services {
   private endingSession = false;
   private sessionChannel?: BroadcastChannel;
   private activeRequests = new Set<AbortController>();
+  private adminContextCleanup?: () => void;
+  private adminNotificationIds = new Set<string>();
   private announceIncoming(message: Message) {
     if (typeof window === "undefined") return;
     const sender = this.state.users.find((user) => user.id === message.senderId);
-    if (this.state.preferences.notifications && document.visibilityState !== "visible" && "Notification" in window && Notification.permission === "granted") {
+    const me = this.state.users.find(user => user.id === this.state.currentUserId);
+    if (me?.role !== "admin" && this.state.preferences.notifications && document.visibilityState !== "visible" && "Notification" in window && Notification.permission === "granted") {
       new Notification(sender?.name || "New SYORA message", { body: message.text || message.attachment?.name || "New attachment" });
     }
     if (this.state.preferences.sound) {
@@ -209,6 +214,8 @@ export class ApiServices implements Services {
     const socket = this.socket;
     this.socket = undefined;
     socket?.disconnect();
+    this.adminContextCleanup?.();
+    this.adminContextCleanup = undefined;
     this.revokeBlobUrls();
     this.token = null;
     this.loadedMessages.clear();
@@ -371,11 +378,26 @@ export class ApiServices implements Services {
       transports: ["websocket", "polling"],
       withCredentials: true,
     }));
+    this.adminContextCleanup?.();
+    const publishAdminContext = () => {
+      if (this.state.users.find(user => user.id === this.state.currentUserId)?.role !== "admin") return;
+      const params = new URLSearchParams(window.location.search);
+      socket.emit("admin:context", { visible: document.visibilityState === "visible", conversationId: window.location.pathname === "/chats" ? params.get("conversation") : null });
+    };
+    document.addEventListener("visibilitychange", publishAdminContext);
+    window.addEventListener("popstate", publishAdminContext);
+    window.addEventListener("syora:navigation", publishAdminContext);
+    this.adminContextCleanup = () => {
+      document.removeEventListener("visibilitychange", publishAdminContext);
+      window.removeEventListener("popstate", publishAdminContext);
+      window.removeEventListener("syora:navigation", publishAdminContext);
+    };
     socket.on("connect", () => {
       this.update({ connection: "online" });
       this.state.conversations.forEach((c) =>
         socket.emit("conversation:join", { conversationId: c.id }),
       );
+      publishAdminContext();
       this.state.messages.forEach((m) => {
         if (
           m.senderId !== this.state.currentUserId &&
@@ -467,6 +489,12 @@ export class ApiServices implements Services {
     socket.on("conversation:update", () => this.scheduleConversationReload());
     socket.on("status:new", () => this.scheduleStatusReload());
     socket.on("status:deleted", () => this.scheduleStatusReload());
+    socket.on("admin:notification", (notification: AdminNotificationEvent) => {
+      if (this.adminNotificationIds.has(notification.id)) return;
+      this.adminNotificationIds.add(notification.id);
+      if (this.adminNotificationIds.size > 100) this.adminNotificationIds.delete(this.adminNotificationIds.values().next().value!);
+      window.dispatchEvent(new CustomEvent("syora:admin-notification", { detail: notification }));
+    });
     socket.on("session:expired", () => this.endLocalSession(IDLE_MESSAGE));
     socket.on("disconnect", () => this.update({ connection: "offline" }));
   }
@@ -923,5 +951,33 @@ export class ApiServices implements Services {
   async getAdminMetrics(): Promise<AdminMetrics> {
     return this.fetch<AdminMetrics>("/api/admin/metrics");
   }
+  async getAdminNotificationSettings(): Promise<AdminNotificationSettings> {
+    return this.fetch<AdminNotificationSettings>("/api/admin/notifications");
+  }
+  async updateAdminNotificationSettings(values: Partial<Pick<AdminNotificationSettings, "loginAlerts" | "messageAlerts" | "messagePreview">>): Promise<AdminNotificationSettings> {
+    return this.fetch<AdminNotificationSettings>("/api/admin/notifications", { method: "PATCH", body: JSON.stringify({ login_alerts: values.loginAlerts, message_alerts: values.messageAlerts, message_preview: values.messagePreview }) });
+  }
+  async enableAdminPush(): Promise<AdminNotificationSettings> {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) throw new Error("Push notifications are not supported in this browser.");
+    const settings = await this.getAdminNotificationSettings();
+    if (!settings.pushSupported || !settings.publicKey) throw new Error("Push delivery is not configured on the SYORA server yet.");
+    const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+    if (permission !== "granted") throw new Error("Notifications are blocked in your browser settings.");
+    const registration = await navigator.serviceWorker.register("/sw.js");
+    const existing = await registration.pushManager.getSubscription();
+    const subscription = existing || await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(settings.publicKey) });
+    return this.fetch<AdminNotificationSettings>("/api/admin/push-subscriptions", { method: "POST", body: JSON.stringify(subscription.toJSON()) });
+  }
+  async disableAdminPush(): Promise<AdminNotificationSettings> {
+    await this.fetch<void>("/api/admin/push-subscriptions", { method: "DELETE" });
+    const registration = "serviceWorker" in navigator ? await navigator.serviceWorker.getRegistration("/sw.js") : undefined;
+    await (await registration?.pushManager.getSubscription())?.unsubscribe();
+    return this.getAdminNotificationSettings();
+  }
+}
+function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {
+  const padding = "=".repeat((4 - value.length % 4) % 4);
+  const raw = atob((value + padding).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(raw, character => character.charCodeAt(0));
 }
 export const services: Services = new ApiServices();

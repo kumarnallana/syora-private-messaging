@@ -30,5 +30,11 @@ services:
         sync: false
       - key: R2_BUCKET
         sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
       - key: ENVIRONMENT
         value: production

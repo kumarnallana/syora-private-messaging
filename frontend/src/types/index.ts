@@ -8,3 +8,5 @@ export interface StatusPost { id: string; userId: string; text: string; color: s
 export interface Preferences { lastSeen: string; photo: string; status: string; receipts: boolean; notifications: boolean; sound: boolean; appearance: 'dark' | 'light' | 'system'; compact: boolean; blocked: string[] }
 export interface AppState { sessionReady: boolean; sessionError?: string; connection: 'connecting' | 'online' | 'offline'; currentUserId: string | null; users: User[]; conversations: Conversation[]; messages: Message[]; friendships: Friendship[]; statuses: StatusPost[]; preferences: Preferences }
 export interface AdminMetrics { signedInUsers: number }
+export interface AdminNotificationSettings { loginAlerts: boolean; messageAlerts: boolean; messagePreview: boolean; pushEnabled: boolean; pushSupported: boolean; publicKey?: string }
+export interface AdminNotificationEvent { id: string; type: 'ADMIN_USER_LOGIN' | 'ADMIN_DIRECT_MESSAGE'; title: string; body: string; url: string; timestamp: string; conversationId?: string; senderName?: string }

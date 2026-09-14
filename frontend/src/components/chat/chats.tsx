@@ -42,6 +42,7 @@ export function Chats() {
   return latest(b.id).localeCompare(latest(a.id));
  });
  useEffect(() => { setSelected(params.get('conversation')); }, [params]);
+ useEffect(() => { window.dispatchEvent(new Event('syora:navigation')); }, [selected]);
  useEffect(() => {
   const syncWallpaper = () => setWallpaper(getChatWallpaper());
   syncWallpaper();

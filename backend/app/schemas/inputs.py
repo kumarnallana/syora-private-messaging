@@ -48,6 +48,16 @@ class PreferencesIn(BaseModel):
     last_seen_visibility:Literal["Everyone","Friends","Nobody"]|None=None
     profile_photo_visibility:Literal["Everyone","Friends","Nobody"]|None=None
     status_visibility:Literal["Friends","Nobody"]|None=None
+class AdminNotificationPreferencesIn(BaseModel):
+    login_alerts:bool|None=None
+    message_alerts:bool|None=None
+    message_preview:bool|None=None
+class PushKeysIn(BaseModel):
+    p256dh:str=Field(min_length=1,max_length=1000)
+    auth:str=Field(min_length=1,max_length=1000)
+class PushSubscriptionIn(BaseModel):
+    endpoint:str=Field(min_length=1,max_length=4000)
+    keys:PushKeysIn
 class FriendRequestIn(BaseModel): user_id:uuid.UUID
 class FriendResponseIn(BaseModel): action:Literal["accept","decline"]
 class DirectConversationIn(BaseModel): user_id:uuid.UUID

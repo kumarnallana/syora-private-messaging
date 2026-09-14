@@ -1,9 +1,9 @@
 from datetime import timedelta
 from html import escape
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
 from jwt import InvalidTokenError
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import api_error, current_auth, current_user
@@ -13,7 +13,7 @@ import resend
 import asyncio
 from app.db.session import get_db
 from app.middleware.rate_limit import rate_limit
-from app.models import RefreshSession, User, UserPreference, now
+from app.models import PushSubscription, RefreshSession, User, UserPreference, now
 from app.schemas.inputs import ForgotPasswordIn, LoginIn, RegisterIn, ResetPasswordIn
 from app.services.serializers import user_out
 from app.services.sessions import AuthenticatedSession, SessionValidationError, idle_expires_at, validate_session
@@ -105,11 +105,15 @@ async def reset_password(body: ResetPasswordIn, request: Request, db: AsyncSessi
         raise api_error(400, "INVALID_TOKEN", "This password reset link is invalid or has expired.")
 
 @router.post("/login",dependencies=[Depends(rate_limit("login",20,900))])
-async def login(body:LoginIn,response:Response,request:Request,db:AsyncSession=Depends(get_db)):
+async def login(body:LoginIn,response:Response,request:Request,background_tasks:BackgroundTasks,db:AsyncSession=Depends(get_db)):
     require_client_origin(request)
     user=await db.scalar(select(User).where(User.email==str(body.email).strip().lower()))
     if not user or not verify_password(user.password_hash,body.password):raise api_error(401,"LOGIN_INVALID","Email or password is incorrect.")
-    auth=await issue_session(db,user,response,request);return await payload(db,auth)
+    auth=await issue_session(db,user,response,request)
+    if user.role!="admin":
+        from app.services.admin_notifications import notify_admins_of_login
+        background_tasks.add_task(notify_admins_of_login,user.id)
+    return await payload(db,auth)
 @router.post("/refresh",dependencies=[Depends(rate_limit("refresh",120,300))])
 async def refresh(response:Response,request:Request,db:AsyncSession=Depends(get_db)):
     require_client_origin(request)
@@ -121,6 +125,8 @@ async def refresh(response:Response,request:Request,db:AsyncSession=Depends(get_
     except SessionValidationError as error:raise api_error(401,error.code,error.message)
     session.revoked_at=now()
     replacement=await issue_session(db,auth.user,response,request,last_activity_at=session.last_activity_at)
+    await db.execute(update(PushSubscription).where(PushSubscription.session_id==session.id).values(session_id=replacement.session.id))
+    await db.commit()
     return await payload(db,replacement)
 @router.post("/logout",status_code=204)
 async def logout(response:Response,request:Request,db:AsyncSession=Depends(get_db)):
@@ -128,7 +134,10 @@ async def logout(response:Response,request:Request,db:AsyncSession=Depends(get_d
     raw=request.cookies.get(COOKIE)
     if raw:
         session=await db.scalar(select(RefreshSession).where(RefreshSession.token_hash==hash_refresh_token(raw),RefreshSession.revoked_at.is_(None)))
-        if session:session.revoked_at=now();await db.commit()
+        if session:
+            session.revoked_at=now()
+            await db.execute(delete(PushSubscription).where(PushSubscription.session_id==session.id))
+            await db.commit()
     response.delete_cookie(COOKIE,path="/api/auth",secure=settings.production,samesite="none" if settings.production else "lax")
 @router.get("/me")
 async def me(user:User=Depends(current_user),db:AsyncSession=Depends(get_db)):return await user_out(db,user,user.id)

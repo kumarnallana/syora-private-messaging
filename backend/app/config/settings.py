@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     admin_bootstrap_password: str = Field(default="", alias="SYORA_ADMIN_BOOTSTRAP_PASSWORD")
     admin_display_name: str = Field(default="SYORA Admin", alias="SYORA_ADMIN_DISPLAY_NAME")
     admin_username: str = Field(default="syora_admin", alias="SYORA_ADMIN_USERNAME")
+    vapid_public_key: str = Field(default="", alias="VAPID_PUBLIC_KEY")
+    vapid_private_key: str = Field(default="", alias="VAPID_PRIVATE_KEY")
+    vapid_subject: str = Field(default="mailto:admin@example.com", alias="VAPID_SUBJECT")
 
     @field_validator("database_url",mode="before")
     @classmethod

@@ -17,11 +17,16 @@ online_users:set[uuid.UUID]=set()
 user_sids:dict[uuid.UUID,set[str]]=defaultdict(set)
 sid_users:dict[str,uuid.UUID]={}
 sid_sessions:dict[str,uuid.UUID]={}
+admin_contexts:dict[str,tuple[bool,uuid.UUID|None]]={}
 session_watchdogs:dict[str,asyncio.Task]={}
 async def conversation_room(conversation_id:uuid.UUID)->str:return f"conversation:{conversation_id}"
 async def emit_conversation(conversation_id:uuid.UUID,event:str,data:dict,skip_sid:str|None=None):
     await sio.emit(event,data,room=await conversation_room(conversation_id),skip_sid=skip_sid)
 async def emit_user(user_id:uuid.UUID,event:str,data:dict): await sio.emit(event,data,room=f"user:{user_id}")
+def session_is_visible(session_id:uuid.UUID)->bool:
+    return any(sid_sessions.get(sid)==session_id and context[0] for sid,context in admin_contexts.items())
+def session_is_viewing(session_id:uuid.UUID,conversation_id:uuid.UUID|None)->bool:
+    return conversation_id is not None and any(sid_sessions.get(sid)==session_id and visible and active==conversation_id for sid,(visible,active) in admin_contexts.items())
 async def friend_ids(db,user_id:uuid.UUID)->list[uuid.UUID]:
     rows=(await db.scalars(select(Friendship).where(Friendship.status==FriendshipStatus.ACCEPTED,((Friendship.requester_id==user_id)|(Friendship.addressee_id==user_id))))).all()
     return [r.addressee_id if r.requester_id==user_id else r.requester_id for r in rows]
@@ -70,6 +75,7 @@ async def connect(sid,environ,auth):
 async def disconnect(sid):
     user_id=sid_users.pop(sid,None)
     sid_sessions.pop(sid,None)
+    admin_contexts.pop(sid,None)
     watchdog=session_watchdogs.pop(sid,None)
     if watchdog and watchdog is not asyncio.current_task():watchdog.cancel()
     if not user_id:return
@@ -133,3 +139,17 @@ async def delivered(sid,data):
 async def join_conversation(sid,data):
     user_id,cid=await _authorized(sid,str(data.get("conversationId","")))
     if user_id:await sio.enter_room(sid,await conversation_room(cid))
+
+@sio.on("admin:context")
+async def admin_context(sid,data):
+    user_id=await _authenticated(sid)
+    if not user_id:return
+    if not isinstance(data,dict):data={}
+    async with SessionLocal() as db:user=await db.get(User,user_id)
+    if not user or user.role!="admin":return
+    conversation_id=None
+    try:
+        if data.get("conversationId"):conversation_id=uuid.UUID(str(data["conversationId"]))
+    except (ValueError,TypeError):
+        conversation_id=None
+    admin_contexts[sid]=(bool(data.get("visible")),conversation_id)
