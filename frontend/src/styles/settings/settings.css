@@ -17,6 +17,9 @@
   .settings-section > header svg {
     @apply size-[19px];
   }
+  .settings-section > div {
+    @apply grid gap-[10px];
+  }
   .setting-row {
     @apply mb-[10px] flex min-h-[74px] items-center justify-between gap-[20px] rounded-[10px] border border-border/70 px-[14px] py-[13px];
     background: color-mix(in srgb, var(--surface) 62%, transparent);
@@ -210,12 +213,14 @@
     .settings-desktop-content {
       @apply hidden;
     }
-    .settings-mobile-main:not([hidden]),
-    .settings-mobile-subscreen {
+    .settings-mobile-main:not([hidden]) {
       @apply block;
     }
     .settings-mobile-subscreen {
-      @apply pb-[20px];
+      @apply grid gap-[10px] pb-[20px];
+    }
+    .settings-mobile-subscreen .setting-row {
+      @apply mb-0;
     }
     .admin-session-count {
       @apply mb-[14px] mt-0;
