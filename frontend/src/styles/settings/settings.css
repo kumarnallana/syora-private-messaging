@@ -199,14 +199,36 @@
   .danger-text > svg:first-child {
     @apply text-danger;
   }
-  .settings-progress {
-    @apply mb-[10px] flex items-center gap-[8px] text-[13px] text-muted;
+  .settings-toast {
+    @apply fixed left-1/2 z-[240] flex min-w-[220px] max-w-[calc(100vw-28px)] -translate-x-1/2 items-center gap-[10px] rounded-[11px] border px-[15px] py-[12px] text-[13px] font-medium shadow-[0_12px_38px_#0008];
+    top: max(18px, env(safe-area-inset-top));
+    background: var(--panel);
+    animation: settings-toast-in 180ms ease-out both;
   }
-  .settings-notice {
-    @apply mb-[14px];
+  .settings-toast > svg {
+    @apply size-[19px] shrink-0;
+  }
+  .settings-toast.is-success {
+    @apply border-success/50 text-success;
+    background: color-mix(in srgb, var(--success-soft) 90%, var(--panel));
+  }
+  .settings-toast.is-error {
+    @apply border-danger/50 text-danger;
+    background: color-mix(in srgb, var(--danger-soft) 90%, var(--panel));
+  }
+  .settings-toast.is-loading {
+    @apply border-accent/40 text-accent;
+  }
+
+  @keyframes settings-toast-in {
+    from { opacity: 0; transform: translate(-50%, -8px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
   }
 
   @media (max-width: 767px) {
+    .settings-toast {
+      top: calc(env(safe-area-inset-top) + 82px);
+    }
     .settings-page {
       @apply max-w-none;
     }

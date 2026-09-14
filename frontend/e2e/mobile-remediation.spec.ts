@@ -154,6 +154,11 @@ for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }
       const boxes = await privacyRows.evaluateAll(rows => rows.map(row => row.getBoundingClientRect()).map(box => ({ top: box.top, bottom: box.bottom })));
       expect(boxes[1].top - boxes[0].bottom).toBeGreaterThanOrEqual(8);
       expect(boxes[2].top - boxes[1].bottom).toBeGreaterThanOrEqual(8);
+      const privacyTop = boxes[0].top;
+      await privacyRows.first().getByRole('radio', { name: 'Friends' }).click();
+      await expect(page.locator('.settings-toast.is-success')).toContainText('Settings updated.');
+      const privacyTopWithToast = (await privacyRows.first().boundingBox())!.y;
+      expect(Math.abs(privacyTopWithToast - privacyTop)).toBeLessThan(1);
       await page.goBack();
     }
     await page.getByRole('button', { name: 'Appearance' }).click();
@@ -171,7 +176,7 @@ for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }
       await wallpaper.locator('input[type="file"]').setInputFiles({ name: 'wallpaper.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="#382f4d"/></svg>') });
       await expect(wallpaper.locator('.chat-wallpaper-preview')).toHaveClass(/has-custom-wallpaper/);
       await page.goto(`/chats?conversation=${ids.conversation}`);
-      await expect(page.locator('.timeline')).toHaveClass(/has-custom-wallpaper/);
+      await expect(page.locator('.chat-panel.has-chat-wallpaper')).toHaveClass(/has-custom-wallpaper/);
     }
 
     await page.goto('/profile');
