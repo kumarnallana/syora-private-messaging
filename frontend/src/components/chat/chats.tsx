@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Ban, BellOff, LoaderCircle, MessageCircle, MoreHorizontal, Pin, Search, SquarePen, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, Ban, BellOff, LoaderCircle, MessageCircle, MoreHorizontal, Pin, Search, SquarePen, X } from 'lucide-react';
 import { useApp } from '@/stores/use-app';
 import { Avatar, Brand, Empty, IconButton, Modal, time } from '@/components/shared/ui';
 import { MessageBubble } from './message-bubble';
@@ -28,6 +28,7 @@ export function Chats() {
  const [actionError,setActionError]=useState('');
  const [reply,setReply]=useState<import('@/types').Message>();
  const [wallpaper,setWallpaper]=useState('');
+ const [showLatest,setShowLatest]=useState(false);
  const timeline = useRef<HTMLDivElement>(null);
  const heading = useRef<HTMLHeadingElement>(null);
  const rowRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -56,12 +57,16 @@ export function Chats() {
   void services.loadMessages(active.id).then(more=>{if(current){setHasOlder(more);setMessageState('loaded')}}).catch(error=>{if(current){setMessageState('error');setActionError(error instanceof Error?error.message:'Messages could not be loaded.')}});
   setReply(undefined);setMessageQuery('');setSearchOpen(false);
   nearBottom.current = true;
+  setShowLatest(false);
   heading.current?.focus({ preventScroll: true });
   return()=>{current=false};
  }, [active?.id, me?.id, services]);
  useEffect(() => {
   const last = activeMessages.at(-1);
-  if (nearBottom.current || last?.senderId === me?.id) timeline.current?.scrollTo({ top: timeline.current.scrollHeight });
+  if (nearBottom.current || last?.senderId === me?.id) {
+   timeline.current?.scrollTo({ top: timeline.current.scrollHeight });
+   setShowLatest(false);
+  } else if (last) setShowLatest(true);
  }, [active?.id, activeMessages.length, me?.id]);
  useEffect(() => {
   if (!active || messageState !== 'loaded' || active.unread <= 0) return;
@@ -129,7 +134,7 @@ export function Chats() {
     <Avatar user={friend} size="small"/><div className="chat-person"><h2 ref={heading} tabIndex={-1}>{friend.name}</h2><p>{active.typing ? 'typing…' : presence}</p></div><div className="chat-header-actions"><IconButton label="Search messages" onClick={()=>setSearchOpen(v=>!v)}><Search size={19}/></IconButton><IconButton label="Conversation options" onClick={()=>setInfoOpen(true)}><MoreHorizontal size={21}/></IconButton></div>
    </header>
    {searchOpen&&<div className="message-search"><label className="search-field"><Search size={17}/><input autoFocus aria-label="Search messages" placeholder="Search loaded messages" value={messageQuery} autoComplete="off" spellCheck={false} onChange={e=>setMessageQuery(e.target.value)}/></label><span>{visibleMessages.length} loaded results</span><IconButton label="Close message search" onClick={()=>{setSearchOpen(false);setMessageQuery('')}}><X size={18}/></IconButton></div>}
-   <div className="timeline" ref={timeline} role="log" aria-label="Messages" aria-live="polite" aria-relevant="additions text" onScroll={e => { const el = e.currentTarget; nearBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}><div className="timeline-feed">
+   <div className="timeline" ref={timeline} role="log" aria-label="Messages" aria-live="polite" aria-relevant="additions text" onScroll={e => { const el = e.currentTarget; nearBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 96; if (nearBottom.current) setShowLatest(false); }}><div className="timeline-feed">
     {messageState==='loading'&&<div className="timeline-state" role="status">Loading messages…</div>}
     {messageState==='error'&&<div className="timeline-state"><p>{actionError}</p><button className="button secondary small" onClick={()=>{setMessageState('loading');void services.loadMessages(active.id).then(more=>{setHasOlder(more);setMessageState('loaded')}).catch(error=>{setActionError((error as Error).message);setMessageState('error')})}}>Retry</button></div>}
     {messageState==='loaded'&&activeMessages.length>0&&hasOlder&&<button className="load-older" disabled={loadingOlder} onClick={()=>void loadEarlier()}>{loadingOlder && <LoaderCircle className="spin" size={15}/>} {loadingOlder ? 'Loading…' : 'Load earlier messages'}</button>}
@@ -143,6 +148,7 @@ export function Chats() {
     })}
     {messageState==='loaded'&&!visibleMessages.length && <Empty title={messageQuery?'No messages found':'Start with a hello'} description={messageQuery?'Try another word or file name.':`Send the first message to ${friend.name.split(' ')[0]}.`}/>}</div>
    </div>
+   {showLatest&&<button type="button" className="jump-to-latest" onClick={()=>{timeline.current?.scrollTo({top:timeline.current.scrollHeight,behavior:'smooth'});nearBottom.current=true;setShowLatest(false)}}><ArrowDown size={16}/><span>Latest messages</span></button>}
    <Composer key={`${me!.id}:${active.id}`} conversationId={active.id} blocked={preferences.blocked.includes(friend.id)} reply={reply} clearReply={()=>setReply(undefined)}/>
    {infoOpen&&<Modal title="Conversation details" className="mobile-sheet conversation-detail-dialog" onClose={()=>setInfoOpen(false)}><div className="person-detail"><Avatar user={friend} size="large"/><h2>{friend.name}</h2><strong className="username">{usernameLabel(friend.username)}</strong><p>{friend.about}</p></div>{actionError&&<p className="inline-error" role="alert">{actionError}</p>}<div className="detail-actions" aria-busy={Boolean(detailBusy)}><button disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('pinned',()=>services.toggleConversation(active.id,'pinned'))}>{detailBusy==='pinned'?<LoaderCircle className="spin" size={18}/>:<Pin size={18}/>}<span>{active.pinned?'Unpin conversation':'Pin conversation'}</span></button><button disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('muted',()=>services.toggleConversation(active.id,'muted'))}>{detailBusy==='muted'?<LoaderCircle className="spin" size={18}/>:<BellOff size={18}/>}<span>{active.muted?'Unmute notifications':'Mute notifications'}</span></button><button className="danger-text" disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('blocked',()=>services.block(friend.id))}>{detailBusy==='blocked'?<LoaderCircle className="spin" size={18}/>:<Ban size={18}/>}<span>{preferences.blocked.includes(friend.id)?'Unblock contact':'Block contact'}</span></button></div></Modal>}
   </section> : <section className="chat-panel welcome-panel"><MessageCircle size={40}/><h2>{conversations.length ? 'A space for your conversations' : 'Your private conversations live here'}</h2><p>{conversations.length ? 'Choose someone from your messages to catch up.' : 'Use the new conversation button when you are ready to begin.'}</p></section>}

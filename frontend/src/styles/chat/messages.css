@@ -1,74 +1,77 @@
 @layer components {
   .chat-panel {
-    @apply flex min-w-0 flex-1 flex-col bg-background;
+    @apply relative flex min-w-0 flex-1 flex-col overflow-hidden bg-background;
   }
   .chat-panel.has-chat-wallpaper {
     background-color: var(--wallpaper-color);
-    background-image: var(--wallpaper-pattern);
-    background-size: 80px 80px;
+    background-image: linear-gradient(#0a0b108f, #0a0b108f), var(--wallpaper-pattern);
+    background-size: auto, 96px 96px;
   }
   .chat-panel.has-custom-wallpaper {
     background-position: center;
-    background-size: cover;
     background-repeat: no-repeat;
+    background-size: cover;
   }
   .chat-header {
-    @apply flex h-[80px] shrink-0 items-center gap-[13px] border-b border-border bg-panel p-[15px_28px];
+    @apply relative z-10 flex h-[68px] shrink-0 items-center gap-[11px] border-b border-border bg-panel/95 px-[20px] py-[10px];
   }
-  
   .chat-person {
     @apply min-w-0;
   }
   .chat-person h2 {
-    @apply break-words text-[16px] font-medium;
+    @apply overflow-hidden text-ellipsis whitespace-nowrap text-[15px] font-semibold tracking-[-0.1px];
   }
   .chat-person p {
-    @apply mt-[7px] text-[12px] text-muted;
+    @apply mt-[4px] overflow-hidden text-ellipsis whitespace-nowrap text-[11px] text-muted;
   }
-
+  .chat-header-actions {
+    @apply ml-auto flex items-center gap-[2px];
+  }
+  .chat-header .icon-button {
+    @apply size-10;
+  }
   .timeline {
-    @apply min-h-0 flex-1 overflow-auto p-[12px_clamp(18px,4vw,65px)_25px] overscroll-contain;
+    @apply min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-[clamp(16px,4vw,56px)] py-[14px];
     background: transparent;
+    scrollbar-gutter: stable;
+  }
+  .timeline-feed {
+    @apply mx-auto w-full max-w-[920px];
   }
   .date-separator {
-    @apply mx-auto mb-[24px] mt-[14px] w-max max-w-full rounded-[7px] bg-panel p-[6px_12px] text-[12px] text-muted;
+    @apply sticky top-[2px] z-[2] mx-auto mb-[18px] mt-[10px] w-max max-w-full rounded-full border border-border/70 bg-panel/95 px-[11px] py-[5px] text-[11px] font-medium text-muted shadow-sm;
   }
   .timeline-state {
     @apply mx-auto my-[28px] flex max-w-[360px] flex-col items-center gap-[12px] text-center text-[13px] leading-[1.6] text-muted;
   }
   .load-older {
-    @apply mx-auto mb-[18px] flex min-h-[40px] items-center gap-[7px] rounded-full border border-border px-[16px] text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-surface hover:text-text-primary;
+    @apply mx-auto mb-[18px] flex min-h-[38px] items-center gap-[7px] rounded-full border border-border bg-panel/90 px-[15px] text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-elevated hover:text-text-primary;
   }
-
   .message-row {
-    @apply relative my-[8px] flex items-center gap-[4px];
+    @apply relative my-[6px] flex items-center gap-[4px];
   }
   .message-row.is-outgoing {
-    @apply justify-start flex-row-reverse;
+    @apply flex-row-reverse justify-start;
   }
   .message-row.grouped {
     @apply mt-[-3px];
   }
-
   .message-bubble {
-    @apply min-w-[90px] max-w-[min(83%,480px)] rounded-[3px_13px_13px_13px] p-[11px_14px_8px];
+    @apply min-w-[82px] max-w-[min(76%,520px)] rounded-[4px_12px_12px_12px] border border-white/[0.025] px-[12px] pb-[7px] pt-[9px] shadow-[0_1px_1px_#0003];
     background: var(--message-incoming);
   }
   .message-row.is-outgoing .message-bubble {
-    @apply rounded-[13px_3px_13px_13px];
+    @apply rounded-[12px_4px_12px_12px];
     background: var(--message-outgoing);
   }
-
   .message-bubble > p {
-    @apply whitespace-pre-wrap break-words text-[16px] leading-[1.55];
+    @apply whitespace-pre-wrap break-words text-[15px] leading-[1.48];
   }
-  
   .message-meta {
-    @apply mt-[5px] flex flex-wrap items-center justify-end gap-[7px] text-[11px] text-muted;
+    @apply mt-[3px] flex flex-wrap items-center justify-end gap-[5px] text-[10px] tabular-nums text-muted;
   }
-
   .receipt {
-    @apply inline-flex items-center gap-[4px] text-[12px];
+    @apply inline-flex items-center gap-[3px] text-[11px];
   }
   .receipt.is-read {
     @apply text-accent;
@@ -76,27 +79,23 @@
   .receipt.is-failed {
     @apply text-danger;
   }
-
   .message-search {
-    @apply flex items-center gap-[10px] border-b border-border bg-panel p-[10px_20px];
+    @apply relative z-[9] flex items-center gap-[9px] border-b border-border bg-panel px-[16px] py-[8px];
   }
   .message-search .search-field {
     @apply flex-1;
   }
   .message-search > span {
-    @apply whitespace-nowrap text-[12px] text-muted;
+    @apply whitespace-nowrap text-[11px] text-muted;
   }
-  .chat-header > .icon-button:last-child {
-    @apply ml-auto;
-  }
-  .chat-header-actions {
-    @apply ml-auto flex items-center gap-[2px];
+  .jump-to-latest {
+    @apply absolute bottom-[82px] right-[24px] z-[8] flex min-h-[38px] items-center gap-[7px] rounded-full border border-border bg-elevated px-[13px] text-[12px] font-semibold text-text-primary shadow-[0_10px_30px_#0008] transition-[background-color,transform] duration-150 hover:bg-surface active:scale-[.97];
   }
   .detail-actions {
     @apply mt-[22px] overflow-hidden rounded-[11px] border border-border bg-surface;
   }
   .detail-actions > button {
-    @apply flex min-h-[48px] w-full items-center gap-[12px] border-b border-border px-[14px] text-left text-[14px] transition-[background-color,color,transform] duration-150 hover:bg-white/[0.04] active:bg-white/[0.07] disabled:pointer-events-none disabled:opacity-50;
+    @apply flex min-h-[48px] w-full items-center gap-[12px] border-b border-border px-[14px] text-left text-[14px] transition-[background-color,color] duration-150 hover:bg-white/[0.04] active:bg-white/[0.07] disabled:pointer-events-none disabled:opacity-50;
   }
   .detail-actions > button:last-child {
     @apply border-b-0;
@@ -105,10 +104,10 @@
     @apply min-w-0 flex-1;
   }
   .is-compact .conversation-row {
-    @apply py-[10px];
+    @apply min-h-[60px] py-[8px];
   }
   .is-compact .message-row {
-    @apply my-[5px];
+    @apply my-[4px];
   }
 
   @media (max-width: 1100px) {
@@ -116,31 +115,43 @@
       @apply px-[18px];
     }
   }
-
   @media (max-width: 767px) {
     .chat-header {
-      @apply h-[71px] gap-[9px] p-[12px_10px];
+      @apply h-[65px] gap-[8px] px-[8px] py-[9px];
     }
     .chat-person h2 {
-      @apply text-[15px];
+      @apply text-[14px];
     }
     .chat-person p {
-      @apply text-[12px];
+      @apply text-[11px];
     }
     .timeline {
-      @apply p-[10px_13px_20px];
+      @apply px-[10px] pb-[12px] pt-[8px];
+      scrollbar-gutter: auto;
     }
     .timeline .empty-state {
       @apply min-h-[210px] justify-center py-[26px];
     }
     .message-bubble {
-      @apply max-w-[86%] p-[9px_11px_7px];
+      @apply max-w-[84%] px-[10px] pb-[6px] pt-[8px];
+    }
+    .message-bubble > p {
+      @apply text-[15px] leading-[1.45];
     }
     .message-row {
-      @apply my-[7px];
+      @apply my-[5px];
     }
     .message-row.grouped {
-      @apply mt-[-4px];
+      @apply mt-[-3px];
+    }
+    .date-separator {
+      @apply mb-[15px] mt-[8px];
+    }
+    .jump-to-latest {
+      @apply bottom-[76px] right-[12px] size-10 justify-center p-0;
+    }
+    .jump-to-latest span {
+      @apply sr-only;
     }
   }
 }

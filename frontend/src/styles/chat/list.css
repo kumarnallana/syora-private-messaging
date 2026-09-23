@@ -1,102 +1,101 @@
 @layer components {
   .chat-layout {
     @apply flex h-full;
+    background: var(--bg);
   }
-  
   .conversation-panel {
-    @apply flex w-[330px] shrink-0 min-w-0 flex-col bg-panel border-r border-border;
+    @apply flex w-[350px] min-w-0 shrink-0 flex-col border-r border-border bg-panel;
   }
-
   .list-header {
-    @apply border-b border-border p-[25px_22px_20px];
+    @apply shrink-0 border-b border-border px-[20px] pb-[16px] pt-[20px];
   }
   .list-header .brand-logo {
-    @apply hidden; /* Hide the brand logo in the list header to avoid duplication if it's there */
+    @apply hidden;
   }
   .list-title {
     @apply flex items-center justify-between;
   }
   .list-title h1 {
-    @apply flex items-center gap-[10px] text-[24px] font-medium tracking-[-0.5px];
+    @apply flex items-center gap-[9px] text-[22px] font-semibold tracking-[-0.35px];
   }
   .count {
-    @apply rounded-[5px] bg-surface p-[4px_7px] text-[12px] text-muted;
+    @apply rounded-full border border-border bg-surface px-[7px] py-[2px] text-[11px] font-medium text-muted;
   }
-
+  .list-header .search-field {
+    @apply mt-[16px];
+  }
+  .chat-filters {
+    @apply mt-[11px] flex gap-[6px];
+  }
+  .chat-filters button {
+    @apply min-h-[32px] rounded-full border border-transparent px-[13px] text-[12px] font-medium text-muted transition-[color,background-color,border-color] duration-150 hover:bg-surface hover:text-text-primary;
+  }
+  .chat-filters button.is-active {
+    @apply border-accent/30 text-accent;
+    background: var(--accent-soft);
+  }
   .conversation-rows {
-    @apply flex-1 overflow-auto p-[9px] min-h-0;
+    @apply min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-[8px] py-[9px];
+    scrollbar-gutter: stable;
   }
-
   .conversation-row {
-    @apply m-[3px_0] flex w-full items-center gap-[12px] rounded-[10px] border border-transparent p-[16px_11px] text-left transition-colors hover:bg-surface;
+    @apply relative flex min-h-[70px] w-full items-center gap-[11px] rounded-[10px] border border-transparent px-[10px] py-[11px] text-left transition-[color,background-color,border-color] duration-150 hover:bg-surface;
+  }
+  .conversation-row + .conversation-row {
+    @apply mt-[2px];
   }
   .conversation-row.is-selected {
-    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+    border-color: color-mix(in srgb, var(--accent) 24%, transparent);
     background: var(--selection);
   }
-
-  .conversation-copy {
-    @apply flex min-w-0 flex-1 flex-col gap-[9px];
+  .conversation-row.is-selected::before {
+    content: "";
+    @apply absolute left-0 top-1/2 h-[32px] w-[3px] -translate-y-1/2 rounded-full bg-accent;
   }
-
+  .conversation-row.is-unread:not(.is-selected) {
+    background: color-mix(in srgb, var(--surface) 62%, transparent);
+  }
+  .conversation-copy {
+    @apply flex min-w-0 flex-1 flex-col gap-[6px];
+  }
   .conversation-top,
   .conversation-bottom {
     @apply flex min-w-0 items-center justify-between gap-[8px];
   }
-
   .conversation-top strong {
-    @apply overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-medium;
+    @apply overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-semibold;
+  }
+  .conversation-row.is-unread .conversation-top strong {
+    @apply text-text-primary;
   }
   .conversation-top time {
-    @apply shrink-0 whitespace-nowrap text-[12px] text-muted;
+    @apply shrink-0 whitespace-nowrap text-[11px] tabular-nums text-muted;
   }
-
+  .conversation-row.is-unread .conversation-top time {
+    @apply text-accent;
+  }
   .conversation-bottom > span:first-child {
-    @apply overflow-hidden text-ellipsis whitespace-nowrap text-[13px] leading-[1.5] text-muted;
+    @apply overflow-hidden text-ellipsis whitespace-nowrap text-[13px] leading-[1.45] text-muted;
   }
-
   .typing-text {
     @apply italic text-accent;
   }
-
   .row-indicators {
-    @apply flex items-center gap-[6px] shrink-0 text-muted;
+    @apply flex shrink-0 items-center gap-[5px] text-muted;
   }
-
   .unread-badge {
-    @apply grid h-[21px] min-w-[21px] shrink-0 place-items-center rounded-[7px] bg-accent text-[12px] text-[#241e35];
+    @apply grid h-[20px] min-w-[20px] shrink-0 place-items-center rounded-full bg-accent px-[5px] text-[11px] font-semibold text-[#211b31];
   }
-
   .list-footer {
     @apply border-t border-border p-[18px_12px];
   }
 
-  .list-header .search-field {
-    @apply mt-[18px];
-  }
-  .chat-filters {
-    @apply mt-[12px] flex gap-[7px];
-  }
-  .chat-filters button {
-    @apply min-h-[34px] rounded-full border border-border px-[14px] text-[12px] font-medium text-muted transition-colors duration-150;
-  }
-  .chat-filters button.is-active {
-    background: var(--selection);
-    @apply border-accent text-accent;
-  }
-
   @media (max-width: 1100px) {
     .conversation-panel {
-      @apply w-[280px];
-    }
-    .conversation-row {
-      @apply gap-[9px] p-[14px_8px];
-    }
-    .conversation-top time {
-      @apply text-[11px];
+      @apply w-[300px];
     }
     .list-header {
-      @apply px-[18px];
+      @apply px-[16px];
     }
   }
 
@@ -114,16 +113,13 @@
       @apply h-full w-full border-0;
     }
     .list-header {
-      @apply p-[20px_18px_17px];
+      @apply px-[16px] pb-[14px] pt-[17px];
     }
     .conversation-row {
-      @apply gap-[13px] p-[17px_10px];
+      @apply min-h-[72px] gap-[12px] px-[9px] py-[11px];
     }
     .conversation-top strong {
       @apply text-[15px];
-    }
-    .conversation-top time {
-      @apply text-[12px];
     }
     .chat-layout > .chat-panel {
       @apply hidden;

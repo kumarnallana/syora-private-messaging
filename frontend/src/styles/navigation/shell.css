@@ -3,14 +3,66 @@
     --syora-nav-height: 65px;
     @apply flex flex-col overflow-hidden md:flex-row;
     height: 100dvh;
-  }
-  .app-shell.is-compact {
-    /* Compact mode overrides if needed */
+    background: var(--bg);
   }
 
   .rail {
-    @apply fixed bottom-0 left-0 z-[100] flex h-[65px] w-full flex-row items-center border-t border-border bg-panel px-[10px] md:static md:h-auto md:w-[64px] md:flex-col md:gap-9 md:border-r md:border-t-0 md:bg-panel md:p-[25px_9px_18px] lg:w-[76px];
+    @apply fixed bottom-0 left-0 z-[100] flex h-[65px] w-full flex-row items-center border-t border-border bg-panel px-[10px] md:static md:h-auto md:w-[68px] md:flex-col md:border-r md:border-t-0 md:px-[8px] md:py-[18px];
   }
+  .rail__brand {
+    @apply hidden md:grid md:size-11 md:place-items-center;
+  }
+  .rail__nav {
+    @apply flex w-full justify-around md:mt-[26px] md:block;
+  }
+  .rail-link {
+    @apply relative flex min-h-11 flex-col items-center justify-center gap-[4px] rounded-[10px] py-1.5 text-muted transition-[color,background-color] duration-150 hover:bg-surface hover:text-text-primary md:mb-1 md:h-[50px] md:w-full md:p-0;
+  }
+  .rail-link.is-active {
+    @apply text-accent;
+    background: var(--selection);
+  }
+  .rail-link.is-active::before {
+    content: "";
+    @apply absolute hidden rounded-full bg-accent md:block;
+    left: -8px;
+    width: 3px;
+    height: 22px;
+  }
+  .rail-link span {
+    @apply text-[11px] font-medium;
+  }
+  .rail-link--danger {
+    @apply hover:text-danger;
+  }
+  .rail-bottom {
+    @apply hidden md:mt-auto md:flex md:w-full md:flex-col md:items-center md:gap-[12px];
+  }
+  .profile-link {
+    @apply grid place-items-center rounded-full transition-transform duration-150 hover:scale-[1.03];
+  }
+  .profile-link.is-active {
+    @apply ring-2 ring-accent ring-offset-2 ring-offset-panel;
+  }
+  .app-content {
+    @apply h-full min-w-0 flex-1 overflow-hidden;
+  }
+  .connection-banner {
+    @apply fixed left-1/2 top-[12px] z-[140] -translate-x-1/2 rounded-full border border-border bg-elevated px-[14px] py-[8px] text-[12px] font-medium text-muted shadow-lg;
+  }
+  .mobile-header {
+    @apply flex h-[60px] items-center gap-[15px] border-b border-border bg-panel px-[15px] md:hidden;
+  }
+  .mobile-header__title {
+    @apply text-[17px] font-semibold;
+  }
+  .mobile-header__action {
+    @apply ml-auto;
+  }
+  .preview-note {
+    @apply flex items-center justify-center gap-[7px] p-4 text-[12px] text-muted;
+  }
+
   @media (max-width: 767px) {
     .app-shell {
       height: var(--syora-viewport-height, 100dvh);
@@ -22,71 +74,10 @@
     .app-shell:has(input:focus, textarea:focus) {
       @apply pb-0;
     }
-    .app-shell:has(input:focus, textarea:focus) > .rail {
-      @apply hidden;
-    }
-  }
-
-  .rail__brand {
-    @apply hidden md:block;
-  }
-
-  .rail__nav {
-    @apply flex w-full justify-around md:block md:w-full;
-  }
-
-  .rail-link {
-    @apply flex flex-col items-center justify-center gap-[5px] rounded-[9px] py-2 text-muted transition-colors hover:bg-surface md:h-[52px] md:w-full md:p-0 md:hover:bg-transparent;
-  }
-  .rail-link.is-active {
-    background: var(--selection);
-    @apply text-accent;
-  }
-  .rail-link span {
-    @apply text-[12px];
-  }
-  .rail-link--danger {
-    @apply hover:text-danger;
-  }
-
-  .rail-bottom {
-    @apply hidden md:mt-auto md:flex md:w-full md:flex-col md:items-center md:gap-[14px];
-  }
-  @media (max-width: 767px) {
+    .app-shell:has(input:focus, textarea:focus) > .rail,
     .rail-bottom {
       @apply hidden;
     }
-  }
-
-  .profile-link {
-    @apply grid place-items-center rounded-full transition-transform hover:scale-105;
-  }
-  .profile-link.is-active {
-    @apply ring-2 ring-accent ring-offset-2 ring-offset-panel;
-  }
-
-  .app-content {
-    @apply flex-1 min-w-0 h-full overflow-hidden;
-  }
-  .connection-banner {
-    @apply fixed left-1/2 top-[10px] z-[140] -translate-x-1/2 rounded-full border border-border bg-elevated px-[14px] py-[8px] text-[12px] text-muted shadow-lg;
-  }
-
-  .mobile-header {
-    @apply flex h-[60px] items-center gap-[15px] border-b border-border bg-panel px-[15px] md:hidden;
-  }
-  .mobile-header__title {
-    @apply text-[17px] font-medium;
-  }
-  .mobile-header__action {
-    @apply ml-auto;
-  }
-
-  .preview-note {
-    @apply flex items-center justify-center gap-[7px] p-4 text-[12px] text-muted;
-  }
-
-  @media (max-width: 767px) {
     .page-header {
       @apply hidden;
     }
