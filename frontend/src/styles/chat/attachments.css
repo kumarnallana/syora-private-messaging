@@ -14,7 +14,7 @@
   }
   
   .image-message {
-    @apply block w-full overflow-hidden rounded-[8px];
+    @apply grid min-h-[140px] w-full place-items-center overflow-hidden rounded-[8px] bg-[#0b0c11];
   }
   .image-message img {
     @apply block max-h-[270px] w-full bg-[#0b0c11] object-contain;

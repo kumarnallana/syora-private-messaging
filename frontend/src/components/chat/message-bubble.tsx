@@ -8,7 +8,13 @@ import { useApp } from '@/stores/use-app';
 import type { Message } from '@/types';
 import { DeliveryReceipt } from './delivery-receipt';
 
-export function MessageBubble({ message, mine, original, onReply, groupedWithPrevious = false }: { message: Message; mine: boolean; original?: Message; onReply: () => void; groupedWithPrevious?: boolean }) {
+const URL_PATTERN = /(https?:\/\/[^\s<]+)/g;
+const EMOJI_ONLY = /^(?:\p{Extended_Pictographic}|\uFE0F|\u200D|\s){1,16}$/u;
+function renderMessageText(text: string) {
+  return text.split(URL_PATTERN).map((part, index) => part.startsWith('http://') || part.startsWith('https://') ? <a className="message-link" href={part} target="_blank" rel="noreferrer" key={part + ':' + index}>{part}</a> : part);
+}
+
+export function MessageBubble({ message, mine, original, onReply, groupedWithPrevious = false, groupedWithNext = false }: { message: Message; mine: boolean; original?: Message; onReply: () => void; groupedWithPrevious?: boolean; groupedWithNext?: boolean }) {
   const { services, users, me } = useApp();
   const [deleting, setDeleting] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
@@ -16,6 +22,7 @@ export function MessageBubble({ message, mine, original, onReply, groupedWithPre
   const [retrying, setRetrying] = useState(false);
   const [copied, setCopied] = useState(false);
   const actionMenu = useRef<HTMLDivElement>(null);
+  const emojiOnly = Boolean(!message.attachment && !message.deleted && message.text.trim() && EMOJI_ONLY.test(message.text.trim()));
 
   useEffect(() => {
     if (!actionsOpen) return;
@@ -42,10 +49,10 @@ export function MessageBubble({ message, mine, original, onReply, groupedWithPre
     } catch { setError('Message could not be copied.'); }
   }
 
-  return <article className={`message-row ${mine ? 'is-outgoing' : 'is-incoming'} ${groupedWithPrevious ? 'grouped' : ''}`} aria-label={mine ? 'Sent by you' : 'Received message'}>
-    <div className={`message-bubble ${message.attachment ? 'with-media' : ''}`}>
+  return <article className={`message-row ${mine ? 'is-outgoing' : 'is-incoming'} ${groupedWithPrevious ? 'grouped' : ''} ${groupedWithNext ? 'continues' : ''}`} aria-label={mine ? 'Sent by you' : 'Received message'}>
+    <div className={`message-bubble ${message.attachment ? 'with-media' : ''} ${emojiOnly ? 'is-emoji-only' : ''}`}>
       {message.replyTo && !message.deleted && <div className="reply-quote"><strong>{original?.senderId === me!.id ? 'You' : users.find(user => user.id === original?.senderId)?.name || 'Original message'}</strong><span>{!original ? 'Message unavailable' : original.deleted ? 'Message deleted' : original.text || original.attachment?.name}</span></div>}
-      {message.deleted ? <p className="deleted-message"><Trash2 size={14} /> This message was deleted</p> : <>{message.attachment && <AttachmentContent attachment={message.attachment} />} {message.text && <p>{message.text}</p>}</>}
+      {message.deleted ? <p className="deleted-message"><Trash2 size={14} /> This message was deleted</p> : <>{message.attachment && <AttachmentContent attachment={message.attachment} />} {message.text && <p>{renderMessageText(message.text)}</p>}</>}
       <div className="message-meta"><time dateTime={message.createdAt}>{time(message.createdAt)}</time>{mine && !message.deleted && <DeliveryReceipt state={message.receipt} />}</div>
       {mine && message.receipt === 'failed' && !message.deleted && <button className="retry-button" disabled={retrying} onClick={async () => { setRetrying(true); try { await services.retry(message.id); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Message retry failed.'); } finally { setRetrying(false); } }}><RotateCcw size={14} /> Retry message</button>}
       {error && <p className="inline-error" role="alert">{error}</p>}

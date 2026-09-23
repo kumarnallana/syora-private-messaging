@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowDown, ArrowLeft, Ban, BellOff, LoaderCircle, MessageCircle, MoreHorizontal, Pin, Search, SquarePen, X } from 'lucide-react';
@@ -10,6 +10,12 @@ import { Composer } from './composer';
 import { DeliveryReceipt } from './delivery-receipt';
 import { formatLastSeen, normalizeUsername, usernameLabel } from '@/utils/presentation';
 import { CHAT_WALLPAPER_EVENT, getChatWallpaper } from '@/utils/chat-wallpaper';
+import type { Message } from '@/types';
+
+const SEQUENCE_WINDOW_MS = 5 * 60 * 1000;
+function belongsToSequence(previous?: Message, current?: Message) {
+ return Boolean(previous && current && previous.senderId === current.senderId && new Date(previous.createdAt).toDateString() === new Date(current.createdAt).toDateString() && new Date(current.createdAt).getTime() - new Date(previous.createdAt).getTime() <= SEQUENCE_WINDOW_MS);
+}
 
 export function Chats() {
  const { me, users, conversations, messages, services, preferences } = useApp();
@@ -29,6 +35,8 @@ export function Chats() {
  const [reply,setReply]=useState<import('@/types').Message>();
  const [wallpaper,setWallpaper]=useState('');
  const [showLatest,setShowLatest]=useState(false);
+ const [latestCount,setLatestCount]=useState(0);
+ const [unreadFrom,setUnreadFrom]=useState<string>();
  const timeline = useRef<HTMLDivElement>(null);
  const heading = useRef<HTMLHeadingElement>(null);
  const rowRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -36,12 +44,20 @@ export function Chats() {
  const active = conversations.find(c => c.id === selected && c.participants.includes(me!.id));
  const friend = users.find(u => active?.participants.includes(u.id) && u.id !== me?.id);
  const presence = friend ? formatLastSeen(friend.lastSeen, friend.online) || usernameLabel(friend.username) : '';
- const activeMessages = messages.filter(m => m.conversationId === active?.id);
- const visibleMessages=activeMessages.filter(m=>!messageQuery||m.text.toLowerCase().includes(messageQuery.toLowerCase())||m.attachment?.name.toLowerCase().includes(messageQuery.toLowerCase()));
- const ordered = [...conversations].sort((a, b) => {
-  const latest = (id: string) => messages.filter(m => m.conversationId === id).at(-1)?.createdAt || '';
-  return latest(b.id).localeCompare(latest(a.id));
- });
+ const messagesByConversation = useMemo(() => {
+  const grouped = new Map<string, Message[]>();
+  for (const message of messages) {
+   const group = grouped.get(message.conversationId);
+   if (group) group.push(message); else grouped.set(message.conversationId, [message]);
+  }
+  return grouped;
+ }, [messages]);
+ const activeMessages = active ? messagesByConversation.get(active.id) || [] : [];
+ const normalizedMessageQuery = messageQuery.trim().toLowerCase();
+ const visibleMessages = useMemo(() => activeMessages.filter(message => !normalizedMessageQuery || message.text.toLowerCase().includes(normalizedMessageQuery) || message.attachment?.name.toLowerCase().includes(normalizedMessageQuery)), [activeMessages, normalizedMessageQuery]);
+ const ordered = useMemo(() => [...conversations].sort((a, b) => (messagesByConversation.get(b.id)?.at(-1)?.createdAt || '').localeCompare(messagesByConversation.get(a.id)?.at(-1)?.createdAt || '')), [conversations, messagesByConversation]);
+ const messageById = useMemo(() => new Map(messages.map(message => [message.id, message])), [messages]);
+ const latestMessage = activeMessages.at(-1);
  useEffect(() => { setSelected(params.get('conversation')); }, [params]);
  useEffect(() => { window.dispatchEvent(new Event('syora:navigation')); }, [selected]);
  useEffect(() => {
@@ -58,16 +74,39 @@ export function Chats() {
   setReply(undefined);setMessageQuery('');setSearchOpen(false);
   nearBottom.current = true;
   setShowLatest(false);
+  setLatestCount(0);
+  setUnreadFrom(undefined);
   heading.current?.focus({ preventScroll: true });
   return()=>{current=false};
  }, [active?.id, me?.id, services]);
  useEffect(() => {
-  const last = activeMessages.at(-1);
-  if (nearBottom.current || last?.senderId === me?.id) {
+  if (nearBottom.current || latestMessage?.senderId === me?.id) {
    timeline.current?.scrollTo({ top: timeline.current.scrollHeight });
    setShowLatest(false);
-  } else if (last) setShowLatest(true);
- }, [active?.id, activeMessages.length, me?.id]);
+   setLatestCount(0);
+  } else if (latestMessage) {
+   setShowLatest(true);
+   setLatestCount(count => count + 1);
+  }
+ }, [active?.id, latestMessage?.id, me?.id]);
+ useEffect(() => {
+  if (!active || messageState !== 'loaded' || unreadFrom || active.unread <= 0) return;
+  const incoming = activeMessages.filter(message => message.senderId !== me?.id && !message.deleted).slice(-active.unread);
+  setUnreadFrom(incoming[0]?.id);
+ }, [active?.id, messageState]);
+ useEffect(() => {
+  const element = timeline.current;
+  const composer = element?.parentElement?.querySelector<HTMLElement>('.composer-wrap');
+  if (!element || !composer || typeof ResizeObserver === 'undefined') return;
+  let previousHeight = composer.getBoundingClientRect().height;
+  const observer = new ResizeObserver(entries => {
+   const nextHeight = entries[0]?.contentRect.height || previousHeight;
+   if (nearBottom.current && Math.abs(nextHeight - previousHeight) > 1) requestAnimationFrame(() => element.scrollTo({ top: element.scrollHeight }));
+   previousHeight = nextHeight;
+  });
+  observer.observe(composer);
+  return () => observer.disconnect();
+ }, [active?.id]);
  useEffect(() => {
   if (!active || messageState !== 'loaded' || active.unread <= 0) return;
   const markVisible = () => {
@@ -84,7 +123,8 @@ export function Chats() {
   requestAnimationFrame(() => { if (id) rowRefs.current.get(id)?.focus(); });
  }
  function selectConversation(id: string) {
-  router.push(`/chats?conversation=${encodeURIComponent(id)}`);
+  setSelected(id);
+  router.push('/chats?conversation=' + encodeURIComponent(id));
  }
  async function loadEarlier() {
   if (!active || loadingOlder) return;
@@ -115,7 +155,7 @@ export function Chats() {
     {ordered.map(conversation => {
      const person = users.find(u => conversation.participants.includes(u.id) && u.id !== me!.id);
      if (!person||filter==='unread'&&!conversation.unread||!(person.name.toLowerCase().includes(query.toLowerCase())||normalizeUsername(person.username).includes(normalizeUsername(query)))) return null;
-     const last = messages.filter(m => m.conversationId === conversation.id).at(-1);
+     const last = messagesByConversation.get(conversation.id)?.at(-1);
      return <button key={conversation.id} ref={node => { if (node) rowRefs.current.set(conversation.id, node); else rowRefs.current.delete(conversation.id); }}
       className={`conversation-row ${active?.id === conversation.id ? 'is-selected' : ''} ${conversation.unread?'is-unread':''}`}
       aria-label={`Open conversation with ${person.name}${conversation.unread ? `, ${conversation.unread} unread` : ''}`}
@@ -141,14 +181,16 @@ export function Chats() {
     {visibleMessages.map((message, index) => {
      const day = new Date(message.createdAt).toDateString();
      const previous = visibleMessages[index - 1];
+     const next = visibleMessages[index + 1];
      return <div key={message.id}>
       {(!previous || new Date(previous.createdAt).toDateString() !== day) && <div className="date-separator">{day === new Date().toDateString() ? 'Today' : new Date(message.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}</div>}
-      <MessageBubble message={message} mine={message.senderId === me!.id} groupedWithPrevious={!!previous&&previous.senderId===message.senderId&&new Date(previous.createdAt).toDateString()===day} original={activeMessages.find(m=>m.id===message.replyTo)||message.replyPreview} onReply={()=>setReply(message)}/>
+      {!messageQuery && message.id === unreadFrom && <div className="unread-separator"><span>Unread messages</span></div>}
+      <MessageBubble message={message} mine={message.senderId === me!.id} groupedWithPrevious={belongsToSequence(previous,message)} groupedWithNext={belongsToSequence(message,next)} original={(message.replyTo&&messageById.get(message.replyTo))||message.replyPreview} onReply={()=>setReply(message)}/>
      </div>;
     })}
     {messageState==='loaded'&&!visibleMessages.length && <Empty title={messageQuery?'No messages found':'Start with a hello'} description={messageQuery?'Try another word or file name.':`Send the first message to ${friend.name.split(' ')[0]}.`}/>}</div>
    </div>
-   {showLatest&&<button type="button" className="jump-to-latest" onClick={()=>{timeline.current?.scrollTo({top:timeline.current.scrollHeight,behavior:'smooth'});nearBottom.current=true;setShowLatest(false)}}><ArrowDown size={16}/><span>Latest messages</span></button>}
+   {showLatest&&<button type="button" className="jump-to-latest" aria-label={latestCount ? 'Jump to '+latestCount+' new message'+(latestCount === 1 ? '' : 's') : 'Jump to latest messages'} onClick={()=>{timeline.current?.scrollTo({top:timeline.current.scrollHeight,behavior:'smooth'});nearBottom.current=true;setShowLatest(false);setLatestCount(0)}}><ArrowDown size={16}/><span>Latest messages</span>{latestCount>0&&<strong>{latestCount>99?'99+':latestCount}</strong>}</button>}
    <Composer key={`${me!.id}:${active.id}`} conversationId={active.id} blocked={preferences.blocked.includes(friend.id)} reply={reply} clearReply={()=>setReply(undefined)}/>
    {infoOpen&&<Modal title="Conversation details" className="mobile-sheet conversation-detail-dialog" onClose={()=>setInfoOpen(false)}><div className="person-detail"><Avatar user={friend} size="large"/><h2>{friend.name}</h2><strong className="username">{usernameLabel(friend.username)}</strong><p>{friend.about}</p></div>{actionError&&<p className="inline-error" role="alert">{actionError}</p>}<div className="detail-actions" aria-busy={Boolean(detailBusy)}><button disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('pinned',()=>services.toggleConversation(active.id,'pinned'))}>{detailBusy==='pinned'?<LoaderCircle className="spin" size={18}/>:<Pin size={18}/>}<span>{active.pinned?'Unpin conversation':'Pin conversation'}</span></button><button disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('muted',()=>services.toggleConversation(active.id,'muted'))}>{detailBusy==='muted'?<LoaderCircle className="spin" size={18}/>:<BellOff size={18}/>}<span>{active.muted?'Unmute notifications':'Mute notifications'}</span></button><button className="danger-text" disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('blocked',()=>services.block(friend.id))}>{detailBusy==='blocked'?<LoaderCircle className="spin" size={18}/>:<Ban size={18}/>}<span>{preferences.blocked.includes(friend.id)?'Unblock contact':'Block contact'}</span></button></div></Modal>}
   </section> : <section className="chat-panel welcome-panel"><MessageCircle size={40}/><h2>{conversations.length ? 'A space for your conversations' : 'Your private conversations live here'}</h2><p>{conversations.length ? 'Choose someone from your messages to catch up.' : 'Use the new conversation button when you are ready to begin.'}</p></section>}
