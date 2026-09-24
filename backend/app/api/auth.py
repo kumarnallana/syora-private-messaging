@@ -107,8 +107,12 @@ async def reset_password(body: ResetPasswordIn, request: Request, db: AsyncSessi
 @router.post("/login",dependencies=[Depends(rate_limit("login",20,900))])
 async def login(body:LoginIn,response:Response,request:Request,background_tasks:BackgroundTasks,db:AsyncSession=Depends(get_db)):
     require_client_origin(request)
-    user=await db.scalar(select(User).where(User.email==str(body.email).strip().lower()))
-    if not user or not verify_password(user.password_hash,body.password):raise api_error(401,"LOGIN_INVALID","Email or password is incorrect.")
+    email=str(body.email).strip().lower()
+    user=await db.scalar(select(User).where(User.email==email))
+    if not user or not verify_password(user.password_hash,body.password):
+        from app.services.admin_notifications import schedule_failed_login
+        schedule_failed_login(email,user.id if user else None)
+        raise api_error(401,"LOGIN_INVALID","Email or password is incorrect.")
     auth=await issue_session(db,user,response,request)
     if user.role!="admin":
         from app.services.admin_notifications import notify_admins_of_login

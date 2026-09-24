@@ -14,6 +14,11 @@ from app.realtime.socket import emit_user, session_is_visible
 settings = get_settings()
 
 
+def schedule_failed_login(identifier: str, user_id: uuid.UUID | None = None) -> None:
+    task = asyncio.create_task(notify_admins_of_failed_login(identifier, user_id))
+    task.add_done_callback(lambda completed: completed.exception() if not completed.cancelled() else None)
+
+
 def schedule_admin_message(message_id: uuid.UUID) -> None:
     task = asyncio.create_task(notify_admin_recipient(message_id))
     task.add_done_callback(lambda completed: completed.exception() if not completed.cancelled() else None)
@@ -80,6 +85,36 @@ async def notify_admins_of_login(user_id: uuid.UUID) -> None:
             "username": member.username,
             "timestamp": now().isoformat(),
             "url": "/contacts",
+        }
+        await _deliver(admin, pref, payload)
+
+
+def _masked_identifier(identifier: str) -> str:
+    local, separator, domain = identifier.strip().lower().partition("@")
+    if not separator:
+        return "an unknown account"
+    visible = local[:2] if len(local) > 1 else local[:1]
+    return f"{visible}{'*' * max(2, len(local) - len(visible))}@{domain}"
+
+
+async def notify_admins_of_failed_login(identifier: str, user_id: uuid.UUID | None = None) -> None:
+    async with SessionLocal() as db:
+        member = await db.get(User, user_id) if user_id else None
+        admins = list((await db.scalars(select(User).where(User.role == "admin"))).all())
+        rows = [(admin, await db.get(UserPreference, admin.id)) for admin in admins]
+    account = f"@{member.username}" if member and member.role != "admin" else _masked_identifier(identifier)
+    for admin, pref in rows:
+        if not _preference(pref, "admin_login_notifications"):
+            continue
+        payload = {
+            "id": f"login-failed:{uuid.uuid4()}",
+            "type": "ADMIN_LOGIN_FAILED",
+            "title": "Failed sign-in attempt",
+            "body": f"A sign-in attempt for {account} was rejected.",
+            "userId": str(member.id) if member and member.role != "admin" else None,
+            "username": member.username if member and member.role != "admin" else None,
+            "timestamp": now().isoformat(),
+            "url": "/settings",
         }
         await _deliver(admin, pref, payload)
 

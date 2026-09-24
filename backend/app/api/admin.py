@@ -1,15 +1,18 @@
-from sqlalchemy import distinct, func, or_, select
+import uuid
+
+from sqlalchemy import distinct, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends
 from sqlalchemy import delete
 
-from app.api.deps import api_error, current_admin, current_auth
+from app.api.deps import api_error, current_auth
 from app.db.session import get_db
 from app.models import PushSubscription, RefreshSession, User, UserPreference, now
 from app.schemas.inputs import AdminNotificationPreferencesIn, PushSubscriptionIn
 from app.services.sessions import AuthenticatedSession
 from app.config.settings import get_settings
 from app.services.sessions import IDLE_TIMEOUT
+from app.realtime.socket import emit_user
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 settings = get_settings()
@@ -82,22 +85,69 @@ async def remove_push_subscription(auth: AuthenticatedSession = Depends(current_
     await db.commit()
 
 
+def active_session_filter(current):
+    return (
+        RefreshSession.revoked_at.is_(None),
+        RefreshSession.expires_at > current,
+        or_(User.role == "admin", RefreshSession.last_activity_at > current - IDLE_TIMEOUT),
+    )
+
+
 @router.get("/metrics")
-async def admin_metrics(
-    _: User = Depends(current_admin),
-    db: AsyncSession = Depends(get_db),
-):
+async def admin_metrics(auth: AuthenticatedSession = Depends(current_auth), db: AsyncSession = Depends(get_db)):
+    if auth.user.role != "admin":
+        raise api_error(403, "ADMIN_REQUIRED", "Administrator access is required.")
     current = now()
     signed_in_users = await db.scalar(
         select(func.count(distinct(RefreshSession.user_id)))
         .join(User, User.id == RefreshSession.user_id)
         .where(
-            RefreshSession.revoked_at.is_(None),
-            RefreshSession.expires_at > current,
-            or_(
-                User.role == "admin",
-                RefreshSession.last_activity_at > current - IDLE_TIMEOUT,
-            ),
+            *active_session_filter(current),
         )
     )
-    return {"signedInUsers": int(signed_in_users or 0)}
+    rows = (await db.execute(
+        select(
+            User.id,
+            User.display_name,
+            User.username,
+            User.role,
+            func.count(RefreshSession.id),
+            func.max(RefreshSession.last_activity_at),
+        )
+        .join(RefreshSession, RefreshSession.user_id == User.id)
+        .where(*active_session_filter(current))
+        .group_by(User.id, User.display_name, User.username, User.role)
+        .order_by(func.max(RefreshSession.last_activity_at).desc())
+    )).all()
+    return {
+        "signedInUsers": int(signed_in_users or 0),
+        "people": [{
+            "userId": str(user_id),
+            "displayName": display_name,
+            "username": username,
+            "sessionCount": int(session_count),
+            "lastActiveAt": last_active_at.isoformat(),
+            "isCurrentUser": user_id == auth.user.id,
+            "canRevoke": role != "admin" and user_id != auth.user.id,
+        } for user_id, display_name, username, role, session_count, last_active_at in rows],
+    }
+
+
+@router.delete("/sessions/{user_id}", status_code=204)
+async def revoke_user_sessions(user_id: uuid.UUID, auth: AuthenticatedSession = Depends(current_auth), db: AsyncSession = Depends(get_db)):
+    if auth.user.role != "admin":
+        raise api_error(403, "ADMIN_REQUIRED", "Administrator access is required.")
+    if user_id == auth.user.id:
+        raise api_error(400, "ADMIN_SESSION_PROTECTED", "Use Log out to end your own administrator session.")
+    target = await db.get(User, user_id)
+    if not target:
+        raise api_error(404, "USER_NOT_FOUND", "This account no longer exists.")
+    if target.role == "admin":
+        raise api_error(403, "ADMIN_SESSION_PROTECTED", "Administrator sessions cannot be ended from this control.")
+    await db.execute(
+        update(RefreshSession)
+        .where(RefreshSession.user_id == user_id, RefreshSession.revoked_at.is_(None))
+        .values(revoked_at=now())
+    )
+    await db.commit()
+    await emit_user(user_id, "session:revoked", {"code": "SESSION_REVOKED"})

@@ -120,7 +120,7 @@ async def main() -> None:
                 403,
                 lambda: current_admin(user_a),
             )
-            metrics = await admin.admin_metrics(user_b, session)
+            metrics = await admin.admin_metrics(auth.AuthenticatedSession(user=user_b, session=admin_session), session)
             assert metrics["signedInUsers"] >= 2, "admin metrics omitted valid signed-in users"
             assert (await validate_session(session, user_b.id, admin_session.id)).user.role == "admin"
             try:

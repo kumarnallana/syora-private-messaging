@@ -35,6 +35,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [logout, setLogout] = useState(false);
   const [adminNotification, setAdminNotification] = useState<AdminNotificationEvent>();
+  const [showPushPrompt, setShowPushPrompt] = useState(false);
+  const [pushPromptPending, setPushPromptPending] = useState(false);
+  const [pushPromptError, setPushPromptError] = useState("");
   useEffect(() => {
     window.dispatchEvent(new Event("syora:navigation"));
   }, [pathname]);
@@ -74,6 +77,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (sessionReady && !me) router.replace("/login");
   }, [sessionReady, me, router]);
+  useEffect(() => {
+    if (me?.role !== "admin" || !("Notification" in window) || Notification.permission !== "default") return;
+    if (sessionStorage.getItem("syora:push-prompt-dismissed") === "true") return;
+    void services.getAdminNotificationSettings().then(settings => setShowPushPrompt(settings.pushSupported && !settings.pushEnabled)).catch(() => {});
+  }, [me?.id, me?.role, services]);
   if (!sessionReady) return <Loading />;
   if (sessionError) return <div className="recovery-state" role="alert"><Shield size={28}/><h1>Your space could not be loaded</h1><p>{sessionError}</p><Button variant="secondary" onClick={() => void services.retryBootstrap()}>Try again</Button></div>;
   if (!me) return <Loading />;
@@ -131,6 +139,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <div className="app-content">{children}</div>
       {connection === "connecting" && <div className="connection-banner" role="status">Connecting…</div>}
       {connection === "offline" && <div className="connection-banner" role="status">Offline — new activity will reconnect automatically.</div>}
+      {showPushPrompt && <aside className="admin-push-prompt" aria-label="Enable administrator notifications"><span className="admin-notification-icon"><Bell size={18}/></span><span><strong>Know when someone tries to sign in</strong><small>Allow notifications to receive successful and failed sign-in alerts on this device, even while SYORA is closed.</small>{pushPromptError && <small className="inline-error" role="alert">{pushPromptError}</small>}<span className="admin-push-prompt__actions"><button type="button" className="button secondary small" onClick={() => { sessionStorage.setItem("syora:push-prompt-dismissed", "true"); setShowPushPrompt(false); }}>Later</button><button type="button" className="button small" disabled={pushPromptPending} onClick={() => { setPushPromptError(""); setPushPromptPending(true); void services.enableAdminPush().then(() => setShowPushPrompt(false)).catch(cause => setPushPromptError(cause instanceof Error ? cause.message : "Notifications could not be enabled." )).finally(() => setPushPromptPending(false)); }}>Allow notifications</button></span></span></aside>}
       {adminNotification && <button className="admin-notification-toast" type="button" onClick={() => { router.push(adminNotification.url); setAdminNotification(undefined); }}><span className="admin-notification-icon"><Bell size={18}/></span><span><strong>{adminNotification.title}</strong><small>{adminNotification.body}</small></span></button>}
       {logout && (
         <Modal

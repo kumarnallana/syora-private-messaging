@@ -54,6 +54,18 @@ class AdminNotificationTests(unittest.IsolatedAsyncioTestCase):
             await admin_notifications.notify_admins_of_login(admin.id)
         deliver.assert_not_awaited()
 
+    async def test_failed_member_login_notifies_admin_without_password_data(self):
+        member, admin = user(), user("admin", "Admin", "admin")
+        pref = UserPreference(user_id=admin.id, admin_login_notifications=True)
+        db = FakeSession({(User, member.id): member, (UserPreference, admin.id): pref}, [admin])
+        deliver = AsyncMock()
+        with patch.object(admin_notifications, "SessionLocal", return_value=db), patch.object(admin_notifications, "_deliver", deliver):
+            await admin_notifications.notify_admins_of_failed_login(member.email, member.id)
+        payload = deliver.await_args.args[2]
+        self.assertEqual(payload["type"], "ADMIN_LOGIN_FAILED")
+        self.assertIn("@member", payload["body"])
+        self.assertNotIn(member.email, payload["body"])
+
     async def test_direct_admin_message_respects_preview_setting(self):
         sender, admin = user(), user("admin", "Admin", "admin")
         message = Message(id=uuid.uuid4(), conversation_id=uuid.uuid4(), sender_id=sender.id, text="private preview", type=MessageType.TEXT, created_at=now())

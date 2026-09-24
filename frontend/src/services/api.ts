@@ -365,7 +365,19 @@ export class ApiServices implements Services {
       preferences: { ...defaults, ...local, ...preferences },
       sessionError: undefined,
     });
+    const currentUser = this.state.users.find(user => user.id === this.state.currentUserId);
+    if (currentUser?.role === "admin") void this.restoreAdminPush();
     void this.connectSocket();
+  }
+  private async restoreAdminPush() {
+    if (typeof window === "undefined" || localStorage.getItem("syora:admin-push-disabled") === "true") return;
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    try {
+      const settings = await this.getAdminNotificationSettings();
+      if (settings.pushSupported && !settings.pushEnabled) await this.enableAdminPush();
+    } catch {
+      // The in-app socket remains available when browser push cannot be restored.
+    }
   }
   private async connectSocket() {
     if (!this.token || this.socket?.connected) return;
@@ -495,6 +507,7 @@ export class ApiServices implements Services {
       if (this.adminNotificationIds.size > 100) this.adminNotificationIds.delete(this.adminNotificationIds.values().next().value!);
       window.dispatchEvent(new CustomEvent("syora:admin-notification", { detail: notification }));
     });
+    socket.on("session:revoked", () => this.endLocalSession(undefined, false));
     socket.on("session:expired", () => this.endLocalSession(IDLE_MESSAGE));
     socket.on("disconnect", () => this.update({ connection: "offline" }));
   }
@@ -951,6 +964,9 @@ export class ApiServices implements Services {
   async getAdminMetrics(): Promise<AdminMetrics> {
     return this.fetch<AdminMetrics>("/api/admin/metrics");
   }
+  async revokeAdminSessions(userId: string): Promise<void> {
+    await this.fetch<void>(`/api/admin/sessions/${encodeURIComponent(userId)}`, { method: "DELETE" });
+  }
   async getAdminNotificationSettings(): Promise<AdminNotificationSettings> {
     return this.fetch<AdminNotificationSettings>("/api/admin/notifications");
   }
@@ -966,12 +982,15 @@ export class ApiServices implements Services {
     const registration = await navigator.serviceWorker.register("/sw.js");
     const existing = await registration.pushManager.getSubscription();
     const subscription = existing || await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(settings.publicKey) });
-    return this.fetch<AdminNotificationSettings>("/api/admin/push-subscriptions", { method: "POST", body: JSON.stringify(subscription.toJSON()) });
+    const next = await this.fetch<AdminNotificationSettings>("/api/admin/push-subscriptions", { method: "POST", body: JSON.stringify(subscription.toJSON()) });
+    localStorage.removeItem("syora:admin-push-disabled");
+    return next;
   }
   async disableAdminPush(): Promise<AdminNotificationSettings> {
     await this.fetch<void>("/api/admin/push-subscriptions", { method: "DELETE" });
     const registration = "serviceWorker" in navigator ? await navigator.serviceWorker.getRegistration("/sw.js") : undefined;
     await (await registration?.pushManager.getSubscription())?.unsubscribe();
+    localStorage.setItem("syora:admin-push-disabled", "true");
     return this.getAdminNotificationSettings();
   }
 }

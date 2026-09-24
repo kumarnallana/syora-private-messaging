@@ -123,7 +123,10 @@
     @apply break-words text-[12px] text-muted;
   }
   .admin-session-count {
-    @apply my-[18px] flex flex-wrap items-center justify-between gap-[14px] rounded-[11px] border border-accent/35 bg-surface p-[15px];
+    @apply my-[18px] grid gap-[14px] rounded-[11px] border border-accent/35 bg-surface p-[15px];
+  }
+  .admin-session-summary {
+    @apply flex flex-wrap items-center justify-between gap-[14px];
   }
   .admin-session-copy,
   .admin-session-value {
@@ -148,7 +151,34 @@
     @apply size-10;
   }
   .admin-session-count > .inline-error {
-    @apply basis-full pb-0;
+    @apply pb-0;
+  }
+  .admin-session-list {
+    @apply grid border-t border-border;
+  }
+  .admin-session-person {
+    @apply flex min-w-0 items-center justify-between gap-[12px] border-b border-border py-[12px] last:border-b-0 last:pb-0;
+  }
+  .admin-session-person > span {
+    @apply grid min-w-0 gap-[4px];
+  }
+  .admin-session-person strong {
+    @apply flex items-center gap-[8px] text-[13px] font-medium;
+  }
+  .admin-session-person strong > em {
+    @apply rounded-full bg-accent/15 px-[7px] py-[2px] text-[10px] not-italic text-accent;
+  }
+  .admin-session-person small {
+    @apply break-words text-[11px] leading-[1.45] text-muted;
+  }
+  .admin-session-person .button {
+    @apply shrink-0;
+  }
+  .admin-session-person .button > svg {
+    @apply size-[14px];
+  }
+  .admin-session-empty {
+    @apply border-t border-border pt-[13px];
   }
   .blocked-row {
     @apply min-h-[58px] border-b border-border;
@@ -290,6 +320,15 @@
     }
     .admin-session-count {
       @apply mb-[14px] mt-0;
+    }
+    .admin-session-person {
+      @apply items-start;
+    }
+    .admin-session-person .button {
+      @apply px-[10px];
+    }
+    .admin-push-control {
+      @apply items-start;
     }
     .choice-row {
       @apply flex-col items-stretch gap-[12px] px-[14px] py-[15px];
