@@ -144,20 +144,20 @@
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f4f3f7;
-  --panel: #fbfafc;
-  --surface: #eeecf3;
-  --elevated: #e4e0ea;
-  --border: #d9d5e1;
-  --text: #282331;
-  --muted: #696274;
-  --subtle: #81798b;
-  --accent: #6952ad;
-  --accent-strong: #594493;
+  --bg: #f5f3f8;
+  --panel: #ffffff;
+  --surface: #eeeaf3;
+  --elevated: #ddd6e8;
+  --border: #cbc4d4;
+  --text: #211b2a;
+  --muted: #5f5669;
+  --subtle: #746a7e;
+  --accent: #6548b4;
+  --accent-strong: #513795;
   --danger: #b63f59;
   --success: #347253;
-  --accent-soft: #e6def5;
-  --selection: #e6def5;
+  --accent-soft: #e9e1f7;
+  --selection: #e4daf5;
   --message-outgoing: #e2d9f2;
   --message-incoming: var(--surface);
   --danger-soft: #f7e2e6;

@@ -104,7 +104,7 @@
   }
   @media (min-width: 900px) {
     .status-page {
-      @apply grid content-start gap-x-[24px] gap-y-[20px];
+      @apply grid content-start items-start gap-x-[24px] gap-y-[20px];
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .status-page > .page-header,

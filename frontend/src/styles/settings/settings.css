@@ -254,6 +254,21 @@
     to { opacity: 1; transform: translate(-50%, 0); }
   }
 
+  @media (min-width: 900px) {
+    .choice-row {
+      display: grid;
+      grid-template-columns: minmax(150px, 210px) minmax(0, 420px);
+      justify-content: start;
+      gap: 24px;
+      padding: 12px 14px;
+    }
+    .choice-options {
+      width: fit-content;
+    }
+    .choice-options button {
+      min-width: 88px;
+    }
+  }
   @media (max-width: 899px) {
     .settings-toast {
       top: calc(env(safe-area-inset-top) + 82px);

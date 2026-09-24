@@ -8,6 +8,9 @@
   .people-workspace {
     @apply max-w-[1100px];
   }
+  .people-workspace .page-search {
+    @apply w-full max-w-[760px];
+  }
   .person-card {
     @apply flex items-center gap-[14px] border-b border-border px-[4px] py-[12px];
   }
@@ -77,6 +80,28 @@
     @apply mt-[24px];
   }
 
+  @media (min-width: 900px) {
+    .people-workspace > section .empty-state {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      column-gap: 15px;
+      row-gap: 4px;
+      max-width: 760px;
+      margin-top: 14px;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel);
+      text-align: left;
+    }
+    .people-workspace > section .empty-state__icon {
+      grid-row: 1 / 3;
+    }
+    .people-workspace > section .empty-state p {
+      max-width: none;
+    }
+  }
   @media (max-width: 899px) {
     .person-card {
       @apply grid gap-[9px_10px] py-[14px];
