@@ -20,7 +20,7 @@
     from { opacity: 0; transform: translateY(-8px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  @media (max-width: 767px) {
+  @media (max-width: 899px) {
     .admin-notification-toast {
       @apply left-[14px] right-[14px] top-[calc(env(safe-area-inset-top)+12px)] max-w-none;
     }

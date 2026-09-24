@@ -1,6 +1,6 @@
 @layer components {
   .settings-page {
-    @apply mx-auto max-w-[820px];
+    @apply mx-auto max-w-[1120px];
   }
   .settings-desktop-content {
     @apply overflow-hidden rounded-[12px] bg-panel px-[24px];
@@ -254,7 +254,7 @@
     to { opacity: 1; transform: translate(-50%, 0); }
   }
 
-  @media (max-width: 767px) {
+  @media (max-width: 899px) {
     .settings-toast {
       top: calc(env(safe-area-inset-top) + 82px);
     }

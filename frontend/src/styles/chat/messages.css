@@ -148,7 +148,7 @@
       @apply px-[18px];
     }
   }
-  @media (max-width: 767px) {
+  @media (max-width: 899px) {
     .chat-header {
       @apply h-[65px] gap-[8px] px-[8px] py-[9px];
     }

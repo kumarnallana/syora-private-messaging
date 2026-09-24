@@ -100,7 +100,7 @@
     @apply mt-[22px] flex flex-col gap-[9px];
   }
 
-  @media (max-width: 767px) {
+  @media (max-width: 899px) {
     .message-actions-wrap {
       @apply relative transform-none;
     }

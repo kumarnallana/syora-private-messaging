@@ -1,22 +1,24 @@
 @layer components {
   .app-shell {
     --syora-nav-height: 65px;
-    @apply flex flex-col overflow-hidden md:flex-row;
-    height: 100dvh;
+    @apply flex flex-col overflow-hidden;
+    height: var(--syora-viewport-height, 100dvh);
+    padding-bottom: calc(var(--syora-nav-height) + env(safe-area-inset-bottom));
     background: var(--bg);
   }
 
   .rail {
-    @apply fixed bottom-0 left-0 z-[100] flex h-[65px] w-full flex-row items-center border-t border-border bg-panel px-[10px] md:static md:h-auto md:w-[68px] md:flex-col md:border-r md:border-t-0 md:px-[8px] md:py-[18px];
+    @apply fixed bottom-0 left-0 z-[100] flex h-[65px] w-full flex-row items-center border-t border-border bg-panel px-[10px];
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
   }
   .rail__brand {
-    @apply hidden md:grid md:size-11 md:place-items-center;
+    @apply hidden;
   }
   .rail__nav {
-    @apply flex w-full justify-around md:mt-[26px] md:block;
+    @apply flex w-full justify-around;
   }
   .rail-link {
-    @apply relative flex min-h-11 flex-col items-center justify-center gap-[4px] rounded-[10px] py-1.5 text-muted transition-[color,background-color] duration-150 hover:bg-surface hover:text-text-primary md:mb-1 md:h-[50px] md:w-full md:p-0;
+    @apply relative flex min-h-11 flex-col items-center justify-center gap-[4px] rounded-[10px] py-1.5 text-muted transition-[color,background-color] duration-150 hover:bg-surface hover:text-text-primary;
   }
   .rail-link.is-active {
     @apply text-accent;
@@ -24,7 +26,7 @@
   }
   .rail-link.is-active::before {
     content: "";
-    @apply absolute hidden rounded-full bg-accent md:block;
+    @apply absolute hidden rounded-full bg-accent;
     left: -8px;
     width: 3px;
     height: 22px;
@@ -36,7 +38,7 @@
     @apply hover:text-danger;
   }
   .rail-bottom {
-    @apply hidden md:mt-auto md:flex md:w-full md:flex-col md:items-center md:gap-[12px];
+    @apply hidden;
   }
   .profile-link {
     @apply grid place-items-center rounded-full transition-transform duration-150 hover:scale-[1.03];
@@ -51,7 +53,7 @@
     @apply fixed left-1/2 top-[12px] z-[140] -translate-x-1/2 rounded-full border border-border bg-elevated px-[14px] py-[8px] text-[12px] font-medium text-muted shadow-lg;
   }
   .mobile-header {
-    @apply flex h-[60px] items-center gap-[15px] border-b border-border bg-panel px-[15px] md:hidden;
+    @apply sticky top-0 z-20 -mx-[18px] mb-[20px] flex h-[60px] items-center gap-[15px] border-b border-border bg-panel px-[15px];
   }
   .mobile-header__title {
     @apply text-[17px] font-semibold;
@@ -63,26 +65,47 @@
     @apply flex items-center justify-center gap-[7px] p-4 text-[12px] text-muted;
   }
 
-  @media (max-width: 767px) {
+  .app-shell:has(input:focus, textarea:focus) {
+    @apply pb-0;
+  }
+  .app-shell:has(input:focus, textarea:focus) > .rail {
+    @apply hidden;
+  }
+  .page-header {
+    @apply hidden;
+  }
+
+  @media (min-width: 900px) {
     .app-shell {
-      height: var(--syora-viewport-height, 100dvh);
-      padding-bottom: calc(var(--syora-nav-height) + env(safe-area-inset-bottom));
+      @apply flex-row pb-0;
+      height: 100dvh;
     }
     .rail {
-      padding-bottom: max(6px, env(safe-area-inset-bottom));
+      @apply static h-auto w-[68px] flex-col border-r border-t-0 px-[8px] py-[18px];
     }
-    .app-shell:has(input:focus, textarea:focus) {
-      @apply pb-0;
+    .rail__brand {
+      @apply grid size-11 place-items-center;
     }
-    .app-shell:has(input:focus, textarea:focus) > .rail,
+    .rail__nav {
+      @apply mt-[26px] block;
+    }
+    .rail-link {
+      @apply mb-1 h-[50px] w-full p-0;
+    }
+    .rail-link.is-active::before {
+      @apply block;
+    }
     .rail-bottom {
-      @apply hidden;
-    }
-    .page-header {
-      @apply hidden;
+      @apply mt-auto flex w-full flex-col items-center gap-[12px];
     }
     .mobile-header {
-      @apply sticky top-0 z-20 -mx-[18px] mb-[20px];
+      @apply hidden;
+    }
+    .app-shell:has(input:focus, textarea:focus) > .rail {
+      @apply flex;
+    }
+    .page-header {
+      @apply flex;
     }
   }
 }

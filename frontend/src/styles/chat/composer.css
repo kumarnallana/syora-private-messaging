@@ -75,7 +75,7 @@
       @apply px-[14px];
     }
   }
-  @media (max-width: 767px) {
+  @media (max-width: 899px) {
     .composer-wrap {
       padding: 7px 8px max(8px, env(safe-area-inset-bottom));
     }

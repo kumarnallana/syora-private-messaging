@@ -172,7 +172,7 @@
 :root[data-theme="light"] .unread-badge {
   color: white;
 }
-@media (max-width: 767px) {
+@media (max-width: 899px) {
   .rail {
     padding-left: 6px;
     padding-right: 6px;

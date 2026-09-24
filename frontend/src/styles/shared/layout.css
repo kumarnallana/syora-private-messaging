@@ -3,7 +3,7 @@
     @apply h-full overflow-auto p-[32px_clamp(24px,4vw,56px)_48px];
   }
   .page-view.is-narrow {
-    @apply m-auto max-w-[900px];
+    @apply m-auto max-w-[1160px];
   }
   .page-view > .preview-note {
     @apply mt-[35px];
@@ -32,7 +32,7 @@
     @apply rounded-[5px] bg-surface p-[3px_7px] text-[12px] text-muted;
   }
 
-  @media (max-width: 767px) {
+  @media (max-width: 899px) {
     .page-view {
       @apply p-[0_18px_92px];
     }

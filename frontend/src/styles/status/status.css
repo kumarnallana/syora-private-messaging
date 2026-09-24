@@ -1,9 +1,12 @@
 @layer components {
   .status-page {
-    @apply mx-auto max-w-[980px];
+    @apply mx-auto max-w-[1280px];
   }
   .status-page > section {
     @apply border-b border-border/70 pb-[18px];
+  }
+  .status-page > section > .empty-state {
+    @apply py-[34px];
   }
   .status-grid {
     @apply grid grid-cols-1 gap-[4px];
@@ -100,7 +103,7 @@
     @apply flex items-center justify-center gap-[15px] text-muted;
   }
 
-  @media (max-width: 767px) {
+  @media (max-width: 899px) {
     .status-page .empty-state {
       @apply gap-[11px] py-[24px];
     }

@@ -37,7 +37,7 @@
     @apply w-[min(420px,calc(100vw-30px))];
   }
 
-  @media (max-width: 767px) {
+  @media (max-width: 899px) {
     .mobile-sheet {
       @apply inset-x-0 bottom-0 top-auto m-0 w-full max-w-none rounded-b-none border-x-0 border-b-0 px-[18px];
       padding-bottom: max(18px, env(safe-area-inset-bottom));
