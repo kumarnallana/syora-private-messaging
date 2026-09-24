@@ -105,6 +105,7 @@ async def admin_metrics(auth: AuthenticatedSession = Depends(current_auth), db: 
             *active_session_filter(current),
         )
     )
+    active_session_count = func.count(RefreshSession.id).filter(*active_session_filter(current))
     rows = (await db.execute(
         select(
             User.id,
@@ -112,24 +113,29 @@ async def admin_metrics(auth: AuthenticatedSession = Depends(current_auth), db: 
             User.username,
             User.role,
             func.count(RefreshSession.id),
+            active_session_count,
+            func.max(RefreshSession.created_at),
             func.max(RefreshSession.last_activity_at),
         )
         .join(RefreshSession, RefreshSession.user_id == User.id)
-        .where(*active_session_filter(current))
         .group_by(User.id, User.display_name, User.username, User.role)
-        .order_by(func.max(RefreshSession.last_activity_at).desc())
+        .order_by(active_session_count.desc(), func.max(RefreshSession.last_activity_at).desc())
     )).all()
+    previous_users = sum(1 for row in rows if int(row[5]) == 0)
     return {
         "signedInUsers": int(signed_in_users or 0),
+        "previouslySignedInUsers": previous_users,
         "people": [{
             "userId": str(user_id),
             "displayName": display_name,
             "username": username,
-            "sessionCount": int(session_count),
+            "totalSessionCount": int(total_session_count),
+            "activeSessionCount": int(active_count),
+            "lastSignedInAt": last_signed_in_at.isoformat(),
             "lastActiveAt": last_active_at.isoformat(),
             "isCurrentUser": user_id == auth.user.id,
-            "canRevoke": role != "admin" and user_id != auth.user.id,
-        } for user_id, display_name, username, role, session_count, last_active_at in rows],
+            "canRevoke": int(active_count) > 0 and role != "admin" and user_id != auth.user.id,
+        } for user_id, display_name, username, role, total_session_count, active_count, last_signed_in_at, last_active_at in rows],
     }
 
 

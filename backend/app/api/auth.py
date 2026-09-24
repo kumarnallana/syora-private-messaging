@@ -93,9 +93,8 @@ async def reset_password(body: ResetPasswordIn, request: Request, db: AsyncSessi
         # Update the password transactionally
         user.password_hash = hash_password(body.password)
         
-        # Invalidate all existing refresh sessions for this user
-        from sqlalchemy import delete
-        await db.execute(delete(RefreshSession).where(RefreshSession.user_id == user.id))
+        # Invalidate existing sessions while retaining their sign-in history for the admin audit view.
+        await db.execute(update(RefreshSession).where(RefreshSession.user_id == user.id, RefreshSession.revoked_at.is_(None)).values(revoked_at=now()))
         
         await db.commit()
         return {"message": "Password updated successfully."}

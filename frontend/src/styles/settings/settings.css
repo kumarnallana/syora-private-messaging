@@ -128,8 +128,7 @@
   .admin-session-summary {
     @apply flex flex-wrap items-center justify-between gap-[14px];
   }
-  .admin-session-copy,
-  .admin-session-value {
+  .admin-session-copy {
     @apply flex items-center gap-[11px];
   }
   .admin-session-copy > svg {
@@ -144,11 +143,20 @@
   .admin-session-copy small {
     @apply text-[12px] text-muted;
   }
-  .admin-session-value > strong {
-    @apply min-w-[42px] text-right text-[28px] font-medium text-accent;
+  .admin-session-summary > .icon-button {
+    @apply size-10 shrink-0;
   }
-  .admin-session-value .icon-button {
-    @apply size-10;
+  .admin-session-totals {
+    @apply grid grid-cols-2 gap-[10px];
+  }
+  .admin-session-totals > span {
+    @apply grid gap-[3px] rounded-[9px] bg-elevated px-[13px] py-[10px];
+  }
+  .admin-session-totals small {
+    @apply text-[11px] text-muted;
+  }
+  .admin-session-totals strong {
+    @apply text-[24px] font-medium text-accent;
   }
   .admin-session-count > .inline-error {
     @apply pb-0;
@@ -167,6 +175,12 @@
   }
   .admin-session-person strong > em {
     @apply rounded-full bg-accent/15 px-[7px] py-[2px] text-[10px] not-italic text-accent;
+  }
+  .admin-session-person strong > em.is-active {
+    @apply bg-success/15 text-success;
+  }
+  .admin-session-person strong > em.is-previous {
+    @apply bg-elevated text-muted;
   }
   .admin-session-person small {
     @apply break-words text-[11px] leading-[1.45] text-muted;
