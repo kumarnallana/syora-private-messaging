@@ -1,9 +1,9 @@
 @layer components {
   .profile-page {
-    @apply max-w-[1160px];
+    @apply max-w-[1320px];
   }
   .profile-editor {
-    @apply grid items-start gap-[clamp(28px,4vw,56px)] [grid-template-columns:minmax(210px,280px)_minmax(0,720px)];
+    @apply grid items-start gap-[clamp(28px,4vw,56px)] [grid-template-columns:minmax(220px,300px)_minmax(0,1fr)];
   }
   .avatar-column {
     @apply flex flex-col items-center gap-[12px] py-[12px];

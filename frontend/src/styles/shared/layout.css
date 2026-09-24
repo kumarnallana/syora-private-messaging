@@ -1,9 +1,9 @@
 @layer components {
   .page-view {
-    @apply h-full overflow-auto p-[32px_clamp(24px,4vw,56px)_48px];
+    @apply h-full w-full min-w-0 overflow-auto p-[32px_clamp(24px,4vw,56px)_48px];
   }
   .page-view.is-narrow {
-    @apply m-auto max-w-[1160px];
+    @apply m-auto max-w-[1440px];
   }
   .page-view > .preview-note {
     @apply mt-[35px];

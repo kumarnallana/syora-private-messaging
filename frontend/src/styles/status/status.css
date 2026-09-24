@@ -1,12 +1,12 @@
 @layer components {
   .status-page {
-    @apply mx-auto max-w-[1280px];
+    @apply mx-auto max-w-[1480px];
   }
   .status-page > section {
     @apply border-b border-border/70 pb-[18px];
   }
   .status-page > section > .empty-state {
-    @apply py-[34px];
+    @apply py-[30px];
   }
   .status-grid {
     @apply grid grid-cols-1 gap-[4px];
@@ -102,7 +102,26 @@
   .viewer-controls {
     @apply flex items-center justify-center gap-[15px] text-muted;
   }
-
+  @media (min-width: 900px) {
+    .status-page {
+      @apply grid content-start gap-x-[24px] gap-y-[20px];
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .status-page > .page-header,
+    .status-page > .inline-error,
+    .status-page > section:nth-of-type(n + 3) {
+      grid-column: 1 / -1;
+    }
+    .status-page > .page-header {
+      @apply mb-0;
+    }
+    .status-page > section {
+      @apply rounded-[12px] border border-border bg-panel px-[18px] pb-[18px];
+    }
+    .status-page > section > .section-heading {
+      @apply mt-[18px];
+    }
+  }
   @media (max-width: 899px) {
     .status-page .empty-state {
       @apply gap-[11px] py-[24px];

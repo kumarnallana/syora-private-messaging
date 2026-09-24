@@ -1,6 +1,6 @@
 @layer components {
   .settings-page {
-    @apply mx-auto max-w-[1120px];
+    @apply mx-auto max-w-[1440px];
   }
   .settings-desktop-content {
     @apply overflow-hidden rounded-[12px] bg-panel px-[24px];

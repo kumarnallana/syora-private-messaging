@@ -3,10 +3,10 @@
     @apply flex flex-col gap-[8px];
   }
   .contacts-page {
-    @apply mx-auto max-w-[1180px];
+    @apply mx-auto max-w-[1440px];
   }
   .people-workspace {
-    @apply max-w-[900px];
+    @apply max-w-[1100px];
   }
   .person-card {
     @apply flex items-center gap-[14px] border-b border-border px-[4px] py-[12px];
