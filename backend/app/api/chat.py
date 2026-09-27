@@ -23,14 +23,15 @@ def direct_key(a: uuid.UUID, b: uuid.UUID) -> str:
 async def conversation_out(db: AsyncSession, conversation: Conversation, participant: ConversationParticipant, user_id: uuid.UUID) -> dict:
     other_id = await db.scalar(select(ConversationParticipant.user_id).where(ConversationParticipant.conversation_id == conversation.id, ConversationParticipant.user_id != user_id))
     other = await db.get(User, other_id) if other_id else None
-    unread = await db.scalar(select(func.count()).select_from(MessageReceipt).join(Message, Message.id == MessageReceipt.message_id).where(Message.conversation_id == conversation.id, MessageReceipt.user_id == user_id, MessageReceipt.read_at.is_(None))) or 0
-    latest = await db.scalar(select(Message).where(Message.conversation_id == conversation.id).order_by(Message.created_at.desc()).limit(1))
+    hidden_messages = select(MessageVisibility.message_id).where(MessageVisibility.user_id == user_id)
+    unread = await db.scalar(select(func.count()).select_from(MessageReceipt).join(Message, Message.id == MessageReceipt.message_id).where(Message.conversation_id == conversation.id, MessageReceipt.user_id == user_id, MessageReceipt.read_at.is_(None), ~Message.id.in_(hidden_messages))) or 0
+    latest = await db.scalar(select(Message).where(Message.conversation_id == conversation.id, ~Message.id.in_(hidden_messages)).order_by(Message.created_at.desc()).limit(1))
     return {"id": str(conversation.id), "participants": [str(user_id), str(other_id)] if other_id else [str(user_id)], "unread": unread, "pinned": participant.pinned, "muted": participant.muted, "typing": False, "participant": await user_out(db, other, user_id) if other else None, "latestMessage": await message_out(db, latest, user_id) if latest else None}
 
 
 @router.get("/api/conversations")
 async def list_conversations(user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    rows = (await db.execute(select(Conversation, ConversationParticipant).join(ConversationParticipant, ConversationParticipant.conversation_id == Conversation.id).where(ConversationParticipant.user_id == user.id).order_by(ConversationParticipant.pinned.desc(), Conversation.last_message_at.desc().nullslast(), Conversation.created_at.desc()))).all()
+    rows = (await db.execute(select(Conversation, ConversationParticipant).join(ConversationParticipant, ConversationParticipant.conversation_id == Conversation.id).where(ConversationParticipant.user_id == user.id, ConversationParticipant.hidden_at.is_(None)).order_by(ConversationParticipant.pinned.desc(), Conversation.last_message_at.desc().nullslast(), Conversation.created_at.desc()))).all()
     return [await conversation_out(db, c, p, user.id) for c, p in rows]
 
 
@@ -49,7 +50,11 @@ async def create_direct(body: DirectConversationIn, user: User = Depends(current
     key = direct_key(user.id, body.user_id)
     existing = await db.scalar(select(Conversation).where(Conversation.direct_key == key))
     if existing:
-        return await conversation_out(db, existing, await require_participant(existing.id, user, db), user.id)
+        participant = await require_participant(existing.id, user, db)
+        if participant.hidden_at:
+            participant.hidden_at = None
+            await db.commit()
+        return await conversation_out(db, existing, participant, user.id)
     item = Conversation(type=ConversationType.DIRECT, direct_key=key)
     db.add(item)
     await db.flush()
@@ -81,6 +86,42 @@ async def set_conversation_preferences(conversation_id: uuid.UUID, body: Convers
         participant.muted = body.muted
     await db.commit()
     return {"pinned": participant.pinned, "muted": participant.muted}
+
+
+async def hide_conversation_messages(db: AsyncSession, conversation_id: uuid.UUID, user_id: uuid.UUID) -> int:
+    message_ids = list((await db.scalars(select(Message.id).where(Message.conversation_id == conversation_id))).all())
+    if not message_ids:
+        return 0
+    existing = set((await db.scalars(select(MessageVisibility.message_id).where(MessageVisibility.user_id == user_id, MessageVisibility.message_id.in_(message_ids)))).all())
+    db.add_all([MessageVisibility(message_id=message_id, user_id=user_id) for message_id in message_ids if message_id not in existing])
+    receipts = (await db.scalars(select(MessageReceipt).where(MessageReceipt.user_id == user_id, MessageReceipt.message_id.in_(message_ids), MessageReceipt.read_at.is_(None)))).all()
+    timestamp = now()
+    for receipt in receipts:
+        receipt.delivered_at = receipt.delivered_at or timestamp
+        receipt.read_at = timestamp
+    participant = await db.get(ConversationParticipant, {"conversation_id": conversation_id, "user_id": user_id})
+    if participant:
+        participant.last_read_message_id = message_ids[-1]
+    return len(message_ids)
+
+
+@router.post("/api/conversations/{conversation_id}/clear")
+async def clear_conversation(conversation_id: uuid.UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    await require_participant(conversation_id, user, db)
+    cleared = await hide_conversation_messages(db, conversation_id, user.id)
+    await db.commit()
+    return {"cleared": cleared}
+
+
+@router.delete("/api/conversations/{conversation_id}")
+async def delete_conversation(conversation_id: uuid.UUID, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    participant = await require_participant(conversation_id, user, db)
+    cleared = await hide_conversation_messages(db, conversation_id, user.id)
+    participant.hidden_at = now()
+    participant.pinned = False
+    participant.muted = False
+    await db.commit()
+    return {"deleted": True, "cleared": cleared}
 
 
 @router.get("/api/conversations/{conversation_id}/messages")
@@ -128,6 +169,9 @@ async def send_message(conversation_id: uuid.UUID, body: MessageIn, user: User =
                           file_size=body.attachment.file_size, width=body.attachment.width, height=body.attachment.height, duration=body.attachment.duration))
     db.add_all([MessageReceipt(message_id=item.id, user_id=x)
                 for x in other_ids])
+    participants = (await db.scalars(select(ConversationParticipant).where(ConversationParticipant.conversation_id == conversation_id))).all()
+    for participant in participants:
+        participant.hidden_at = None
     conversation = await db.get(Conversation, conversation_id)
     if conversation:
         conversation.last_message_at = item.created_at

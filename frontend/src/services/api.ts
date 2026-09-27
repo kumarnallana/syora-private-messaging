@@ -76,6 +76,20 @@ export class ApiServices implements Services {
   private activeRequests = new Set<AbortController>();
   private adminContextCleanup?: () => void;
   private adminNotificationIds = new Set<string>();
+  private async showAdminSystemNotification(notification: AdminNotificationEvent) {
+    if (typeof window === "undefined" || document.visibilityState === "visible" || !("Notification" in window) || Notification.permission !== "granted") return;
+    const options: NotificationOptions = { body: notification.body, icon: "/icon.svg", badge: "/icon.svg", tag: notification.id, data: { url: notification.url } };
+    try {
+      if ("serviceWorker" in navigator) {
+        const registration = await navigator.serviceWorker.register("/sw.js");
+        await registration.showNotification(notification.title, options);
+        return;
+      }
+      new Notification(notification.title, options);
+    } catch {
+      // The in-app alert remains visible if the operating system rejects a notification.
+    }
+  }
   private announceIncoming(message: Message) {
     if (typeof window === "undefined") return;
     const sender = this.state.users.find((user) => user.id === message.senderId);
@@ -514,6 +528,7 @@ export class ApiServices implements Services {
       this.adminNotificationIds.add(notification.id);
       if (this.adminNotificationIds.size > 100) this.adminNotificationIds.delete(this.adminNotificationIds.values().next().value!);
       window.dispatchEvent(new CustomEvent("syora:admin-notification", { detail: notification }));
+      void this.showAdminSystemNotification(notification);
     });
     socket.on("session:revoked", () => this.endLocalSession(undefined, false));
     socket.on("session:expired", () => this.endLocalSession(IDLE_MESSAGE));
@@ -795,6 +810,22 @@ export class ApiServices implements Services {
       });
     else
       this.update({ messages: this.state.messages.filter((x) => x.id !== id) });
+  }
+  async clearConversation(id: string) {
+    await this.fetch(`/api/conversations/${id}/clear`, { method: "POST" });
+    this.loadedMessages.add(id);
+    this.messageCursors.set(id, null);
+    this.update({ messages: this.state.messages.filter(message => message.conversationId !== id) });
+    this.patchConversation(id, { unread: 0 });
+  }
+  async deleteConversation(id: string) {
+    await this.fetch(`/api/conversations/${id}`, { method: "DELETE" });
+    this.loadedMessages.delete(id);
+    this.messageCursors.delete(id);
+    this.update({
+      conversations: this.state.conversations.filter(conversation => conversation.id !== id),
+      messages: this.state.messages.filter(message => message.conversationId !== id),
+    });
   }
   markRead(id: string) {
     this.patchConversation(id, { unread: 0 });
