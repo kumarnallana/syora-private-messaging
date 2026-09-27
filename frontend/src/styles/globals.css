@@ -201,6 +201,23 @@
 :root[data-theme="light"] .message-row.is-outgoing .reply-quote span {
   color: #e4dcf5;
 }
+:root[data-theme="light"] .message-row.is-outgoing .message-link {
+  color: #ffffff;
+  text-decoration-color: #ffffff8f;
+}
+:root[data-theme="light"] .message-row.is-outgoing .document-message {
+  background: #ffffff1f;
+}
+:root[data-theme="light"] .message-row.is-outgoing .deleted-message {
+  color: #eee9fa !important;
+}
+:root[data-theme="light"] .message-row.is-outgoing .message-bubble.is-emoji-only .message-meta,
+:root[data-theme="light"] .message-row.is-outgoing .message-bubble.is-emoji-only .receipt {
+  color: var(--muted);
+}
+:root[data-theme="light"] .message-row.is-outgoing .message-bubble.is-emoji-only .receipt.is-read {
+  color: var(--accent);
+}
 :root[data-theme="light"] .switch.is-on > span::after {
   background: #ffffff;
 }
