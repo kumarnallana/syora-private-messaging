@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowDown, ArrowLeft, Ban, BellOff, LoaderCircle, MessageCircle, MoreHorizontal, Pin, Search, SquarePen, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, Ban, BellOff, Eraser, LoaderCircle, MessageCircle, MoreHorizontal, Pin, Search, SquarePen, Trash2, X } from 'lucide-react';
 import { useApp } from '@/stores/use-app';
 import { Avatar, Brand, Empty, IconButton, Modal, time } from '@/components/shared/ui';
 import { MessageBubble } from './message-bubble';
@@ -31,6 +31,8 @@ export function Chats() {
  const [hasOlder,setHasOlder]=useState(true);
  const [loadingOlder,setLoadingOlder]=useState(false);
  const [detailBusy,setDetailBusy]=useState<string>();
+ const [conversationAction,setConversationAction]=useState<'clear'|'delete'>();
+ const [conversationActionBusy,setConversationActionBusy]=useState(false);
  const [actionError,setActionError]=useState('');
  const [reply,setReply]=useState<import('@/types').Message>();
  const [wallpaper,setWallpaper]=useState('');
@@ -146,6 +148,22 @@ export function Chats() {
   catch (error) { setActionError(error instanceof Error ? error.message : 'The conversation setting could not be updated.'); }
   finally { setDetailBusy(undefined); }
  }
+ async function runConversationAction() {
+  if (!active || !conversationAction || conversationActionBusy) return;
+  setConversationActionBusy(true); setActionError('');
+  try {
+   if (conversationAction === 'clear') {
+    await services.clearConversation(active.id);
+    setReply(undefined); setHasOlder(false); setMessageState('loaded');
+   } else {
+    await services.deleteConversation(active.id);
+    setSelected(null); router.replace('/chats');
+   }
+   setConversationAction(undefined);
+  } catch (error) {
+   setActionError(error instanceof Error ? error.message : `The conversation could not be ${conversationAction === 'clear' ? 'cleared' : 'deleted'}.`);
+  } finally { setConversationActionBusy(false); }
+ }
  return <div className={`chat-layout ${active && friend ? 'has-conversation' : ''}`}>
   <section className="conversation-panel" aria-label="Conversations">
    <header className="list-header"><Brand/><div className="list-title"><h1>Messages <span className="count">{conversations.length}</span></h1><Link href="/contacts" className="icon-button" aria-label="New conversation" title="New conversation"><SquarePen size={18}/></Link></div><label className="search-field"><Search size={18}/><input aria-label="Search conversations" placeholder="Search conversations" value={query} autoComplete="off" spellCheck={false} onChange={e=>setQuery(e.target.value)}/>{query&&<IconButton label="Clear search" onClick={()=>setQuery('')}><X size={15}/></IconButton>}</label><div className="chat-filters" role="group" aria-label="Conversation filters"><button className={filter==='all'?'is-active':''} aria-pressed={filter==='all'} onClick={()=>setFilter('all')}>All</button><button className={filter==='unread'?'is-active':''} aria-pressed={filter==='unread'} onClick={()=>setFilter('unread')}>Unread</button></div></header>
@@ -190,7 +208,8 @@ export function Chats() {
    </div>
    {showLatest&&<button type="button" className="jump-to-latest" aria-label={latestCount ? 'Jump to '+latestCount+' new message'+(latestCount === 1 ? '' : 's') : 'Jump to latest messages'} onClick={()=>{timelineEnd.current?.scrollIntoView({block:'end',behavior:'smooth'});nearBottom.current=true;setShowLatest(false);setLatestCount(0)}}><ArrowDown size={16}/><span>Latest messages</span>{latestCount>0&&<strong>{latestCount>99?'99+':latestCount}</strong>}</button>}
    <Composer key={`${me!.id}:${active.id}`} conversationId={active.id} blocked={preferences.blocked.includes(friend.id)} reply={reply} clearReply={()=>setReply(undefined)}/>
-   {infoOpen&&<Modal title="Conversation details" className="mobile-sheet conversation-detail-dialog" onClose={()=>setInfoOpen(false)}><div className="person-detail"><Avatar user={friend} size="large"/><h2>{friend.name}</h2><strong className="username">{usernameLabel(friend.username)}</strong><p>{friend.about}</p></div>{actionError&&<p className="inline-error" role="alert">{actionError}</p>}<div className="detail-actions" aria-busy={Boolean(detailBusy)}><button disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('pinned',()=>services.toggleConversation(active.id,'pinned'))}>{detailBusy==='pinned'?<LoaderCircle className="spin" size={18}/>:<Pin size={18}/>}<span>{active.pinned?'Unpin conversation':'Pin conversation'}</span></button><button disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('muted',()=>services.toggleConversation(active.id,'muted'))}>{detailBusy==='muted'?<LoaderCircle className="spin" size={18}/>:<BellOff size={18}/>}<span>{active.muted?'Unmute notifications':'Mute notifications'}</span></button><button className="danger-text" disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('blocked',()=>services.block(friend.id))}>{detailBusy==='blocked'?<LoaderCircle className="spin" size={18}/>:<Ban size={18}/>}<span>{preferences.blocked.includes(friend.id)?'Unblock contact':'Block contact'}</span></button></div></Modal>}
+   {infoOpen&&<Modal title="Conversation details" className="mobile-sheet conversation-detail-dialog" onClose={()=>setInfoOpen(false)}><div className="person-detail"><Avatar user={friend} size="large"/><h2>{friend.name}</h2><strong className="username">{usernameLabel(friend.username)}</strong><p>{friend.about}</p></div>{actionError&&<p className="inline-error" role="alert">{actionError}</p>}<div className="detail-actions" aria-busy={Boolean(detailBusy)}><button disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('pinned',()=>services.toggleConversation(active.id,'pinned'))}>{detailBusy==='pinned'?<LoaderCircle className="spin" size={18}/>:<Pin size={18}/>}<span>{active.pinned?'Unpin conversation':'Pin conversation'}</span></button><button disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('muted',()=>services.toggleConversation(active.id,'muted'))}>{detailBusy==='muted'?<LoaderCircle className="spin" size={18}/>:<BellOff size={18}/>}<span>{active.muted?'Unmute notifications':'Mute notifications'}</span></button><button disabled={Boolean(detailBusy)} onClick={()=>{setActionError('');setInfoOpen(false);setConversationAction('clear')}}><Eraser size={18}/><span>Clear chat</span></button><button className="danger-text" disabled={Boolean(detailBusy)} onClick={()=>{setActionError('');setInfoOpen(false);setConversationAction('delete')}}><Trash2 size={18}/><span>Delete chat</span></button><button className="danger-text" disabled={Boolean(detailBusy)} onClick={()=>void updateDetail('blocked',()=>services.block(friend.id))}>{detailBusy==='blocked'?<LoaderCircle className="spin" size={18}/>:<Ban size={18}/>}<span>{preferences.blocked.includes(friend.id)?'Unblock contact':'Block contact'}</span></button></div></Modal>}
+   {conversationAction&&<Modal title={conversationAction==='clear'?'Clear this chat?':'Delete this chat?'} className="conversation-action-dialog" onClose={()=>!conversationActionBusy&&setConversationAction(undefined)}><p className="modal__copy">{conversationAction==='clear'?`This removes every message with ${friend.name} from your view. ${friend.name} keeps their copy, and you can continue messaging here.`:`This removes the chat with ${friend.name} and its messages from your view. ${friend.name} keeps their copy, and the chat will return if either of you starts it again.`}</p>{actionError&&<p className="inline-error" role="alert">{actionError}</p>}<div className="modal-actions"><button type="button" className="button secondary" disabled={conversationActionBusy} onClick={()=>setConversationAction(undefined)}>Cancel</button><button type="button" className={`button ${conversationAction==='delete'?'danger':'primary'}`} disabled={conversationActionBusy} onClick={()=>void runConversationAction()}>{conversationActionBusy&&<LoaderCircle className="spin" size={17}/>} {conversationActionBusy?(conversationAction==='clear'?'Clearing…':'Deleting…'):(conversationAction==='clear'?'Clear chat':'Delete chat')}</button></div></Modal>}
   </section> : <section className="chat-panel welcome-panel"><MessageCircle size={40}/><h2>{conversations.length ? 'A space for your conversations' : 'Your private conversations live here'}</h2><p>{conversations.length ? 'Choose someone from your messages to catch up.' : 'Use the new conversation button when you are ready to begin.'}</p></section>}
  </div>;
 }
