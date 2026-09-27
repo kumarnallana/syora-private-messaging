@@ -61,10 +61,27 @@
     @apply mt-[-3px];
   }
   .message-bubble {
-    @apply min-w-[82px] max-w-[min(76%,520px)] rounded-[12px] border px-[12px] pb-[7px] pt-[9px];
+    @apply relative min-w-[82px] max-w-[min(76%,520px)] rounded-[12px] border px-[12px] pb-[7px] pt-[9px];
     background: var(--message-incoming);
     border-color: var(--message-border);
     box-shadow: var(--message-shadow);
+    touch-action: pan-y;
+    transform: translate3d(var(--swipe-offset, 0px), 0, 0);
+    transition: transform 160ms cubic-bezier(.2,.8,.2,1);
+  }
+  .message-bubble.is-swiping {
+    @apply select-none;
+    transition: none;
+    will-change: transform;
+  }
+  .message-swipe-reply {
+    @apply pointer-events-none absolute right-[calc(100%+9px)] top-1/2 grid size-9 place-items-center rounded-full border border-border bg-elevated text-muted shadow-sm;
+    opacity: var(--swipe-progress, 0);
+    transform: translateY(-50%) scale(calc(.78 + var(--swipe-progress, 0) * .22));
+    transition: opacity 80ms linear, color 100ms ease, background-color 100ms ease;
+  }
+  .message-bubble.is-swipe-ready .message-swipe-reply {
+    @apply border-accent/50 bg-accent text-[#211b31];
   }
   .message-row.is-outgoing .message-bubble {
     background: var(--message-outgoing);

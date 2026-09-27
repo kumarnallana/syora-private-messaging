@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { type CSSProperties, type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react';
 import { Copy, MoreHorizontal, Reply, RotateCcw, Trash2 } from 'lucide-react';
 import { time, IconButton, Modal } from '@/components/shared/ui';
 import { AttachmentContent } from '@/components/media/attachment';
@@ -10,6 +10,16 @@ import { DeliveryReceipt } from './delivery-receipt';
 
 const URL_PATTERN = /(https?:\/\/[^\s<]+)/g;
 const EMOJI_ONLY = /^(?:\p{Extended_Pictographic}|\uFE0F|\u200D|\s){1,16}$/u;
+const SWIPE_REPLY_THRESHOLD = 52;
+const SWIPE_REPLY_LIMIT = 76;
+
+type SwipeGesture = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  offset: number;
+  axis: 'pending' | 'horizontal' | 'vertical';
+};
 function renderMessageText(text: string) {
   return text.split(URL_PATTERN).map((part, index) => part.startsWith('http://') || part.startsWith('https://') ? <a className="message-link" href={part} target="_blank" rel="noreferrer" key={part + ':' + index}>{part}</a> : part);
 }
@@ -21,7 +31,10 @@ export function MessageBubble({ message, mine, original, onReply, groupedWithPre
   const [error, setError] = useState('');
   const [retrying, setRetrying] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [swiping, setSwiping] = useState(false);
   const actionMenu = useRef<HTMLDivElement>(null);
+  const swipeGesture = useRef<SwipeGesture | undefined>(undefined);
   const emojiOnly = Boolean(!message.attachment && !message.deleted && message.text.trim() && EMOJI_ONLY.test(message.text.trim()));
 
   useEffect(() => {
@@ -49,8 +62,62 @@ export function MessageBubble({ message, mine, original, onReply, groupedWithPre
     } catch { setError('Message could not be copied.'); }
   }
 
+  function beginSwipe(event: ReactPointerEvent<HTMLDivElement>) {
+    if (message.deleted || event.pointerType === 'mouse' || event.button !== 0) return;
+    if ((event.target as HTMLElement).closest('a, button, input, textarea, video')) return;
+    swipeGesture.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, offset: 0, axis: 'pending' };
+  }
+
+  function moveSwipe(event: ReactPointerEvent<HTMLDivElement>) {
+    const gesture = swipeGesture.current;
+    if (!gesture || gesture.pointerId !== event.pointerId || gesture.axis === 'vertical') return;
+    const deltaX = event.clientX - gesture.startX;
+    const deltaY = event.clientY - gesture.startY;
+    if (gesture.axis === 'pending') {
+      if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 7) return;
+      if (deltaX <= 0 || Math.abs(deltaY) >= Math.abs(deltaX)) {
+        gesture.axis = 'vertical';
+        return;
+      }
+      gesture.axis = 'horizontal';
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setSwiping(true);
+    }
+    if (event.cancelable) event.preventDefault();
+    const resisted = deltaX <= SWIPE_REPLY_THRESHOLD ? deltaX : SWIPE_REPLY_THRESHOLD + (deltaX - SWIPE_REPLY_THRESHOLD) * 0.28;
+    gesture.offset = Math.max(0, Math.min(SWIPE_REPLY_LIMIT, resisted));
+    setSwipeOffset(gesture.offset);
+  }
+
+  function finishSwipe(event: ReactPointerEvent<HTMLDivElement>, cancelled = false) {
+    const gesture = swipeGesture.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    const shouldReply = !cancelled && gesture.axis === 'horizontal' && gesture.offset >= SWIPE_REPLY_THRESHOLD;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    swipeGesture.current = undefined;
+    setSwiping(false);
+    setSwipeOffset(0);
+    if (shouldReply) {
+      navigator.vibrate?.(8);
+      onReply();
+    }
+  }
+
+  const swipeStyle = {
+    '--swipe-offset': `${swipeOffset}px`,
+    '--swipe-progress': Math.min(1, swipeOffset / SWIPE_REPLY_THRESHOLD),
+  } as CSSProperties;
+
   return <article className={`message-row ${mine ? 'is-outgoing' : 'is-incoming'} ${groupedWithPrevious ? 'grouped' : ''} ${groupedWithNext ? 'continues' : ''}`} aria-label={mine ? 'Sent by you' : 'Received message'}>
-    <div className={`message-bubble ${message.attachment ? 'with-media' : ''} ${emojiOnly ? 'is-emoji-only' : ''}`}>
+    <div
+      className={`message-bubble ${message.attachment ? 'with-media' : ''} ${emojiOnly ? 'is-emoji-only' : ''} ${swiping ? 'is-swiping' : ''} ${swipeOffset >= SWIPE_REPLY_THRESHOLD ? 'is-swipe-ready' : ''}`}
+      style={swipeStyle}
+      onPointerDown={beginSwipe}
+      onPointerMove={moveSwipe}
+      onPointerUp={event => finishSwipe(event)}
+      onPointerCancel={event => finishSwipe(event, true)}
+    >
+      {!message.deleted && <span className="message-swipe-reply" aria-hidden="true"><Reply size={18} /></span>}
       {message.replyTo && !message.deleted && <div className="reply-quote"><strong>{original?.senderId === me!.id ? 'You' : users.find(user => user.id === original?.senderId)?.name || 'Original message'}</strong><span>{!original ? 'Message unavailable' : original.deleted ? 'Message deleted' : original.text || original.attachment?.name}</span></div>}
       {message.deleted ? <p className="deleted-message"><Trash2 size={14} /> This message was deleted</p> : <>{message.attachment && <AttachmentContent attachment={message.attachment} />} {message.text && <p>{renderMessageText(message.text)}</p>}</>}
       <div className="message-meta"><time dateTime={message.createdAt}>{time(message.createdAt)}</time>{mine && !message.deleted && <DeliveryReceipt state={message.receipt} />}</div>

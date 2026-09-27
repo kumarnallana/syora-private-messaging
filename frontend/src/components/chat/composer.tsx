@@ -19,6 +19,7 @@ export function Composer({conversationId,blocked,reply,clearReply}:{conversation
  const typingTimer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
  useEffect(()=>()=>{if(pending.current)URL.revokeObjectURL(pending.current.url)},[]);
  useEffect(()=>()=>{if(typingTimer.current)clearTimeout(typingTimer.current);services.typing(conversationId,false)},[conversationId,services]);
+ useEffect(()=>{if(reply&&!blocked)input.current?.focus()},[reply,blocked]);
  function choose(file?:Attachment){if(pending.current)URL.revokeObjectURL(pending.current.url);pending.current=file;setAttachment(file);}
  async function send(){
   if((!text.trim()&&!attachment)||blocked||submitting.current)return;
