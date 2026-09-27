@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowDown, ArrowLeft, Ban, BellOff, Eraser, LoaderCircle, MessageCircle, MoreHorizontal, Pin, Search, SquarePen, Trash2, X } from 'lucide-react';
@@ -185,7 +185,7 @@ export function Chats() {
     {!conversations.length?<Empty title="Your inbox is quiet" description="Find someone in your circle and start a private conversation."><Link className="button primary" href="/contacts">Find people</Link></Empty>:!ordered.some(c=>{const person=users.find(u=>c.participants.includes(u.id)&&u.id!==me!.id);return person&&(filter==='all'||c.unread>0)&&(person.name.toLowerCase().includes(query.toLowerCase())||normalizeUsername(person.username).includes(normalizeUsername(query)))})&&<Empty title={filter==='unread'?'You are all caught up':'No conversations found'} description={filter==='unread'?'There are no unread conversations.':'Try another name or username.'}/>}
    </div>
   </section>
-  {active && friend ? <section className={`chat-panel has-chat-wallpaper ${wallpaper ? 'has-custom-wallpaper' : ''}`} style={wallpaper ? { backgroundImage: `linear-gradient(#090a0fba, #090a0fba), url("${wallpaper}")` } : undefined} aria-label={`Conversation with ${friend.name}`}>
+  {active && friend ? <section className={`chat-panel has-chat-wallpaper ${wallpaper ? 'has-custom-wallpaper' : ''}`} style={wallpaper ? { '--custom-chat-wallpaper': `url("${wallpaper}")` } as CSSProperties : undefined} aria-label={`Conversation with ${friend.name}`}>
    <header className="chat-header"><IconButton label="Back to conversations" className="mobile-back" onClick={back}><ArrowLeft size={21}/></IconButton>
     <Avatar user={friend} size="small"/><div className="chat-person"><h2 ref={heading} tabIndex={-1}>{friend.name}</h2><p>{active.typing ? 'typing…' : presence}</p></div><div className="chat-header-actions"><IconButton label="Search messages" onClick={()=>setSearchOpen(v=>!v)}><Search size={19}/></IconButton><IconButton label="Conversation options" onClick={()=>setInfoOpen(true)}><MoreHorizontal size={21}/></IconButton></div>
    </header>

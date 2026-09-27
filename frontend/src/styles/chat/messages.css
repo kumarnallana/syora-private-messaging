@@ -4,10 +4,11 @@
   }
   .chat-panel.has-chat-wallpaper {
     background-color: var(--wallpaper-color);
-    background-image: linear-gradient(#0a0b108f, #0a0b108f), var(--wallpaper-pattern);
+    background-image: var(--wallpaper-overlay), var(--wallpaper-pattern);
     background-size: auto, 96px 96px;
   }
   .chat-panel.has-custom-wallpaper {
+    background-image: var(--wallpaper-overlay), var(--custom-chat-wallpaper);
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
@@ -60,8 +61,10 @@
     @apply mt-[-3px];
   }
   .message-bubble {
-    @apply min-w-[82px] max-w-[min(76%,520px)] rounded-[12px] border border-white/[0.025] px-[12px] pb-[7px] pt-[9px] shadow-[0_1px_1px_#0003];
+    @apply min-w-[82px] max-w-[min(76%,520px)] rounded-[12px] border px-[12px] pb-[7px] pt-[9px];
     background: var(--message-incoming);
+    border-color: var(--message-border);
+    box-shadow: var(--message-shadow);
   }
   .message-row.is-outgoing .message-bubble {
     background: var(--message-outgoing);
@@ -131,7 +134,13 @@
     @apply mt-[22px] overflow-hidden rounded-[11px] border border-border bg-surface;
   }
   .detail-actions > button {
-    @apply flex min-h-[48px] w-full items-center gap-[12px] border-b border-border px-[14px] text-left text-[14px] transition-[background-color,color] duration-150 hover:bg-white/[0.04] active:bg-white/[0.07] disabled:pointer-events-none disabled:opacity-50;
+    @apply flex min-h-[48px] w-full items-center gap-[12px] border-b border-border px-[14px] text-left text-[14px] transition-[background-color,color] duration-150 disabled:pointer-events-none disabled:opacity-50;
+  }
+  .detail-actions > button:hover {
+    background: var(--interactive-hover);
+  }
+  .detail-actions > button:active {
+    background: var(--interactive-pressed);
   }
   .detail-actions > button:last-child {
     @apply border-b-0;

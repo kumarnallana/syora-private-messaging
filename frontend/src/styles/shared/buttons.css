@@ -8,7 +8,11 @@
   }
   .button.secondary,
   .button--secondary {
-    @apply border-border bg-surface text-text-primary hover:bg-white/[0.05];
+    @apply border-border bg-surface text-text-primary;
+  }
+  .button.secondary:hover,
+  .button--secondary:hover {
+    background: var(--interactive-hover);
   }
   .button.danger,
   .button--danger {
