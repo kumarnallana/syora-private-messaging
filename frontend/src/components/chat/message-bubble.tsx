@@ -18,13 +18,14 @@ type SwipeGesture = {
   startX: number;
   startY: number;
   offset: number;
+  ready: boolean;
   axis: 'pending' | 'horizontal' | 'vertical';
 };
 function renderMessageText(text: string) {
   return text.split(URL_PATTERN).map((part, index) => part.startsWith('http://') || part.startsWith('https://') ? <a className="message-link" href={part} target="_blank" rel="noreferrer" key={part + ':' + index}>{part}</a> : part);
 }
 
-export function MessageBubble({ message, mine, original, onReply, groupedWithPrevious = false, groupedWithNext = false }: { message: Message; mine: boolean; original?: Message; onReply: () => void; groupedWithPrevious?: boolean; groupedWithNext?: boolean }) {
+export function MessageBubble({ message, mine, original, onReply, onOpenReply, groupedWithPrevious = false, groupedWithNext = false }: { message: Message; mine: boolean; original?: Message; onReply: () => void; onOpenReply?: () => void; groupedWithPrevious?: boolean; groupedWithNext?: boolean }) {
   const { services, users, me } = useApp();
   const [deleting, setDeleting] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
@@ -35,6 +36,7 @@ export function MessageBubble({ message, mine, original, onReply, groupedWithPre
   const [swiping, setSwiping] = useState(false);
   const actionMenu = useRef<HTMLDivElement>(null);
   const swipeGesture = useRef<SwipeGesture | undefined>(undefined);
+  const longPressTimer = useRef<number | undefined>(undefined);
   const emojiOnly = Boolean(!message.attachment && !message.deleted && message.text.trim() && EMOJI_ONLY.test(message.text.trim()));
 
   useEffect(() => {
@@ -47,6 +49,10 @@ export function MessageBubble({ message, mine, original, onReply, groupedWithPre
     document.addEventListener('keydown', key);
     return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', key); };
   }, [actionsOpen]);
+
+  useEffect(() => () => {
+    if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
+  }, []);
 
   async function remove(everyone: boolean) {
     try { await services.deleteMessage(message.id, everyone); setDeleting(false); }
@@ -62,10 +68,28 @@ export function MessageBubble({ message, mine, original, onReply, groupedWithPre
     } catch { setError('Message could not be copied.'); }
   }
 
+  function clearLongPress() {
+    if (!longPressTimer.current) return;
+    window.clearTimeout(longPressTimer.current);
+    longPressTimer.current = undefined;
+  }
+
   function beginSwipe(event: ReactPointerEvent<HTMLDivElement>) {
     if (message.deleted || event.pointerType === 'mouse' || event.button !== 0) return;
     if ((event.target as HTMLElement).closest('a, button, input, textarea, video')) return;
-    swipeGesture.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, offset: 0, axis: 'pending' };
+    const pointerId = event.pointerId;
+    clearLongPress();
+    swipeGesture.current = { pointerId, startX: event.clientX, startY: event.clientY, offset: 0, ready: false, axis: 'pending' };
+    if (event.pointerType === 'touch') {
+      longPressTimer.current = window.setTimeout(() => {
+        const gesture = swipeGesture.current;
+        if (!gesture || gesture.pointerId !== pointerId || gesture.axis !== 'pending') return;
+        swipeGesture.current = undefined;
+        longPressTimer.current = undefined;
+        navigator.vibrate?.(12);
+        setActionsOpen(true);
+      }, 480);
+    }
   }
 
   function moveSwipe(event: ReactPointerEvent<HTMLDivElement>) {
@@ -73,6 +97,7 @@ export function MessageBubble({ message, mine, original, onReply, groupedWithPre
     if (!gesture || gesture.pointerId !== event.pointerId || gesture.axis === 'vertical') return;
     const deltaX = event.clientX - gesture.startX;
     const deltaY = event.clientY - gesture.startY;
+    if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) >= 7) clearLongPress();
     if (gesture.axis === 'pending') {
       if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) < 7) return;
       if (deltaX <= 0 || Math.abs(deltaY) >= Math.abs(deltaX)) {
@@ -86,10 +111,14 @@ export function MessageBubble({ message, mine, original, onReply, groupedWithPre
     if (event.cancelable) event.preventDefault();
     const resisted = deltaX <= SWIPE_REPLY_THRESHOLD ? deltaX : SWIPE_REPLY_THRESHOLD + (deltaX - SWIPE_REPLY_THRESHOLD) * 0.28;
     gesture.offset = Math.max(0, Math.min(SWIPE_REPLY_LIMIT, resisted));
+    const ready = gesture.offset >= SWIPE_REPLY_THRESHOLD;
+    if (ready && !gesture.ready) navigator.vibrate?.(5);
+    gesture.ready = ready;
     setSwipeOffset(gesture.offset);
   }
 
   function finishSwipe(event: ReactPointerEvent<HTMLDivElement>, cancelled = false) {
+    clearLongPress();
     const gesture = swipeGesture.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     const shouldReply = !cancelled && gesture.axis === 'horizontal' && gesture.offset >= SWIPE_REPLY_THRESHOLD;
@@ -107,8 +136,10 @@ export function MessageBubble({ message, mine, original, onReply, groupedWithPre
     '--swipe-offset': `${swipeOffset}px`,
     '--swipe-progress': Math.min(1, swipeOffset / SWIPE_REPLY_THRESHOLD),
   } as CSSProperties;
+  const replyAuthor = original?.senderId === me!.id ? 'You' : users.find(user => user.id === original?.senderId)?.name || 'Original message';
+  const replyText = !original ? 'Message unavailable' : original.deleted ? 'Message deleted' : original.text || original.attachment?.name;
 
-  return <article className={`message-row ${mine ? 'is-outgoing' : 'is-incoming'} ${groupedWithPrevious ? 'grouped' : ''} ${groupedWithNext ? 'continues' : ''}`} aria-label={mine ? 'Sent by you' : 'Received message'}>
+  return <article tabIndex={-1} className={`message-row ${mine ? 'is-outgoing' : 'is-incoming'} ${groupedWithPrevious ? 'grouped' : ''} ${groupedWithNext ? 'continues' : ''}`} aria-label={mine ? 'Sent by you' : 'Received message'}>
     <div
       className={`message-bubble ${message.attachment ? 'with-media' : ''} ${emojiOnly ? 'is-emoji-only' : ''} ${swiping ? 'is-swiping' : ''} ${swipeOffset >= SWIPE_REPLY_THRESHOLD ? 'is-swipe-ready' : ''}`}
       style={swipeStyle}
@@ -116,9 +147,10 @@ export function MessageBubble({ message, mine, original, onReply, groupedWithPre
       onPointerMove={moveSwipe}
       onPointerUp={event => finishSwipe(event)}
       onPointerCancel={event => finishSwipe(event, true)}
+      onContextMenu={event => { if (window.matchMedia('(pointer: coarse)').matches) event.preventDefault(); }}
     >
       {!message.deleted && <span className="message-swipe-reply" aria-hidden="true"><Reply size={18} /></span>}
-      {message.replyTo && !message.deleted && <div className="reply-quote"><strong>{original?.senderId === me!.id ? 'You' : users.find(user => user.id === original?.senderId)?.name || 'Original message'}</strong><span>{!original ? 'Message unavailable' : original.deleted ? 'Message deleted' : original.text || original.attachment?.name}</span></div>}
+      {message.replyTo && !message.deleted && (onOpenReply ? <button type="button" className="reply-quote" onClick={onOpenReply} aria-label={`Go to the message from ${replyAuthor}`}><strong>{replyAuthor}</strong><span>{replyText}</span></button> : <div className="reply-quote"><strong>{replyAuthor}</strong><span>{replyText}</span></div>)}
       {message.deleted ? <p className="deleted-message"><Trash2 size={14} /> This message was deleted</p> : <>{message.attachment && <AttachmentContent attachment={message.attachment} />} {message.text && <p>{renderMessageText(message.text)}</p>}</>}
       <div className="message-meta"><time dateTime={message.createdAt}>{time(message.createdAt)}</time>{mine && !message.deleted && <DeliveryReceipt state={message.receipt} />}</div>
       {mine && message.receipt === 'failed' && !message.deleted && <button className="retry-button" disabled={retrying} onClick={async () => { setRetrying(true); try { await services.retry(message.id); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Message retry failed.'); } finally { setRetrying(false); } }}><RotateCcw size={14} /> Retry message</button>}

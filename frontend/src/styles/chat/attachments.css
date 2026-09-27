@@ -57,8 +57,17 @@
   }
 
   .reply-quote {
-    @apply mb-[8px] flex flex-col gap-[4px] overflow-hidden rounded-[5px] border-l-[3px] border-accent p-[8px_10px] text-[12px];
+    @apply mb-[8px] flex w-full flex-col gap-[4px] overflow-hidden rounded-[5px] border-l-[3px] border-accent p-[8px_10px] text-left text-[12px];
     background: var(--reply-surface);
+  }
+  button.reply-quote {
+    @apply cursor-pointer transition-[background-color,box-shadow] duration-150;
+  }
+  button.reply-quote:hover {
+    background: var(--interactive-hover);
+  }
+  button.reply-quote:focus-visible {
+    @apply outline-none ring-2 ring-accent/60 ring-offset-2 ring-offset-transparent;
   }
   .reply-quote strong {
     @apply font-medium text-accent;

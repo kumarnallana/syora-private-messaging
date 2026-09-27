@@ -36,7 +36,7 @@ export function Composer({conversationId,blocked,reply,clearReply}:{conversation
  }
  return <div className="composer-wrap" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(blocked||busy)return;try{const file=e.dataTransfer.files[0];if(file)choose(pickAttachment(file));}catch(error){setError((error as Error).message)}}}>
   {error&&<p className="inline-error" role="alert">{error}</p>}
-  {reply&&<div className="composer-reply"><Reply size={18}/><span><strong>Replying to {users.find(u=>u.id===reply.senderId)?.name}</strong><small>{reply.deleted?'Message deleted':reply.text||reply.attachment?.name}</small></span><IconButton label="Cancel reply" onClick={clearReply}><X size={18}/></IconButton></div>}
+  {reply&&<div className="composer-reply" role="status" aria-live="polite"><Reply size={18}/><span><strong>Replying to {users.find(u=>u.id===reply.senderId)?.name}</strong><small>{reply.deleted?'Message deleted':reply.text||reply.attachment?.name}</small></span><IconButton label="Cancel reply" onClick={clearReply}><X size={18}/></IconButton></div>}
   {emoji&&<div className="emoji-picker" role="group" aria-label="Emoji picker"><header>Choose an emoji<IconButton label="Close emoji picker" onClick={()=>setEmoji(false)}><X size={17}/></IconButton></header><div>{emojis.map(e=><button type="button" key={e} aria-label={`Insert ${e}`} onClick={()=>{setText(t=>(t+e).slice(0,10000));input.current?.focus()}}>{e}</button>)}</div></div>}
   <form onSubmit={e=>{e.preventDefault();void send()}}><div className="composer">
    <FilePicker onSelect={choose} onError={setError} disabled={blocked||busy}/>

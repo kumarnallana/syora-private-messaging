@@ -39,10 +39,13 @@ export function Chats() {
  const [showLatest,setShowLatest]=useState(false);
  const [latestCount,setLatestCount]=useState(0);
  const [unreadFrom,setUnreadFrom]=useState<string>();
+ const [highlightedMessage,setHighlightedMessage]=useState<string>();
  const timeline = useRef<HTMLDivElement>(null);
  const timelineEnd = useRef<HTMLDivElement>(null);
  const heading = useRef<HTMLHeadingElement>(null);
  const rowRefs = useRef(new Map<string, HTMLButtonElement>());
+ const messageRefs = useRef(new Map<string, HTMLDivElement>());
+  const highlightTimer = useRef<number | undefined>(undefined);
  const nearBottom = useRef(true);
  const active = conversations.find(c => c.id === selected && c.participants.includes(me!.id));
  const friend = users.find(u => active?.participants.includes(u.id) && u.id !== me?.id);
@@ -63,6 +66,7 @@ export function Chats() {
  const latestMessage = activeMessages.at(-1);
  useEffect(() => { setSelected(params.get('conversation')); }, [params]);
  useEffect(() => { window.dispatchEvent(new Event('syora:navigation')); }, [selected]);
+ useEffect(() => () => { if (highlightTimer.current) window.clearTimeout(highlightTimer.current); }, []);
  useEffect(() => {
   const syncWallpaper = () => setWallpaper(getChatWallpaper());
   syncWallpaper();
@@ -79,6 +83,7 @@ export function Chats() {
   setShowLatest(false);
   setLatestCount(0);
   setUnreadFrom(undefined);
+  setHighlightedMessage(undefined);
   heading.current?.focus({ preventScroll: true });
   return()=>{current=false};
  }, [active?.id, me?.id, services]);
@@ -148,6 +153,22 @@ export function Chats() {
   catch (error) { setActionError(error instanceof Error ? error.message : 'The conversation setting could not be updated.'); }
   finally { setDetailBusy(undefined); }
  }
+ function jumpToMessage(messageId: string) {
+  const reveal = () => {
+   const target = messageRefs.current.get(messageId);
+   if (!target) return;
+   target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+   setHighlightedMessage(messageId);
+   window.setTimeout(() => target.querySelector<HTMLElement>('.message-row')?.focus({ preventScroll: true }), 180);
+   if (highlightTimer.current) window.clearTimeout(highlightTimer.current);
+   highlightTimer.current = window.setTimeout(() => setHighlightedMessage(current => current === messageId ? undefined : current), 1700);
+  };
+  if (messageQuery) {
+   setMessageQuery('');
+   setSearchOpen(false);
+   requestAnimationFrame(() => requestAnimationFrame(reveal));
+  } else reveal();
+ }
  async function runConversationAction() {
   if (!active || !conversationAction || conversationActionBusy) return;
   setConversationActionBusy(true); setActionError('');
@@ -198,10 +219,10 @@ export function Chats() {
      const day = new Date(message.createdAt).toDateString();
      const previous = visibleMessages[index - 1];
      const next = visibleMessages[index + 1];
-     return <div key={message.id}>
+     return <div key={message.id} ref={node => { if (node) messageRefs.current.set(message.id, node); else messageRefs.current.delete(message.id); }} className={`message-anchor ${highlightedMessage === message.id ? 'is-highlighted' : ''}`}>
       {(!previous || new Date(previous.createdAt).toDateString() !== day) && <div className="date-separator">{day === new Date().toDateString() ? 'Today' : new Date(message.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}</div>}
       {!messageQuery && message.id === unreadFrom && <div className="unread-separator"><span>Unread messages</span></div>}
-      <MessageBubble message={message} mine={message.senderId === me!.id} groupedWithPrevious={belongsToSequence(previous,message)} groupedWithNext={belongsToSequence(message,next)} original={(message.replyTo&&messageById.get(message.replyTo))||message.replyPreview} onReply={()=>setReply(message)}/>
+      <MessageBubble message={message} mine={message.senderId === me!.id} groupedWithPrevious={belongsToSequence(previous,message)} groupedWithNext={belongsToSequence(message,next)} original={(message.replyTo&&messageById.get(message.replyTo))||message.replyPreview} onReply={()=>setReply(message)} onOpenReply={message.replyTo&&messageById.has(message.replyTo)?()=>jumpToMessage(message.replyTo!):undefined}/>
      </div>;
     })}
     {messageState==='loaded'&&!visibleMessages.length && <Empty title={messageQuery?'No messages found':'Start with a hello'} description={messageQuery?'Try another word or file name.':`Send the first message to ${friend.name.split(' ')[0]}.`}/>}<div ref={timelineEnd} className="timeline-end" aria-hidden="true"/></div>
