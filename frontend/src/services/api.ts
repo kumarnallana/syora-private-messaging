@@ -12,6 +12,7 @@ import type {
 import type { Socket } from "socket.io-client";
 import type { Services } from "./contracts";
 import { normalizeUsername } from "@/utils/presentation";
+import { clearTabSession, hasTabSession, markTabSession } from "@/utils/tab-session";
 const API = process.env.NEXT_PUBLIC_API_URL || "";
 const SOCKET = process.env.NEXT_PUBLIC_SOCKET_URL || API;
 const IDLE_LIMIT_MS = 5 * 60 * 1000;
@@ -146,6 +147,7 @@ export class ApiServices implements Services {
   private applyAuth(result: AuthResult) {
     const reconnectSocket = Boolean(this.socket?.connected);
     this.token = result.accessToken;
+    markTabSession();
     if (this.socket) {
       this.socket.auth = { token: this.token };
       if (reconnectSocket) { this.socket.disconnect(); this.socket.connect(); }
@@ -218,6 +220,7 @@ export class ApiServices implements Services {
     this.adminContextCleanup = undefined;
     this.revokeBlobUrls();
     this.token = null;
+    clearTabSession();
     this.loadedMessages.clear();
     this.messageCursors.clear();
     this.retries.clear();
@@ -309,12 +312,17 @@ export class ApiServices implements Services {
     } catch (error) {
       if (error instanceof ApiError && error.status !== 401) throw error;
       this.token = null;
+      clearTabSession();
       if (this.state.currentUserId) this.endLocalSession();
       return false;
     }
   }
   private async bootstrap() {
     this.update({ sessionReady: false, sessionError: undefined });
+    if (!hasTabSession()) {
+      this.update({ sessionReady: true });
+      return;
+    }
     try {
       const authenticated = await this.refresh();
       if (authenticated) await this.loadAll();

@@ -38,6 +38,9 @@
   .timeline-feed {
     @apply mx-auto w-full max-w-[920px];
   }
+  .timeline-end {
+    @apply h-px;
+  }
   .date-separator {
     @apply sticky top-[2px] z-[2] mx-auto mb-[18px] mt-[10px] w-max max-w-full rounded-full border border-border/70 bg-panel/95 px-[11px] py-[5px] text-[11px] font-medium text-muted shadow-sm;
   }
@@ -150,10 +153,10 @@
   }
   @media (max-width: 899px) {
     .chat-header {
-      @apply h-[65px] gap-[8px] px-[8px] py-[9px];
+      @apply h-[68px] gap-[9px] px-[10px] py-[9px];
     }
     .chat-person h2 {
-      @apply text-[14px];
+      @apply text-[15px];
     }
     .chat-person p {
       @apply text-[11px];

@@ -19,6 +19,8 @@
   }
   .composer textarea {
     @apply max-h-[140px] min-h-11 flex-1 resize-none border-0 bg-transparent px-[7px] py-[10px] text-[15px] leading-[1.45] outline-none;
+    field-sizing: content;
+    overflow-y: auto;
   }
   .composer .icon-button {
     @apply size-11 rounded-[9px];

@@ -1,4 +1,5 @@
 import type { User } from '@/types';
+import { clearTabSession, hasTabSession } from '@/utils/tab-session';
 
 const API = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -29,10 +30,14 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export const publicAuth = {
   async restore(signal?: AbortSignal) {
+    if (!hasTabSession()) return null;
     try {
       return await request<AuthResult>('/api/auth/refresh', { method: 'POST', signal });
     } catch (error) {
-      if (error instanceof PublicAuthError && error.status === 401) return null;
+      if (error instanceof PublicAuthError && error.status === 401) {
+        clearTabSession();
+        return null;
+      }
       throw error;
     }
   },
