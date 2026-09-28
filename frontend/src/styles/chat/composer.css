@@ -5,7 +5,7 @@
   .composer-wrap > form,
   .composer-wrap > .composer-reply,
   .composer-wrap > .inline-error {
-    @apply mx-auto w-full max-w-[920px];
+    @apply w-full;
   }
   .composer-wrap form {
     @apply m-0;

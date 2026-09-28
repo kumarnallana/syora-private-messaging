@@ -37,7 +37,7 @@
     scrollbar-gutter: stable;
   }
   .timeline-feed {
-    @apply mx-auto w-full max-w-[920px];
+    @apply w-full;
   }
   .timeline-end {
     @apply h-px;
