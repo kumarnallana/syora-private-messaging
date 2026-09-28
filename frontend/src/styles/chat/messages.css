@@ -14,7 +14,7 @@
     background-size: cover;
   }
   .chat-header {
-    @apply relative z-10 flex h-[68px] shrink-0 items-center gap-[11px] border-b border-border bg-panel/95 px-[20px] py-[10px];
+    @apply relative z-10 flex h-[68px] shrink-0 items-center gap-[11px] border-b border-border bg-panel/85 backdrop-blur-md px-[20px] py-[10px];
   }
   .chat-person {
     @apply min-w-0;
@@ -49,7 +49,7 @@
     @apply mx-auto my-[28px] flex max-w-[360px] flex-col items-center gap-[12px] text-center text-[13px] leading-[1.6] text-muted;
   }
   .load-older {
-    @apply mx-auto mb-[18px] flex min-h-[38px] items-center gap-[7px] rounded-full border border-border bg-panel/90 px-[15px] text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-elevated hover:text-text-primary;
+    @apply mx-auto mb-[18px] flex min-h-[38px] items-center gap-[7px] rounded-full border border-border bg-panel/80 backdrop-blur-md px-[15px] text-[12px] font-medium text-muted transition-colors duration-150 hover:bg-elevated hover:text-text-primary;
   }
   .message-row {
     @apply relative my-[6px] flex items-center gap-[4px];

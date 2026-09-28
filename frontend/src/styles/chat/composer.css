@@ -1,6 +1,6 @@
 @layer components {
   .composer-wrap {
-    @apply relative z-[7] shrink-0 border-t border-border bg-panel/95 px-[18px] pb-[12px] pt-[10px];
+    @apply relative z-[7] shrink-0 border-t border-border bg-panel/85 backdrop-blur-md px-[18px] pb-[12px] pt-[10px];
   }
   .composer-wrap > form,
   .composer-wrap > .composer-reply,
