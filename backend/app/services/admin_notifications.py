@@ -157,3 +157,21 @@ async def notify_admin_recipient(message_id: uuid.UUID) -> None:
             "url": f"/chats?conversation={message.conversation_id}",
         }
         await _deliver(admin, pref, payload, message.conversation_id)
+
+
+async def send_test_notification(admin: User) -> dict[str, Any]:
+    async with SessionLocal() as db:
+        pref = await db.get(UserPreference, admin.id)
+    payload = {
+        "id": f"test:{uuid.uuid4()}",
+        "type": "ADMIN_USER_LOGIN",
+        "title": "Admin Notification Test",
+        "body": "System notifications, audio chime, and admin real-time alerts are configured and active.",
+        "userId": str(admin.id),
+        "displayName": admin.display_name,
+        "username": admin.username,
+        "timestamp": now().isoformat(),
+        "url": "/settings?section=notifications",
+    }
+    await _deliver(admin, pref, payload)
+    return payload

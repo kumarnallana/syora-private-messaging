@@ -87,6 +87,17 @@ class AdminNotificationTests(unittest.IsolatedAsyncioTestCase):
             await admin_notifications.notify_admin_recipient(message.id)
         deliver.assert_not_awaited()
 
+    async def test_send_test_notification_delivers_payload(self):
+        admin = user("admin", "Admin", "admin")
+        pref = UserPreference(user_id=admin.id, admin_login_notifications=True)
+        db = FakeSession({(UserPreference, admin.id): pref}, [admin])
+        deliver = AsyncMock()
+        with patch.object(admin_notifications, "SessionLocal", return_value=db), patch.object(admin_notifications, "_deliver", deliver):
+            payload = await admin_notifications.send_test_notification(admin)
+        self.assertEqual(payload["type"], "ADMIN_USER_LOGIN")
+        self.assertIn("Test", payload["title"])
+        deliver.assert_awaited_once()
+
 
 if __name__ == "__main__":
     unittest.main()
