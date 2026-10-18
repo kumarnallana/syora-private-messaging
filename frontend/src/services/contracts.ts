@@ -1,6 +1,5 @@
 import type {
   AdminMetrics,
-  AdminNotificationEvent,
   AdminNotificationSettings,
   AppState,
   Attachment,
