@@ -7,3 +7,4 @@ playwright-report/
 .env*
 !.env.example
 .sites-runtime/
+video-inspect-frames/
