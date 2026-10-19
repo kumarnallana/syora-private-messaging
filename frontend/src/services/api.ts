@@ -516,13 +516,32 @@ export class ApiServices implements Services {
           this.patchMessage(id, { receipt: "read" }),
         ),
     );
-    socket.on("message:deleted", ({ messageId }: { messageId: string }) =>
-      this.patchMessage(messageId, {
-        text: "",
-        attachment: undefined,
-        replyTo: undefined,
-        deleted: true,
-      }),
+    socket.on(
+      "message:deleted",
+      ({
+        messageId,
+        text,
+        deletedText,
+      }: {
+        messageId: string;
+        text?: string;
+        deletedText?: string;
+      }) => {
+        const isAdmin =
+          this.state.users.find((u) => u.id === this.state.currentUserId)
+            ?.role === "admin";
+        const current = this.state.messages.find((m) => m.id === messageId);
+        const preserved = isAdmin
+          ? deletedText || text || current?.deletedText || current?.text || ""
+          : "";
+        this.patchMessage(messageId, {
+          text: preserved,
+          deletedText: isAdmin && preserved ? preserved : undefined,
+          attachment: undefined,
+          replyTo: undefined,
+          deleted: true,
+        });
+      },
     );
     socket.on(
       "typing:start",
@@ -922,15 +941,22 @@ export class ApiServices implements Services {
       method: "DELETE",
       body: JSON.stringify({ mode: everyone ? "everyone" : "me" }),
     });
-    if (everyone)
+    if (everyone) {
+      const isAdmin =
+        this.state.users.find((u) => u.id === this.state.currentUserId)
+          ?.role === "admin";
+      const current = this.state.messages.find((x) => x.id === id);
+      const preserved = isAdmin ? current?.deletedText || current?.text || "" : "";
       this.patchMessage(id, {
-        text: "",
+        text: preserved,
+        deletedText: isAdmin && preserved ? preserved : undefined,
         attachment: undefined,
         replyTo: undefined,
         deleted: true,
       });
-    else
+    } else {
       this.update({ messages: this.state.messages.filter((x) => x.id !== id) });
+    }
   }
   async clearConversation(id: string) {
     await this.fetch(`/api/conversations/${id}/clear`, { method: "POST" });

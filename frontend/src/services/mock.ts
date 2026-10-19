@@ -14,7 +14,10 @@ const pause = () => new Promise<void>((resolve) => setTimeout(resolve, 350));
 export class MockServices implements Services {
   private state: AppState = createSeed();
   private settings = new Map<string, Preferences>();
-  private adminNotificationSettings = new Map<string, AdminNotificationSettings>();
+  private adminNotificationSettings = new Map<
+    string,
+    AdminNotificationSettings
+  >();
   private hidden = new Map<string, Set<string>>();
   private deletedConversations = new Map<string, Set<string>>();
   private read = new Map<string, Set<string>>();
@@ -309,12 +312,15 @@ export class MockServices implements Services {
     this.conversation(message.conversationId);
     if (everyone) {
       this.ownedMessage(id);
+      const isAdmin =
+        this.snapshot.users.find((u) => u.id === me)?.role === "admin";
       this.update({
         messages: this.state.messages.map((m) =>
           m.id === id
             ? {
                 ...m,
-                text: "",
+                text: isAdmin ? m.deletedText || m.text : "",
+                deletedText: isAdmin ? m.deletedText || m.text : undefined,
                 attachment: undefined,
                 replyTo: undefined,
                 deleted: true,
@@ -564,7 +570,10 @@ export class MockServices implements Services {
   private playMockAdminNotificationSound(type?: string) {
     if (typeof window === "undefined" || !this.state.preferences.sound) return;
     try {
-      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
       if (!AudioContextClass) return;
       const context = new AudioContextClass();
       const now = context.currentTime;

@@ -23,7 +23,8 @@ def direct_key(a: uuid.UUID, b: uuid.UUID) -> str:
 async def conversation_out(db: AsyncSession, conversation: Conversation, participant: ConversationParticipant, user_id: uuid.UUID) -> dict:
     other_id = await db.scalar(select(ConversationParticipant.user_id).where(ConversationParticipant.conversation_id == conversation.id, ConversationParticipant.user_id != user_id))
     other = await db.get(User, other_id) if other_id else None
-    hidden_messages = select(MessageVisibility.message_id).where(MessageVisibility.user_id == user_id)
+    hidden_messages = select(MessageVisibility.message_id).where(
+        MessageVisibility.user_id == user_id)
     unread = await db.scalar(select(func.count()).select_from(MessageReceipt).join(Message, Message.id == MessageReceipt.message_id).where(Message.conversation_id == conversation.id, MessageReceipt.user_id == user_id, MessageReceipt.read_at.is_(None), ~Message.id.in_(hidden_messages))) or 0
     latest = await db.scalar(select(Message).where(Message.conversation_id == conversation.id, ~Message.id.in_(hidden_messages)).order_by(Message.created_at.desc()).limit(1))
     return {"id": str(conversation.id), "participants": [str(user_id), str(other_id)] if other_id else [str(user_id)], "unread": unread, "pinned": participant.pinned, "muted": participant.muted, "typing": False, "participant": await user_out(db, other, user_id) if other else None, "latestMessage": await message_out(db, latest, user_id) if latest else None}
@@ -93,7 +94,8 @@ async def hide_conversation_messages(db: AsyncSession, conversation_id: uuid.UUI
     if not message_ids:
         return 0
     existing = set((await db.scalars(select(MessageVisibility.message_id).where(MessageVisibility.user_id == user_id, MessageVisibility.message_id.in_(message_ids)))).all())
-    db.add_all([MessageVisibility(message_id=message_id, user_id=user_id) for message_id in message_ids if message_id not in existing])
+    db.add_all([MessageVisibility(message_id=message_id, user_id=user_id)
+               for message_id in message_ids if message_id not in existing])
     receipts = (await db.scalars(select(MessageReceipt).where(MessageReceipt.user_id == user_id, MessageReceipt.message_id.in_(message_ids), MessageReceipt.read_at.is_(None)))).all()
     timestamp = now()
     for receipt in receipts:
@@ -199,15 +201,23 @@ async def delete_message(message_id: uuid.UUID, body: DeleteMessageIn, user: Use
             raise api_error(403, "MESSAGE_DELETE_FORBIDDEN",
                             "You can only delete your own message for everyone.")
         attachment = await db.scalar(select(Attachment).where(Attachment.message_id == item.id))
-        item.text = ""
-        item.reply_to_message_id = None
         item.deleted_at = now()
         if attachment:
             await asyncio.to_thread(r2.delete, attachment.object_key)
             await db.delete(attachment)
     await db.commit()
     if body.mode == "everyone":
-        await emit_conversation(item.conversation_id, "message:deleted", {"messageId": str(item.id)})
+        participants = (await db.scalars(select(ConversationParticipant.user_id).where(ConversationParticipant.conversation_id == item.conversation_id))).all()
+        for pid in participants:
+            p_user = await db.get(User, pid)
+            is_p_admin = bool(p_user and p_user.role == "admin")
+            await emit_user(pid, "message:deleted", {
+                "messageId": str(item.id),
+                "conversationId": str(item.conversation_id),
+                "deleted": True,
+                "text": item.text if is_p_admin else "",
+                "deletedText": item.text if is_p_admin else None,
+            })
     return {"deleted": True, "mode": body.mode}
 
 

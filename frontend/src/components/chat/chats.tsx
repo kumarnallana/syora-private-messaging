@@ -199,7 +199,7 @@ export function Chats() {
       aria-current={active?.id === conversation.id ? 'true' : undefined} onClick={() => selectConversation(conversation.id)}>
       <Avatar user={person}/><span className="conversation-copy">
        <span className="conversation-top"><strong>{person.name}</strong>{last && <time dateTime={last.createdAt}>{time(last.createdAt)}</time>}</span>
-       <span className="conversation-bottom"><span className={conversation.typing?'typing-text':''}>{conversation.typing?'typing…':last ? `${last.senderId === me!.id ? 'You: ' : ''}${last.deleted?'Message deleted':last.text||last.attachment?.name||'Attachment'}` : 'No messages yet'}</span><span className="row-indicators">{last?.senderId===me!.id&&!last.deleted&&<DeliveryReceipt state={last.receipt}/>} {conversation.muted&&<BellOff size={13}/>} {conversation.pinned&&<Pin size={13}/>} {conversation.unread > 0 && <span className="unread-badge">{conversation.unread}</span>}</span></span>
+       <span className="conversation-bottom"><span className={conversation.typing?'typing-text':''}>{conversation.typing?'typing…':last ? `${last.senderId === me!.id ? 'You: ' : ''}${last.deleted ? (me?.role === 'admin' && (last.deletedText || last.text) ? `[Deleted] ${last.deletedText || last.text}` : 'Message deleted') : last.text||last.attachment?.name||'Attachment'}` : 'No messages yet'}</span><span className="row-indicators">{last?.senderId===me!.id&&!last.deleted&&<DeliveryReceipt state={last.receipt}/>} {conversation.muted&&<BellOff size={13}/>} {conversation.pinned&&<Pin size={13}/>} {conversation.unread > 0 && <span className="unread-badge">{conversation.unread}</span>}</span></span>
       </span>
      </button>;
     })}

@@ -1,7 +1,7 @@
 'use client';
 
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react';
-import { Copy, MoreHorizontal, Reply, RotateCcw, Trash2 } from 'lucide-react';
+import { Copy, MoreHorizontal, Reply, RotateCcw, Shield, Trash2 } from 'lucide-react';
 import { time, IconButton, Modal } from '@/components/shared/ui';
 import { AttachmentContent } from '@/components/media/attachment';
 import { useApp } from '@/stores/use-app';
@@ -61,7 +61,7 @@ export function MessageBubble({ message, mine, original, onReply, onOpenReply, g
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(message.text);
+      await navigator.clipboard.writeText(message.deletedText || message.text);
       setCopied(true);
       setActionsOpen(false);
       window.setTimeout(() => setCopied(false), 1400);
@@ -137,7 +137,7 @@ export function MessageBubble({ message, mine, original, onReply, onOpenReply, g
     '--swipe-progress': Math.min(1, swipeOffset / SWIPE_REPLY_THRESHOLD),
   } as CSSProperties;
   const replyAuthor = original?.senderId === me!.id ? 'You' : users.find(user => user.id === original?.senderId)?.name || 'Original message';
-  const replyText = !original ? 'Message unavailable' : original.deleted ? 'Message deleted' : original.text || original.attachment?.name;
+  const replyText = !original ? 'Message unavailable' : original.deleted ? (me?.role === 'admin' && (original.deletedText || original.text) ? `[Deleted] ${original.deletedText || original.text}` : 'Message deleted') : original.text || original.attachment?.name;
 
   return <article tabIndex={-1} className={`message-row ${mine ? 'is-outgoing' : 'is-incoming'} ${groupedWithPrevious ? 'grouped' : ''} ${groupedWithNext ? 'continues' : ''}`} aria-label={mine ? 'Sent by you' : 'Received message'}>
     <div
@@ -151,17 +151,38 @@ export function MessageBubble({ message, mine, original, onReply, onOpenReply, g
     >
       {!message.deleted && <span className="message-swipe-reply" aria-hidden="true"><Reply size={18} /></span>}
       {message.replyTo && !message.deleted && (onOpenReply ? <button type="button" className="reply-quote" onClick={onOpenReply} aria-label={`Go to the message from ${replyAuthor}`}><strong>{replyAuthor}</strong><span>{replyText}</span></button> : <div className="reply-quote"><strong>{replyAuthor}</strong><span>{replyText}</span></div>)}
-      {message.deleted ? <p className="deleted-message"><Trash2 size={14} /> This message was deleted</p> : <>{message.attachment && <AttachmentContent attachment={message.attachment} />} {message.text && <p>{renderMessageText(message.text)}</p>}</>}
+      {message.deleted ? (
+        <div className="deleted-message-wrap">
+          <p className="deleted-message">
+            <Trash2 size={14} /> This message was deleted
+          </p>
+          {me?.role === 'admin' && (message.deletedText || message.text) && (
+            <div className="admin-deleted-audit" title="Visible only to administrators in this conversation">
+              <span className="admin-deleted-badge">
+                <Shield size={12} /> Admin view
+              </span>
+              <p className="admin-deleted-text">
+                {renderMessageText(message.deletedText || message.text)}
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {message.attachment && <AttachmentContent attachment={message.attachment} />}
+          {message.text && <p>{renderMessageText(message.text)}</p>}
+        </>
+      )}
       <div className="message-meta"><time dateTime={message.createdAt}>{time(message.createdAt)}</time>{mine && !message.deleted && <DeliveryReceipt state={message.receipt} />}</div>
       {mine && message.receipt === 'failed' && !message.deleted && <button className="retry-button" disabled={retrying} onClick={async () => { setRetrying(true); try { await services.retry(message.id); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Message retry failed.'); } finally { setRetrying(false); } }}><RotateCcw size={14} /> Retry message</button>}
       {error && <p className="inline-error" role="alert">{error}</p>}
     </div>
-    {!message.deleted && <div className="message-actions-wrap" ref={actionMenu}>
+    {(!message.deleted || (me?.role === 'admin' && Boolean(message.deletedText || message.text))) && <div className="message-actions-wrap" ref={actionMenu}>
       <button type="button" className="icon-button message-action-trigger" aria-label="Message actions" aria-expanded={actionsOpen} onClick={() => setActionsOpen(value => !value)}><MoreHorizontal size={18} /></button>
       {actionsOpen && <div className="message-action-menu" role="menu">
-        {message.text && <button type="button" role="menuitem" onClick={() => void copy()}><Copy size={17} /><span>{copied ? 'Copied' : 'Copy'}</span></button>}
-        <button type="button" role="menuitem" onClick={() => { setActionsOpen(false); onReply(); }}><Reply size={17} /><span>Reply</span></button>
-        <button type="button" role="menuitem" className="danger-text" onClick={() => { setActionsOpen(false); setDeleting(true); }}><Trash2 size={17} /><span>Delete</span></button>
+        {(message.text || message.deletedText) && <button type="button" role="menuitem" onClick={() => void copy()}><Copy size={17} /><span>{copied ? 'Copied' : 'Copy'}</span></button>}
+        {!message.deleted && <button type="button" role="menuitem" onClick={() => { setActionsOpen(false); onReply(); }}><Reply size={17} /><span>Reply</span></button>}
+        {!message.deleted && <button type="button" role="menuitem" className="danger-text" onClick={() => { setActionsOpen(false); setDeleting(true); }}><Trash2 size={17} /><span>Delete</span></button>}
       </div>}
     </div>}
     {deleting && <Modal title="Delete this message?" className="mobile-sheet" onClose={() => setDeleting(false)}><p className="modal-copy">Delete for me hides it from your account. Delete for everyone leaves a deleted-message notice.</p><div className="delete-choices"><button className="button secondary" onClick={() => void remove(false)}>Delete for me</button>{mine && !message.deleted && <button className="button danger" onClick={() => void remove(true)}>Delete for everyone</button>}<button className="button secondary" onClick={() => setDeleting(false)}>Cancel</button></div></Modal>}

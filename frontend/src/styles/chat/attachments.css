@@ -79,6 +79,27 @@
   .deleted-message {
     @apply !flex !items-center !gap-[7px] !text-[14px] !italic !text-muted;
   }
+  .deleted-message-wrap {
+    @apply flex flex-col gap-[6px];
+  }
+  .admin-deleted-audit {
+    @apply flex flex-col gap-[3px] rounded-[8px] border border-accent/30 bg-accent/10 px-[9px] py-[6px];
+  }
+  .admin-deleted-badge {
+    @apply inline-flex w-fit items-center gap-[4px] rounded-full bg-accent/20 px-[6px] py-[1.5px] text-[10px] font-semibold uppercase tracking-wider text-accent;
+  }
+  .admin-deleted-text {
+    @apply whitespace-pre-wrap break-words text-[13.5px] font-normal leading-[1.45] text-text-primary;
+  }
+  .message-row.is-outgoing .admin-deleted-audit {
+    @apply border-white/20 bg-white/10;
+  }
+  .message-row.is-outgoing .admin-deleted-badge {
+    @apply bg-white/20 text-white;
+  }
+  .message-row.is-outgoing .admin-deleted-text {
+    @apply text-white;
+  }
 
   .message-actions-wrap {
     @apply relative flex shrink-0;

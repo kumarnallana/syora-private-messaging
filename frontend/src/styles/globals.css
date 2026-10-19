@@ -232,6 +232,17 @@
 :root[data-theme="light"] .message-row.is-outgoing .deleted-message {
   color: #eee9fa !important;
 }
+:root[data-theme="light"] .message-row.is-incoming .admin-deleted-audit {
+  background: rgba(120, 87, 219, 0.08);
+  border-color: rgba(120, 87, 219, 0.24);
+}
+:root[data-theme="light"] .message-row.is-incoming .admin-deleted-badge {
+  background: rgba(120, 87, 219, 0.16);
+  color: #6446b8;
+}
+:root[data-theme="light"] .message-row.is-incoming .admin-deleted-text {
+  color: #1e1b2e;
+}
 :root[data-theme="light"] .message-row.is-outgoing .message-bubble.is-emoji-only .message-meta,
 :root[data-theme="light"] .message-row.is-outgoing .message-bubble.is-emoji-only .receipt {
   color: var(--muted);
