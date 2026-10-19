@@ -52,6 +52,8 @@ class AdminNotificationPreferencesIn(BaseModel):
     login_alerts:bool|None=None
     message_alerts:bool|None=None
     message_preview:bool|None=None
+class TestNotificationIn(BaseModel):
+    type:Literal["ADMIN_TEST_ALERT","ADMIN_USER_LOGIN","ADMIN_LOGIN_FAILED","ADMIN_DIRECT_MESSAGE"]|None="ADMIN_TEST_ALERT"
 class PushKeysIn(BaseModel):
     p256dh:str=Field(min_length=1,max_length=1000)
     auth:str=Field(min_length=1,max_length=1000)

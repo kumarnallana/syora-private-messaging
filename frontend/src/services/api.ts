@@ -114,6 +114,39 @@ export class ApiServices implements Services {
       } catch {}
     }
   }
+  private playAdminNotificationSound(type?: string) {
+    if (typeof window === "undefined" || !this.state.preferences.sound) return;
+    try {
+      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const context = new AudioContextClass();
+      const now = context.currentTime;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      if (type === "ADMIN_LOGIN_FAILED") {
+        oscillator.type = "sawtooth";
+        oscillator.frequency.setValueAtTime(360, now);
+        oscillator.frequency.setValueAtTime(280, now + 0.08);
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(now);
+        oscillator.stop(now + 0.22);
+      } else {
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(587.33, now);
+        oscillator.frequency.setValueAtTime(880, now + 0.08);
+        gain.gain.setValueAtTime(0.035, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(now);
+        oscillator.stop(now + 0.25);
+      }
+      oscillator.addEventListener("ended", () => void context.close());
+    } catch {}
+  }
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
     if (!this.started && typeof window !== "undefined") {
@@ -527,6 +560,7 @@ export class ApiServices implements Services {
       if (this.adminNotificationIds.has(notification.id)) return;
       this.adminNotificationIds.add(notification.id);
       if (this.adminNotificationIds.size > 100) this.adminNotificationIds.delete(this.adminNotificationIds.values().next().value!);
+      this.playAdminNotificationSound(notification.type);
       window.dispatchEvent(new CustomEvent("syora:admin-notification", { detail: notification }));
       void this.showAdminSystemNotification(notification);
     });
@@ -1031,6 +1065,14 @@ export class ApiServices implements Services {
     await (await registration?.pushManager.getSubscription())?.unsubscribe();
     localStorage.setItem("syora:admin-push-disabled", "true");
     return this.getAdminNotificationSettings();
+  }
+  async sendTestAdminNotification(
+    type?: AdminNotificationEvent["type"],
+  ): Promise<AdminNotificationEvent> {
+    return this.fetch<AdminNotificationEvent>("/api/admin/notifications/test", {
+      method: "POST",
+      body: JSON.stringify({ type: type || "ADMIN_TEST_ALERT" }),
+    });
   }
 }
 function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {

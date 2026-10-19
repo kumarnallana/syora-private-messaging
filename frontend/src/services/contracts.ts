@@ -1,5 +1,6 @@
 import type {
   AdminMetrics,
+  AdminNotificationEvent,
   AdminNotificationSettings,
   AppState,
   Attachment,
@@ -80,5 +81,8 @@ export interface Services
   ): Promise<AdminNotificationSettings>;
   enableAdminPush(): Promise<AdminNotificationSettings>;
   disableAdminPush(): Promise<AdminNotificationSettings>;
+  sendTestAdminNotification(
+    type?: AdminNotificationEvent["type"],
+  ): Promise<AdminNotificationEvent>;
 }
 export type { Message, StatusPost };

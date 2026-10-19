@@ -87,6 +87,23 @@ class AdminNotificationTests(unittest.IsolatedAsyncioTestCase):
             await admin_notifications.notify_admin_recipient(message.id)
         deliver.assert_not_awaited()
 
+    async def test_send_test_notification_delivers_payload(self):
+        admin = user("admin", "Admin", "admin")
+        pref = UserPreference(user_id=admin.id)
+        db = FakeSession({(UserPreference, admin.id): pref}, [admin])
+        deliver = AsyncMock()
+        with patch.object(admin_notifications, "SessionLocal", return_value=db), patch.object(admin_notifications, "_deliver", deliver):
+            result = await admin_notifications.send_test_notification(admin, "ADMIN_LOGIN_FAILED")
+        self.assertEqual(result["type"], "ADMIN_LOGIN_FAILED")
+        deliver.assert_awaited_once()
+
+    async def test_member_cannot_trigger_test_notification(self):
+        member = user()
+        auth = SimpleNamespace(user=member, session=SimpleNamespace(id=uuid.uuid4()))
+        with self.assertRaises(HTTPException) as raised:
+            await admin_api.trigger_test_notification(None, auth, AsyncMock())
+        self.assertEqual(raised.exception.status_code, 403)
+
 
 if __name__ == "__main__":
     unittest.main()

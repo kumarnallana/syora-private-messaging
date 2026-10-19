@@ -1,46 +1,84 @@
 @layer components {
-  .admin-notification-toast {
-    @apply fixed right-[18px] top-[18px] z-[260] flex max-w-[min(390px,calc(100vw-28px))] items-start gap-[11px] rounded-[13px] border border-accent/35 bg-panel p-[13px_15px] text-left text-text-primary shadow-[0_15px_45px_#0009];
-    animation: admin-notification-in 180ms ease-out both;
+  .admin-notifications-container {
+    @apply fixed right-[18px] top-[18px] z-[260] flex w-full max-w-[min(410px,calc(100vw-28px))] flex-col gap-[10px] pointer-events-none;
   }
-  .admin-notification-toast > span:last-child {
-    @apply grid gap-[3px];
+  .admin-notifications-container > * {
+    @apply pointer-events-auto;
+  }
+  .admin-notification-toast {
+    @apply relative flex w-full items-start gap-[11px] rounded-[13px] border border-accent/35 bg-panel p-[12px_14px] text-left text-text-primary shadow-[0_15px_45px_#0009] transition-all;
+    animation: admin-notification-in 200ms ease-out both;
+  }
+  .admin-notification-toast:hover {
+    @apply border-accent/60 shadow-[0_18px_50px_#000b];
+  }
+  .admin-notification-toast--warning {
+    @apply border-danger/45;
+  }
+  .admin-notification-toast--warning .admin-notification-icon {
+    @apply text-danger;
+    background: var(--danger-soft);
+  }
+  .admin-notification-toast--warning .admin-notification-badge {
+    @apply border-danger/30 text-danger;
+    background: var(--danger-soft);
+  }
+  .admin-notification-toast--login .admin-notification-badge {
+    @apply border-accent/30 text-accent;
+    background: var(--accent-soft);
+  }
+  .admin-notification-toast--message .admin-notification-badge {
+    @apply border-accent/30 text-accent;
+    background: var(--accent-soft);
+  }
+  .admin-notification-body {
+    @apply flex min-w-0 flex-1 flex-col gap-[3px] text-left cursor-pointer border-0 bg-transparent p-0 text-text-primary;
+  }
+  .admin-notification-meta {
+    @apply flex items-center justify-between gap-[8px] mb-[2px];
+  }
+  .admin-notification-badge {
+    @apply inline-flex items-center rounded-full border border-accent/25 px-[7px] py-[1.5px] text-[10px] font-semibold uppercase tracking-wider text-accent;
+    background: var(--accent-soft);
+  }
+  .admin-notification-time {
+    @apply text-[11px] text-muted;
   }
   .admin-notification-toast strong {
-    @apply text-[13px] font-semibold;
+    @apply text-[13px] font-semibold leading-tight text-text-primary;
   }
   .admin-notification-toast small {
     @apply line-clamp-2 text-[12px] leading-[1.45] text-muted;
   }
   .admin-notification-icon {
-    @apply flex size-[31px] shrink-0 items-center justify-center rounded-full text-accent;
+    @apply mt-[2px] flex size-[32px] shrink-0 items-center justify-center rounded-full text-accent;
     background: var(--accent-soft);
   }
-  .admin-push-prompt {
-    @apply fixed right-[18px] top-[18px] z-[255] flex max-w-[min(430px,calc(100vw-28px))] items-start gap-[11px] rounded-[13px] border border-accent/35 bg-panel p-[15px] text-text-primary shadow-[0_15px_45px_#0009];
-    animation: admin-notification-in 180ms ease-out both;
+  .admin-notification-close {
+    @apply -mr-[4px] -mt-[4px] flex size-[26px] shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface hover:text-text-primary border-0 bg-transparent cursor-pointer;
   }
-  .admin-push-prompt > span:last-child {
-    @apply grid gap-[5px];
+  .admin-push-prompt {
+    @apply relative flex w-full items-start gap-[11px] rounded-[13px] border border-accent/35 bg-panel p-[14px] text-text-primary shadow-[0_15px_45px_#0009];
+    animation: admin-notification-in 200ms ease-out both;
+  }
+  .admin-push-prompt__content {
+    @apply grid flex-1 gap-[5px];
   }
   .admin-push-prompt strong {
-    @apply text-[13px] font-semibold;
+    @apply text-[13px] font-semibold text-text-primary;
   }
   .admin-push-prompt small {
     @apply text-[12px] leading-[1.5] text-muted;
   }
   .admin-push-prompt__actions {
-    @apply mt-[7px] flex justify-end gap-[8px];
+    @apply mt-[8px] flex justify-end gap-[8px];
   }
   @keyframes admin-notification-in {
     from { opacity: 0; transform: translateY(-8px); }
     to { opacity: 1; transform: translateY(0); }
   }
   @media (max-width: 899px) {
-    .admin-notification-toast {
-      @apply left-[14px] right-[14px] top-[calc(env(safe-area-inset-top)+12px)] max-w-none;
-    }
-    .admin-push-prompt {
+    .admin-notifications-container {
       @apply left-[14px] right-[14px] top-[calc(env(safe-area-inset-top)+12px)] max-w-none;
     }
   }

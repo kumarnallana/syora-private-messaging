@@ -8,7 +8,7 @@ from sqlalchemy import delete
 from app.api.deps import api_error, current_auth
 from app.db.session import get_db
 from app.models import PushSubscription, RefreshSession, User, UserPreference, now
-from app.schemas.inputs import AdminNotificationPreferencesIn, PushSubscriptionIn
+from app.schemas.inputs import AdminNotificationPreferencesIn, PushSubscriptionIn, TestNotificationIn
 from app.services.sessions import AuthenticatedSession
 from app.config.settings import get_settings
 from app.services.sessions import IDLE_TIMEOUT
@@ -52,6 +52,19 @@ async def update_notification_settings(body: AdminNotificationPreferencesIn, aut
         setattr(pref, mapping[key], value)
     await db.commit()
     return await notification_settings(db, auth.user, auth.session.id)
+
+
+@router.post("/notifications/test")
+async def trigger_test_notification(
+    body: TestNotificationIn | None = None,
+    auth: AuthenticatedSession = Depends(current_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    if auth.user.role != "admin":
+        raise api_error(403, "ADMIN_REQUIRED", "Administrator access is required.")
+    event_type = body.type if body and body.type else "ADMIN_TEST_ALERT"
+    from app.services.admin_notifications import send_test_notification
+    return await send_test_notification(auth.user, event_type)
 
 
 @router.post("/push-subscriptions", status_code=201)

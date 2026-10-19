@@ -15,9 +15,13 @@ import {
   CircleDot,
   LogOut,
   MessageCircle,
+  MessageSquare,
   Settings2,
   Shield,
+  ShieldAlert,
+  UserCheck,
   Users,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -35,6 +39,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [logout, setLogout] = useState(false);
   const [adminNotification, setAdminNotification] = useState<AdminNotificationEvent>();
+  const [isPaused, setIsPaused] = useState(false);
   const [showPushPrompt, setShowPushPrompt] = useState(false);
   const [pushPromptPending, setPushPromptPending] = useState(false);
   const [pushPromptError, setPushPromptError] = useState("");
@@ -45,17 +50,25 @@ export function Shell({ children }: { children: React.ReactNode }) {
     const receive = (event: Event) => {
       const notification = (event as CustomEvent<AdminNotificationEvent>).detail;
       const activeConversation = pathname === "/chats" ? new URLSearchParams(window.location.search).get("conversation") : null;
+      try {
+        const stored: AdminNotificationEvent[] = JSON.parse(localStorage.getItem("syora:admin-notifications-history") || "[]");
+        const next = [notification, ...stored.filter(item => item.id !== notification.id)].slice(0, 30);
+        localStorage.setItem("syora:admin-notifications-history", JSON.stringify(next));
+        window.dispatchEvent(new CustomEvent("syora:admin-history-updated"));
+      } catch {}
+
       if (document.visibilityState === "visible" && notification.conversationId === activeConversation) return;
       setAdminNotification(notification);
+      setIsPaused(false);
     };
     window.addEventListener("syora:admin-notification", receive);
     return () => window.removeEventListener("syora:admin-notification", receive);
   }, [pathname]);
   useEffect(() => {
-    if (!adminNotification) return;
-    const timer = window.setTimeout(() => setAdminNotification(undefined), 5000);
+    if (!adminNotification || isPaused) return;
+    const timer = window.setTimeout(() => setAdminNotification(undefined), 6000);
     return () => window.clearTimeout(timer);
-  }, [adminNotification]);
+  }, [adminNotification, isPaused]);
   useEffect(() => {
     const viewport = window.visualViewport;
     const update = () => {
@@ -139,8 +152,85 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <div className="app-content">{children}</div>
       {connection === "connecting" && <div className="connection-banner" role="status">Connecting…</div>}
       {connection === "offline" && <div className="connection-banner" role="status">Offline — new activity will reconnect automatically.</div>}
-      {showPushPrompt && <aside className="admin-push-prompt" aria-label="Enable administrator notifications"><span className="admin-notification-icon"><Bell size={18}/></span><span><strong>Know when someone tries to sign in</strong><small>Allow notifications to receive successful and failed sign-in alerts on this device, even while SYORA is closed.</small>{pushPromptError && <small className="inline-error" role="alert">{pushPromptError}</small>}<span className="admin-push-prompt__actions"><button type="button" className="button secondary small" onClick={() => { sessionStorage.setItem("syora:push-prompt-dismissed", "true"); setShowPushPrompt(false); }}>Later</button><button type="button" className="button small" disabled={pushPromptPending} onClick={() => { setPushPromptError(""); setPushPromptPending(true); void services.enableAdminPush().then(() => setShowPushPrompt(false)).catch(cause => setPushPromptError(cause instanceof Error ? cause.message : "Notifications could not be enabled." )).finally(() => setPushPromptPending(false)); }}>Allow notifications</button></span></span></aside>}
-      {adminNotification && <button className="admin-notification-toast" type="button" onClick={() => { router.push(adminNotification.url); setAdminNotification(undefined); }}><span className="admin-notification-icon"><Bell size={18}/></span><span><strong>{adminNotification.title}</strong><small>{adminNotification.body}</small></span></button>}
+      {(showPushPrompt || adminNotification) && (
+        <div className="admin-notifications-container" aria-live="polite">
+          {showPushPrompt && (
+            <aside className="admin-push-prompt" aria-label="Enable administrator notifications">
+              <span className="admin-notification-icon"><Bell size={18}/></span>
+              <div className="admin-push-prompt__content">
+                <strong>Know when someone tries to sign in</strong>
+                <small>Allow notifications to receive successful and failed sign-in alerts on this device, even while SYORA is closed.</small>
+                {pushPromptError && <small className="inline-error" role="alert">{pushPromptError}</small>}
+                <div className="admin-push-prompt__actions">
+                  <button type="button" className="button secondary small" onClick={() => { sessionStorage.setItem("syora:push-prompt-dismissed", "true"); setShowPushPrompt(false); }}>Later</button>
+                  <button type="button" className="button small" disabled={pushPromptPending} onClick={() => { setPushPromptError(""); setPushPromptPending(true); void services.enableAdminPush().then(() => setShowPushPrompt(false)).catch(cause => setPushPromptError(cause instanceof Error ? cause.message : "Notifications could not be enabled." )).finally(() => setPushPromptPending(false)); }}>Allow notifications</button>
+                </div>
+              </div>
+            </aside>
+          )}
+          {adminNotification && (
+            <aside
+              className={cn(
+                "admin-notification-toast",
+                adminNotification.type === "ADMIN_LOGIN_FAILED" && "admin-notification-toast--warning",
+                adminNotification.type === "ADMIN_USER_LOGIN" && "admin-notification-toast--login",
+                adminNotification.type === "ADMIN_DIRECT_MESSAGE" && "admin-notification-toast--message",
+              )}
+              role="alert"
+              aria-atomic="true"
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+            >
+              <span className="admin-notification-icon">
+                {adminNotification.type === "ADMIN_LOGIN_FAILED" ? (
+                  <ShieldAlert size={18} />
+                ) : adminNotification.type === "ADMIN_USER_LOGIN" ? (
+                  <UserCheck size={18} />
+                ) : adminNotification.type === "ADMIN_DIRECT_MESSAGE" ? (
+                  <MessageSquare size={18} />
+                ) : (
+                  <Bell size={18} />
+                )}
+              </span>
+              <button
+                type="button"
+                className="admin-notification-body"
+                onClick={() => {
+                  router.push(adminNotification.url);
+                  setAdminNotification(undefined);
+                }}
+              >
+                <div className="admin-notification-meta">
+                  <span className="admin-notification-badge">
+                    {adminNotification.type === "ADMIN_LOGIN_FAILED"
+                      ? "Security Alert"
+                      : adminNotification.type === "ADMIN_USER_LOGIN"
+                      ? "User Sign-in"
+                      : adminNotification.type === "ADMIN_DIRECT_MESSAGE"
+                      ? "Direct Message"
+                      : "System Alert"}
+                  </span>
+                  <small className="admin-notification-time">Just now</small>
+                </div>
+                <strong>{adminNotification.title}</strong>
+                <small>{adminNotification.body}</small>
+              </button>
+              <button
+                type="button"
+                className="admin-notification-close"
+                title="Dismiss notification"
+                aria-label="Dismiss notification"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAdminNotification(undefined);
+                }}
+              >
+                <X size={15} />
+              </button>
+            </aside>
+          )}
+        </div>
+      )}
       {logout && (
         <Modal
           title="Leave your space?"

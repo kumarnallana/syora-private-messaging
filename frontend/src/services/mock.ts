@@ -1,6 +1,7 @@
 import { createSeed } from "@/data/seed";
 import type {
   AdminMetrics,
+  AdminNotificationEvent,
   AdminNotificationSettings,
   AppState,
   Attachment,
@@ -13,6 +14,7 @@ const pause = () => new Promise<void>((resolve) => setTimeout(resolve, 350));
 export class MockServices implements Services {
   private state: AppState = createSeed();
   private settings = new Map<string, Preferences>();
+  private adminNotificationSettings = new Map<string, AdminNotificationSettings>();
   private hidden = new Map<string, Set<string>>();
   private deletedConversations = new Map<string, Set<string>>();
   private read = new Map<string, Set<string>>();
@@ -559,17 +561,53 @@ export class MockServices implements Services {
   async revokeAdminSessions(_userId: string): Promise<void> {
     await pause();
   }
+  private playMockAdminNotificationSound(type?: string) {
+    if (typeof window === "undefined" || !this.state.preferences.sound) return;
+    try {
+      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const context = new AudioContextClass();
+      const now = context.currentTime;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      if (type === "ADMIN_LOGIN_FAILED") {
+        oscillator.type = "sawtooth";
+        oscillator.frequency.setValueAtTime(360, now);
+        oscillator.frequency.setValueAtTime(280, now + 0.08);
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(now);
+        oscillator.stop(now + 0.22);
+      } else {
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(587.33, now);
+        oscillator.frequency.setValueAtTime(880, now + 0.08);
+        gain.gain.setValueAtTime(0.035, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(now);
+        oscillator.stop(now + 0.25);
+      }
+    } catch {}
+  }
   async getAdminNotificationSettings(): Promise<AdminNotificationSettings> {
     const me = this.user(this.identity());
     if (me.role !== "admin")
       throw new Error("Administrator access is required.");
-    return {
+    const existing = this.adminNotificationSettings.get(me.id);
+    if (existing) return existing;
+    const initial: AdminNotificationSettings = {
       loginAlerts: true,
       messageAlerts: true,
       messagePreview: true,
       pushEnabled: false,
-      pushSupported: false,
+      pushSupported: true,
     };
+    this.adminNotificationSettings.set(me.id, initial);
+    return initial;
   }
   async updateAdminNotificationSettings(
     values: Partial<
@@ -579,13 +617,83 @@ export class MockServices implements Services {
       >
     >,
   ) {
-    return { ...(await this.getAdminNotificationSettings()), ...values };
+    const current = await this.getAdminNotificationSettings();
+    const updated = { ...current, ...values };
+    const me = this.identity();
+    this.adminNotificationSettings.set(me, updated);
+    return updated;
   }
   async enableAdminPush(): Promise<AdminNotificationSettings> {
-    throw new Error("Push delivery is unavailable in preview mode.");
+    await pause();
+    const current = await this.getAdminNotificationSettings();
+    const updated = { ...current, pushEnabled: true };
+    const me = this.identity();
+    this.adminNotificationSettings.set(me, updated);
+    return updated;
   }
   async disableAdminPush() {
-    return this.getAdminNotificationSettings();
+    await pause();
+    const current = await this.getAdminNotificationSettings();
+    const updated = { ...current, pushEnabled: false };
+    const me = this.identity();
+    this.adminNotificationSettings.set(me, updated);
+    return updated;
+  }
+  async sendTestAdminNotification(
+    type: AdminNotificationEvent["type"] = "ADMIN_TEST_ALERT",
+  ): Promise<AdminNotificationEvent> {
+    const me = this.user(this.identity());
+    if (me.role !== "admin")
+      throw new Error("Administrator access is required.");
+    await pause();
+    let notification: AdminNotificationEvent;
+    const nowIso = new Date().toISOString();
+    if (type === "ADMIN_USER_LOGIN") {
+      notification = {
+        id: `mock-login-${Date.now()}`,
+        type: "ADMIN_USER_LOGIN",
+        title: "User logged in",
+        body: "Elena Rostov (@elena) just signed in.",
+        url: "/contacts",
+        timestamp: nowIso,
+        senderName: "Elena Rostov",
+      };
+    } else if (type === "ADMIN_LOGIN_FAILED") {
+      notification = {
+        id: `mock-failed-${Date.now()}`,
+        type: "ADMIN_LOGIN_FAILED",
+        title: "Failed sign-in attempt",
+        body: "A sign-in attempt for an unknown account was rejected.",
+        url: "/settings",
+        timestamp: nowIso,
+      };
+    } else if (type === "ADMIN_DIRECT_MESSAGE") {
+      notification = {
+        id: `mock-msg-${Date.now()}`,
+        type: "ADMIN_DIRECT_MESSAGE",
+        title: "SYORA message",
+        body: "Alex Rivera: Hello admin, this is a test direct message notification.",
+        url: "/chats",
+        timestamp: nowIso,
+        senderName: "Alex Rivera",
+      };
+    } else {
+      notification = {
+        id: `mock-test-${Date.now()}`,
+        type: "ADMIN_TEST_ALERT",
+        title: "Admin Notification Test",
+        body: "Admin notification channel is active and receiving alerts on this device.",
+        url: "/settings?section=notifications",
+        timestamp: nowIso,
+      };
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("syora:admin-notification", { detail: notification }),
+      );
+      this.playMockAdminNotificationSound(notification.type);
+    }
+    return notification;
   }
   async updatePreferences(values: Partial<Preferences>) {
     const me = this.identity();

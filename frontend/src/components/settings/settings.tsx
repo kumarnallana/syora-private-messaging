@@ -1,13 +1,14 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { AlertCircle, Bell, CheckCircle2, ChevronRight, ImageIcon, LoaderCircle, Lock, LogOut, Monitor, Moon, RefreshCw, RotateCcw, Shield, Sun, Upload, UserRound, UsersRound, UserX } from 'lucide-react';
+import { Activity, AlertCircle, Bell, CheckCircle2, ChevronRight, ImageIcon, LoaderCircle, Lock, LogOut, Monitor, Moon, RefreshCw, RotateCcw, Shield, ShieldAlert, Sun, Trash2, Upload, UserCheck, UserRound, UsersRound, UserX } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '@/stores/use-app';
 import { Avatar, Modal } from '@/components/shared/ui';
 import { MobileScreenHeader, PageHeader } from '@/components/shell';
 import { usernameLabel } from '@/utils/presentation';
-import type { AdminMetrics, AdminNotificationSettings, Preferences } from '@/types';
+import { cn } from '@/utils/cn';
+import type { AdminMetrics, AdminNotificationEvent, AdminNotificationSettings, Preferences } from '@/types';
 import { clearChatWallpaper, getChatWallpaper, readChatWallpaper, saveChatWallpaper } from '@/utils/chat-wallpaper';
 
 type Subsection = 'privacy' | 'notifications' | 'appearance' | 'blocked';
@@ -27,7 +28,42 @@ export function Settings() {
   const [adminMetricsError, setAdminMetricsError] = useState('');
   const [adminNotifications, setAdminNotifications] = useState<AdminNotificationSettings>();
   const [adminNotificationPending, setAdminNotificationPending] = useState(false);
+  const [testingAlert, setTestingAlert] = useState<string>();
+  const [notificationHistory, setNotificationHistory] = useState<AdminNotificationEvent[]>([]);
   const [revokingUserId, setRevokingUserId] = useState<string>();
+
+  useEffect(() => {
+    if (me?.role !== 'admin') return;
+    const loadHistory = () => {
+      try {
+        const stored = localStorage.getItem('syora:admin-notifications-history');
+        if (stored) setNotificationHistory(JSON.parse(stored));
+      } catch {}
+    };
+    loadHistory();
+    window.addEventListener('syora:admin-history-updated', loadHistory);
+    return () => window.removeEventListener('syora:admin-history-updated', loadHistory);
+  }, [me?.role]);
+
+  async function sendTestAlert(type: AdminNotificationEvent['type'] = 'ADMIN_TEST_ALERT') {
+    if (testingAlert) return;
+    setTestingAlert(type);
+    setNotice(undefined);
+    try {
+      const event = await services.sendTestAdminNotification(type);
+      setNotice({ kind: 'success', text: `Test alert (${event.title}) sent.` });
+    } catch (cause) {
+      setNotice({ kind: 'error', text: cause instanceof Error ? cause.message : 'Test alert could not be sent.' });
+    } finally {
+      setTestingAlert(undefined);
+    }
+  }
+
+  function clearNotificationHistory() {
+    localStorage.removeItem('syora:admin-notifications-history');
+    setNotificationHistory([]);
+    setNotice({ kind: 'success', text: 'Admin notification history cleared.' });
+  }
 
   const loadAdminMetrics = useCallback(async () => {
     if (me?.role !== 'admin') return;
@@ -110,7 +146,139 @@ export function Settings() {
   }
 
   const privacy = <><Choice disabled={Boolean(pending)} label="Last seen" value={preferences.lastSeen} options={['Everyone','Friends','Nobody']} onChange={value => void update('lastSeen', value)}/><Choice disabled={Boolean(pending)} label="Profile photo" value={preferences.photo} options={['Everyone','Friends','Nobody']} onChange={value => void update('photo', value)}/><Choice disabled={Boolean(pending)} label="Status visibility" value={preferences.status} options={['Friends','Nobody']} onChange={value => void update('status', value)}/><Toggle disabled={Boolean(pending)} label="Read receipts" description="Let friends know when you have read a message." value={preferences.receipts} onChange={value => void update('receipts', value)}/></>;
-  const notifications = <><Toggle disabled={Boolean(pending)} label="Message notifications" description="Show an alert when a message arrives while SYORA is in the background." value={preferences.notifications} onChange={value => void update('notifications', value)}/><Toggle disabled={Boolean(pending)} label="Conversation sounds" description="Play a quiet sound for incoming messages." value={preferences.sound} onChange={value => void update('sound', value)}/>{me?.role === 'admin' && <section className="admin-notification-settings" aria-label="Admin notifications"><header><Bell/><span><strong>Admin notifications</strong><small>Alerts reserved for the authenticated SYORA administrator.</small></span></header>{adminNotifications ? <><Toggle disabled={adminNotificationPending} label="Sign-in activity alerts" description="Notify me when a member signs in successfully or a sign-in attempt fails." value={adminNotifications.loginAlerts} onChange={value => void updateAdminNotifications({ loginAlerts: value })}/><Toggle disabled={adminNotificationPending} label="Messages to me" description="Notify me only when a direct message is addressed to my admin account." value={adminNotifications.messageAlerts} onChange={value => void updateAdminNotifications({ messageAlerts: value })}/><Toggle disabled={adminNotificationPending} label="Message preview" description="Include message text in notifications that may appear on a lock screen." value={adminNotifications.messagePreview} onChange={value => void updateAdminNotifications({ messagePreview: value })}/><div className="admin-push-control"><span><strong>Push notifications on this device</strong><small>{adminNotifications.pushSupported ? (adminNotifications.pushEnabled ? 'This device will keep receiving admin alerts in the background.' : 'Allow notifications to receive successful and failed sign-in alerts, even while SYORA is closed.') : 'Mobile push is unavailable until VAPID keys are configured on the SYORA server.'}</small></span><button type="button" className={`button small ${adminNotifications.pushEnabled ? 'secondary' : ''}`} disabled={adminNotificationPending || !adminNotifications.pushSupported} onClick={() => void toggleAdminPush()}>{adminNotificationPending && <LoaderCircle className="spin"/>}{adminNotifications.pushEnabled ? 'Disable' : 'Allow notifications'}</button></div></> : <p className="muted-copy">Loading admin notification settings…</p>}</section>}</>;
+  const notifications = (
+    <>
+      <Toggle disabled={Boolean(pending)} label="Message notifications" description="Show an alert when a message arrives while SYORA is in the background." value={preferences.notifications} onChange={value => void update('notifications', value)}/>
+      <Toggle disabled={Boolean(pending)} label="Conversation sounds" description="Play a quiet sound for incoming messages." value={preferences.sound} onChange={value => void update('sound', value)}/>
+      {me?.role === 'admin' && (
+        <section className="admin-notification-settings" aria-label="Admin notifications">
+          <header>
+            <Bell/>
+            <span>
+              <strong>Admin notifications</strong>
+              <small>Alerts and security monitoring reserved for the authenticated SYORA administrator.</small>
+            </span>
+          </header>
+          {adminNotifications ? (
+            <>
+              <Toggle disabled={adminNotificationPending} label="Sign-in activity alerts" description="Notify me when a member signs in successfully or a sign-in attempt fails." value={adminNotifications.loginAlerts} onChange={value => void updateAdminNotifications({ loginAlerts: value })}/>
+              <Toggle disabled={adminNotificationPending} label="Messages to me" description="Notify me only when a direct message is addressed to my admin account." value={adminNotifications.messageAlerts} onChange={value => void updateAdminNotifications({ messageAlerts: value })}/>
+              <Toggle disabled={adminNotificationPending} label="Message preview" description="Include message text in notifications that may appear on a lock screen." value={adminNotifications.messagePreview} onChange={value => void updateAdminNotifications({ messagePreview: value })}/>
+              <div className="admin-push-control">
+                <span>
+                  <strong>Push notifications on this device</strong>
+                  <small>{adminNotifications.pushSupported ? (adminNotifications.pushEnabled ? 'This device will keep receiving admin alerts in the background.' : 'Allow notifications to receive successful and failed sign-in alerts, even while SYORA is closed.') : 'Mobile push is unavailable until VAPID keys are configured on the SYORA server.'}</small>
+                </span>
+                <button type="button" className={`button small ${adminNotifications.pushEnabled ? 'secondary' : ''}`} disabled={adminNotificationPending || !adminNotifications.pushSupported} onClick={() => void toggleAdminPush()}>
+                  {adminNotificationPending && <LoaderCircle className="spin"/>}
+                  {adminNotifications.pushEnabled ? 'Disable' : 'Allow notifications'}
+                </button>
+              </div>
+              <div className="admin-test-control">
+                <div className="admin-test-control__copy">
+                  <strong>Test notification delivery</strong>
+                  <small>Trigger live alerts to confirm your toast, audio chime, and push notifications are working.</small>
+                </div>
+                <div className="admin-test-control__actions">
+                  <button
+                    type="button"
+                    className="button secondary small"
+                    disabled={Boolean(testingAlert)}
+                    onClick={() => void sendTestAlert('ADMIN_TEST_ALERT')}
+                  >
+                    {testingAlert === 'ADMIN_TEST_ALERT' ? <LoaderCircle className="spin" size={14}/> : <Bell size={14}/>}
+                    Standard test
+                  </button>
+                  <button
+                    type="button"
+                    className="button secondary small"
+                    disabled={Boolean(testingAlert)}
+                    onClick={() => void sendTestAlert('ADMIN_LOGIN_FAILED')}
+                  >
+                    {testingAlert === 'ADMIN_LOGIN_FAILED' ? <LoaderCircle className="spin" size={14}/> : <ShieldAlert size={14}/>}
+                    Security alert
+                  </button>
+                  <button
+                    type="button"
+                    className="button secondary small"
+                    disabled={Boolean(testingAlert)}
+                    onClick={() => void sendTestAlert('ADMIN_USER_LOGIN')}
+                  >
+                    {testingAlert === 'ADMIN_USER_LOGIN' ? <LoaderCircle className="spin" size={14}/> : <UserCheck size={14}/>}
+                    Sign-in alert
+                  </button>
+                </div>
+              </div>
+              <div className="admin-notification-history" aria-label="Recent admin alerts">
+                <div className="admin-notification-history__header">
+                  <div className="admin-notification-history__title">
+                    <Activity size={16} />
+                    <strong>Recent alert activity</strong>
+                    {notificationHistory.length > 0 && <span className="admin-notification-count">{notificationHistory.length}</span>}
+                  </div>
+                  {notificationHistory.length > 0 && (
+                    <button
+                      type="button"
+                      className="button secondary small"
+                      onClick={clearNotificationHistory}
+                    >
+                      <Trash2 size={13} /> Clear log
+                    </button>
+                  )}
+                </div>
+                {notificationHistory.length > 0 ? (
+                  <div className="admin-notification-history__list">
+                    {notificationHistory.map((item) => (
+                      <div className="admin-notification-history__item" key={item.id}>
+                        <div className="admin-notification-history__left">
+                          <span
+                            className={cn(
+                              "admin-notification-badge",
+                              item.type === "ADMIN_LOGIN_FAILED" && "admin-notification-badge--warning",
+                              item.type === "ADMIN_USER_LOGIN" && "admin-notification-badge--login",
+                              item.type === "ADMIN_DIRECT_MESSAGE" && "admin-notification-badge--message",
+                            )}
+                          >
+                            {item.type === "ADMIN_LOGIN_FAILED"
+                              ? "Security"
+                              : item.type === "ADMIN_USER_LOGIN"
+                              ? "Sign-in"
+                              : item.type === "ADMIN_DIRECT_MESSAGE"
+                              ? "Message"
+                              : "Test"}
+                          </span>
+                          <div className="admin-notification-history__details">
+                            <strong>{item.title}</strong>
+                            <p>{item.body}</p>
+                            <small>{new Date(item.timestamp).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}</small>
+                          </div>
+                        </div>
+                        {item.url && (
+                          <button
+                            type="button"
+                            className="button secondary small"
+                            onClick={() => router.push(item.url)}
+                          >
+                            Open
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="muted-copy admin-notification-history__empty">
+                    No admin notifications recorded yet. Alerts will appear here in real time.
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            <p className="muted-copy">Loading admin notification settings…</p>
+          )}
+        </section>
+      )}
+    </>
+  );
   const appearance = <><div className="theme-options" role="radiogroup" aria-label="Appearance">{([['dark', Moon, 'Dark'], ['light', Sun, 'Light'], ['system', Monitor, 'System']] as const).map(([value, Icon, label]) => <button key={value} disabled={Boolean(pending)} role="radio" aria-checked={preferences.appearance === value} className={preferences.appearance === value ? 'is-active' : ''} onClick={() => void update('appearance', value)}><Icon size={18}/> {label}</button>)}</div><ChatWallpaperSetting/><Toggle disabled={Boolean(pending)} label="Compact conversations" description="Reduce spacing in conversation lists and messages." value={preferences.compact} onChange={value => void update('compact', value)}/></>;
   const blocked = preferences.blocked.length ? preferences.blocked.map(id => { const user = users.find(item => item.id === id); return user && <div className="blocked-row" key={id}><Avatar user={user} size="small"/><span>{user.name}</span><button className="button secondary small" disabled={Boolean(blockingId)} onClick={() => void unblock(id, user.name)}>{blockingId === id && <LoaderCircle className="spin" size={15}/>} Unblock</button></div>; }) : <p className="muted-copy">You have not blocked anyone.</p>;
   const subsectionContent = section === 'privacy' ? privacy : section === 'notifications' ? notifications : section === 'appearance' ? appearance : blocked;

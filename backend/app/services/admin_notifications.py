@@ -157,3 +157,53 @@ async def notify_admin_recipient(message_id: uuid.UUID) -> None:
             "url": f"/chats?conversation={message.conversation_id}",
         }
         await _deliver(admin, pref, payload, message.conversation_id)
+
+
+async def send_test_notification(admin: User, event_type: str = "ADMIN_TEST_ALERT") -> dict[str, Any]:
+    async with SessionLocal() as db:
+        pref = await db.get(UserPreference, admin.id)
+
+    if event_type == "ADMIN_USER_LOGIN":
+        payload = {
+            "id": f"test-login:{uuid.uuid4()}",
+            "type": "ADMIN_USER_LOGIN",
+            "title": "User logged in",
+            "body": "Sample member (@member_demo) just signed in.",
+            "userId": str(uuid.uuid4()),
+            "displayName": "Demo Member",
+            "username": "member_demo",
+            "timestamp": now().isoformat(),
+            "url": "/contacts",
+        }
+    elif event_type == "ADMIN_LOGIN_FAILED":
+        payload = {
+            "id": f"test-failed:{uuid.uuid4()}",
+            "type": "ADMIN_LOGIN_FAILED",
+            "title": "Failed sign-in attempt",
+            "body": "A sign-in attempt for an unknown account was rejected.",
+            "timestamp": now().isoformat(),
+            "url": "/settings",
+        }
+    elif event_type == "ADMIN_DIRECT_MESSAGE":
+        payload = {
+            "id": f"test-msg:{uuid.uuid4()}",
+            "type": "ADMIN_DIRECT_MESSAGE",
+            "title": "SYORA message",
+            "body": "Alex Rivera: Hello admin, this is a test direct message notification.",
+            "messageId": str(uuid.uuid4()),
+            "senderName": "Alex Rivera",
+            "preview": "Hello admin, this is a test direct message notification.",
+            "timestamp": now().isoformat(),
+            "url": "/chats",
+        }
+    else:
+        payload = {
+            "id": f"test-alert:{uuid.uuid4()}",
+            "type": "ADMIN_TEST_ALERT",
+            "title": "Admin Notification Test",
+            "body": "Admin notification channel is active and receiving alerts on this device.",
+            "timestamp": now().isoformat(),
+            "url": "/settings?section=notifications",
+        }
+    await _deliver(admin, pref, payload)
+    return payload

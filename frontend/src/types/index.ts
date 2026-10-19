@@ -10,4 +10,4 @@ export interface AppState { sessionReady: boolean; sessionError?: string; connec
 export interface AdminSignedInPerson { userId: string; displayName: string; username: string; totalSessionCount: number; activeSessionCount: number; lastSignedInAt: string; lastActiveAt: string; isCurrentUser: boolean; canRevoke: boolean }
 export interface AdminMetrics { signedInUsers: number; previouslySignedInUsers: number; people: AdminSignedInPerson[] }
 export interface AdminNotificationSettings { loginAlerts: boolean; messageAlerts: boolean; messagePreview: boolean; pushEnabled: boolean; pushSupported: boolean; publicKey?: string }
-export interface AdminNotificationEvent { id: string; type: 'ADMIN_USER_LOGIN' | 'ADMIN_LOGIN_FAILED' | 'ADMIN_DIRECT_MESSAGE'; title: string; body: string; url: string; timestamp: string; conversationId?: string; senderName?: string }
+export interface AdminNotificationEvent { id: string; type: 'ADMIN_USER_LOGIN' | 'ADMIN_LOGIN_FAILED' | 'ADMIN_DIRECT_MESSAGE' | 'ADMIN_TEST_ALERT'; title: string; body: string; url: string; timestamp: string; conversationId?: string; senderName?: string; read?: boolean }
