@@ -34,6 +34,13 @@
   .rail-link span {
     @apply text-[11px] font-medium;
   }
+  .rail-icon-wrap {
+    @apply relative inline-flex items-center justify-center;
+  }
+  .rail-badge {
+    @apply absolute -top-[5px] -right-[9px] grid h-[18px] min-w-[18px] place-items-center rounded-full bg-accent px-[4px] text-[10px] font-bold text-[#211b31] shadow-sm;
+    line-height: 1;
+  }
   .rail-link--danger {
     @apply hover:text-danger;
   }

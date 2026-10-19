@@ -27,14 +27,17 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { AdminNotificationEvent } from "@/types";
-const nav = [
-  { href: "/chats", label: "Chats", icon: MessageCircle },
-  { href: "/status", label: "Status", icon: CircleDot },
-  { href: "/contacts", label: "Contacts", icon: Users },
-  { href: "/settings", label: "Settings", icon: Settings2 },
-];
 export function Shell({ children }: { children: React.ReactNode }) {
-  const { me, services, preferences, sessionReady, sessionError, connection } = useApp();
+  const {
+    me,
+    services,
+    preferences,
+    sessionReady,
+    sessionError,
+    connection,
+    friendships = [],
+    conversations = [],
+  } = useApp();
   const pathname = usePathname();
   const router = useRouter();
   const [logout, setLogout] = useState(false);
@@ -43,6 +46,27 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [showPushPrompt, setShowPushPrompt] = useState(false);
   const [pushPromptPending, setPushPromptPending] = useState(false);
   const [pushPromptError, setPushPromptError] = useState("");
+
+  const incomingFriendRequests = friendships.filter(
+    (item) => item.to === me?.id && item.status === "pending",
+  ).length;
+
+  const unreadChats = conversations.reduce(
+    (total, item) => total + (item.unread || 0),
+    0,
+  );
+
+  const navLinks = [
+    { href: "/chats", label: "Chats", icon: MessageCircle, badge: unreadChats },
+    { href: "/status", label: "Status", icon: CircleDot },
+    {
+      href: "/contacts",
+      label: "Contacts",
+      icon: Users,
+      badge: incomingFriendRequests,
+    },
+    { href: "/settings", label: "Settings", icon: Settings2 },
+  ];
   useEffect(() => {
     window.dispatchEvent(new Event("syora:navigation"));
   }, [pathname]);
@@ -110,7 +134,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <LogoMark />
         </Link>
         <nav className="rail__nav">
-          {nav.map(({ href, label, icon: Icon }) => (
+          {navLinks.map(({ href, label, icon: Icon, badge }) => (
             <Link
               key={href}
               href={href}
@@ -119,10 +143,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 pathname === href && "is-active",
               )}
               title={label}
-              aria-label={label}
+              aria-label={badge && badge > 0 ? `${label} (${badge} new)` : label}
               aria-current={pathname === href ? "page" : undefined}
             >
-              <Icon size={23} />
+              <span className="rail-icon-wrap">
+                <Icon size={23} />
+                {Boolean(badge && badge > 0) && (
+                  <span className="rail-badge" aria-hidden="true">
+                    {badge! > 99 ? "99+" : badge}
+                  </span>
+                )}
+              </span>
               <span>{label}</span>
             </Link>
           ))}

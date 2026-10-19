@@ -67,6 +67,8 @@ export class ApiServices implements Services {
   private conversationReloadPending = false;
   private statusReloadTask?: Promise<void>;
   private statusReloadPending = false;
+  private contactsReloadTask?: Promise<void>;
+  private contactsReloadPending = false;
   private idleTimer?: ReturnType<typeof setTimeout>;
   private idleDeadline = 0;
   private lastHeartbeatAt = 0;
@@ -554,6 +556,76 @@ export class ApiServices implements Services {
         }),
     );
     socket.on("conversation:update", () => this.scheduleConversationReload());
+    socket.on("friend:update", (data: any) => {
+      this.scheduleContactsReload();
+      if (data?.type === "REQUEST_RECEIVED") {
+        if (this.state.preferences.sound) {
+          try {
+            const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+            if (AudioContextClass) {
+              const context = new AudioContextClass();
+              const now = context.currentTime;
+              const oscillator = context.createOscillator();
+              const gain = context.createGain();
+              oscillator.type = "sine";
+              oscillator.frequency.setValueAtTime(440, now);
+              oscillator.frequency.setValueAtTime(659.25, now + 0.09);
+              gain.gain.setValueAtTime(0.03, now);
+              gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+              oscillator.connect(gain);
+              gain.connect(context.destination);
+              oscillator.start(now);
+              oscillator.stop(now + 0.22);
+              oscillator.addEventListener("ended", () => void context.close());
+            }
+          } catch {}
+        }
+        if (
+          data?.fromName &&
+          this.state.preferences.notifications &&
+          document.visibilityState !== "visible" &&
+          "Notification" in window &&
+          Notification.permission === "granted"
+        ) {
+          new Notification("New friend request", {
+            body: `${data.fromName} sent you a friend request.`,
+          });
+        }
+      } else if (data?.type === "REQUEST_RESPONDED" && data?.action === "accept") {
+        if (this.state.preferences.sound) {
+          try {
+            const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+            if (AudioContextClass) {
+              const context = new AudioContextClass();
+              const now = context.currentTime;
+              const oscillator = context.createOscillator();
+              const gain = context.createGain();
+              oscillator.type = "sine";
+              oscillator.frequency.setValueAtTime(523.25, now);
+              oscillator.frequency.setValueAtTime(783.99, now + 0.08);
+              gain.gain.setValueAtTime(0.03, now);
+              gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+              oscillator.connect(gain);
+              gain.connect(context.destination);
+              oscillator.start(now);
+              oscillator.stop(now + 0.22);
+              oscillator.addEventListener("ended", () => void context.close());
+            }
+          } catch {}
+        }
+        if (
+          data?.userName &&
+          this.state.preferences.notifications &&
+          document.visibilityState !== "visible" &&
+          "Notification" in window &&
+          Notification.permission === "granted"
+        ) {
+          new Notification("Friend request accepted", {
+            body: `${data.userName} accepted your friend request.`,
+          });
+        }
+      }
+    });
     socket.on("status:new", () => this.scheduleStatusReload());
     socket.on("status:deleted", () => this.scheduleStatusReload());
     socket.on("admin:notification", (notification: AdminNotificationEvent) => {
@@ -621,6 +693,21 @@ export class ApiServices implements Services {
         }
       });
     }
+  }
+  private scheduleContactsReload() {
+    this.contactsReloadPending = true;
+    if (this.contactsReloadTask) return;
+    this.contactsReloadTask = (async () => {
+      while (this.contactsReloadPending) {
+        this.contactsReloadPending = false;
+        await this.reloadContacts();
+      }
+    })()
+      .catch(() => this.update({ connection: "offline" }))
+      .finally(() => {
+        this.contactsReloadTask = undefined;
+        if (this.contactsReloadPending) this.scheduleContactsReload();
+      });
   }
   private async reloadContacts() {
     const [contacts, requests, preferences] = await Promise.all([

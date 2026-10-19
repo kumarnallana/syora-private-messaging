@@ -9,6 +9,7 @@ from app.db.session import get_db
 from app.middleware.rate_limit import rate_limit
 from app.models import Friendship, FriendshipStatus, User, UserPreference
 from app.schemas.inputs import FriendRequestIn, FriendResponseIn, PreferencesIn, ProfileIn
+from app.realtime.socket import emit_user, online_users
 from app.services.relationships import pair_clause, relationship
 from app.services.serializers import preferences_out, user_out
 router = APIRouter(tags=["users"])
@@ -66,6 +67,17 @@ async def request_friend(body: FriendRequestIn, user: User = Depends(current_use
         existing.addressee_id = body.user_id
         existing.status = FriendshipStatus.PENDING
         await db.commit()
+        await emit_user(body.user_id, "friend:update", {
+            "type": "REQUEST_RECEIVED",
+            "requestId": str(existing.id),
+            "fromUserId": str(user.id),
+            "fromName": user.display_name,
+        })
+        await emit_user(user.id, "friend:update", {
+            "type": "REQUEST_SENT",
+            "requestId": str(existing.id),
+            "toUserId": str(body.user_id),
+        })
         return friendship_out(existing)
     if existing:
         raise api_error(409, "RELATIONSHIP_EXISTS",
@@ -75,6 +87,17 @@ async def request_friend(body: FriendRequestIn, user: User = Depends(current_use
     db.add(item)
     await db.commit()
     await db.refresh(item)
+    await emit_user(body.user_id, "friend:update", {
+        "type": "REQUEST_RECEIVED",
+        "requestId": str(item.id),
+        "fromUserId": str(user.id),
+        "fromName": user.display_name,
+    })
+    await emit_user(user.id, "friend:update", {
+        "type": "REQUEST_SENT",
+        "requestId": str(item.id),
+        "toUserId": str(body.user_id),
+    })
     return friendship_out(item)
 
 
@@ -85,6 +108,24 @@ async def respond_friend(request_id: uuid.UUID, body: FriendResponseIn, user: Us
         raise api_error(404, "REQUEST_NOT_FOUND", "Friend request not found.")
     item.status = FriendshipStatus.ACCEPTED if body.action == "accept" else FriendshipStatus.DECLINED
     await db.commit()
+    await emit_user(item.requester_id, "friend:update", {
+        "type": "REQUEST_RESPONDED",
+        "action": body.action,
+        "requestId": str(item.id),
+        "userId": str(user.id),
+        "userName": user.display_name,
+    })
+    await emit_user(user.id, "friend:update", {
+        "type": "REQUEST_RESPONDED",
+        "action": body.action,
+        "requestId": str(item.id),
+        "userId": str(item.requester_id),
+    })
+    if body.action == "accept":
+        if item.requester_id in online_users:
+            await emit_user(user.id, "presence:update", {"userId": str(item.requester_id), "online": True})
+        if user.id in online_users:
+            await emit_user(item.requester_id, "presence:update", {"userId": str(user.id), "online": True})
     return friendship_out(item)
 
 
@@ -95,6 +136,8 @@ async def remove_contact(other_id: uuid.UUID, user: User = Depends(current_user)
         raise api_error(404, "CONTACT_NOT_FOUND", "Contact not found.")
     await db.delete(item)
     await db.commit()
+    await emit_user(other_id, "friend:update", {"type": "CONTACT_REMOVED", "userId": str(user.id)})
+    await emit_user(user.id, "friend:update", {"type": "CONTACT_REMOVED", "userId": str(other_id)})
 
 
 @router.post("/api/blocks/{other_id}")
@@ -113,6 +156,8 @@ async def block_user(other_id: uuid.UUID, user: User = Depends(current_user), db
                           addressee_id=other_id, status=FriendshipStatus.BLOCKED)
         db.add(item)
     await db.commit()
+    await emit_user(other_id, "friend:update", {"type": "BLOCKED", "userId": str(user.id)})
+    await emit_user(user.id, "friend:update", {"type": "BLOCKED", "userId": str(other_id)})
     return friendship_out(item)
 
 
@@ -123,6 +168,8 @@ async def unblock_user(other_id: uuid.UUID, user: User = Depends(current_user), 
         raise api_error(404, "BLOCK_NOT_FOUND", "Blocked user not found.")
     await db.delete(item)
     await db.commit()
+    await emit_user(other_id, "friend:update", {"type": "UNBLOCKED", "userId": str(user.id)})
+    await emit_user(user.id, "friend:update", {"type": "UNBLOCKED", "userId": str(other_id)})
 
 
 @router.get("/api/profile")

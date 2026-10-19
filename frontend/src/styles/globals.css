@@ -203,7 +203,8 @@
 :root[data-theme="light"] .button.primary,
 :root[data-theme="light"] .button--primary,
 :root[data-theme="light"] .send-button,
-:root[data-theme="light"] .unread-badge {
+:root[data-theme="light"] .unread-badge,
+:root[data-theme="light"] .rail-badge {
   color: white;
 }
 :root[data-theme="light"] .message-row.is-outgoing .message-bubble,
