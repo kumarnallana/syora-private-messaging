@@ -568,7 +568,7 @@ export class MockServices implements Services {
     await pause();
   }
   private playMockAdminNotificationSound(type?: string) {
-    if (typeof window === "undefined" || !this.state.preferences.sound) return;
+    if (typeof window === "undefined") return;
     try {
       const AudioContextClass =
         window.AudioContext ||
@@ -576,30 +576,45 @@ export class MockServices implements Services {
           .webkitAudioContext;
       if (!AudioContextClass) return;
       const context = new AudioContextClass();
+      if (context.state === "suspended") {
+        void context.resume();
+      }
       const now = context.currentTime;
       const oscillator = context.createOscillator();
       const gain = context.createGain();
       if (type === "ADMIN_LOGIN_FAILED") {
         oscillator.type = "sawtooth";
-        oscillator.frequency.setValueAtTime(360, now);
-        oscillator.frequency.setValueAtTime(280, now + 0.08);
-        gain.gain.setValueAtTime(0.04, now);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+        oscillator.frequency.setValueAtTime(440, now);
+        oscillator.frequency.setValueAtTime(311.13, now + 0.1);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
         oscillator.connect(gain);
         gain.connect(context.destination);
         oscillator.start(now);
-        oscillator.stop(now + 0.22);
+        oscillator.stop(now + 0.28);
+      } else if (type === "ADMIN_USER_LOGIN") {
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(440, now);
+        oscillator.frequency.setValueAtTime(554.37, now + 0.08);
+        oscillator.frequency.setValueAtTime(659.25, now + 0.16);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(now);
+        oscillator.stop(now + 0.3);
       } else {
         oscillator.type = "sine";
         oscillator.frequency.setValueAtTime(587.33, now);
         oscillator.frequency.setValueAtTime(880, now + 0.08);
-        gain.gain.setValueAtTime(0.035, now);
+        gain.gain.setValueAtTime(0.06, now);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
         oscillator.connect(gain);
         gain.connect(context.destination);
         oscillator.start(now);
         oscillator.stop(now + 0.25);
       }
+      oscillator.addEventListener("ended", () => void context.close());
     } catch {}
   }
   async getAdminNotificationSettings(): Promise<AdminNotificationSettings> {
@@ -703,6 +718,31 @@ export class MockServices implements Services {
       this.playMockAdminNotificationSound(notification.type);
     }
     return notification;
+  }
+  async getAdminNotificationHistory(): Promise<{ items: AdminNotificationEvent[]; unreadCount: number }> {
+    if (typeof window === "undefined") return { items: [], unreadCount: 0 };
+    try {
+      const stored: AdminNotificationEvent[] = JSON.parse(localStorage.getItem("syora:admin-notifications-history") || "[]");
+      const unreadCount = stored.filter(i => !i.read).length;
+      return { items: stored, unreadCount };
+    } catch {
+      return { items: [], unreadCount: 0 };
+    }
+  }
+  async markAdminNotificationsRead(): Promise<void> {
+    if (typeof window === "undefined") return;
+    try {
+      const stored: AdminNotificationEvent[] = JSON.parse(localStorage.getItem("syora:admin-notifications-history") || "[]");
+      localStorage.setItem("syora:admin-notifications-history", JSON.stringify(stored.map(i => ({ ...i, read: true }))));
+      window.dispatchEvent(new CustomEvent("syora:admin-history-updated"));
+    } catch {}
+  }
+  async clearAdminNotificationHistory(): Promise<void> {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.removeItem("syora:admin-notifications-history");
+      window.dispatchEvent(new CustomEvent("syora:admin-history-updated"));
+    } catch {}
   }
   async updatePreferences(values: Partial<Preferences>) {
     const me = this.identity();

@@ -78,19 +78,98 @@ export class ApiServices implements Services {
   private activeRequests = new Set<AbortController>();
   private adminContextCleanup?: () => void;
   private adminNotificationIds = new Set<string>();
-  private async showAdminSystemNotification(notification: AdminNotificationEvent) {
-    if (typeof window === "undefined" || document.visibilityState === "visible" || !("Notification" in window) || Notification.permission !== "granted") return;
-    const options: NotificationOptions = { body: notification.body, icon: "/icon.svg", badge: "/icon.svg", tag: notification.id, data: { url: notification.url } };
+  private async showAdminSystemNotification(notification: AdminNotificationEvent, isDirectTest = false) {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (!isDirectTest && document.visibilityState === "visible") return;
+    if (Notification.permission !== "granted") {
+      if (isDirectTest && Notification.permission === "default") {
+        try {
+          const res = await Notification.requestPermission();
+          if (res !== "granted") return;
+        } catch {
+          return;
+        }
+      } else {
+        return;
+      }
+    }
+    const options: NotificationOptions = {
+      body: notification.body,
+      icon: "/icon.svg",
+      badge: "/icon.svg",
+      tag: notification.id,
+      data: { url: notification.url },
+    };
     try {
       if ("serviceWorker" in navigator) {
-        const registration = await navigator.serviceWorker.register("/sw.js");
-        await registration.showNotification(notification.title, options);
-        return;
+        const registration = await navigator.serviceWorker.ready.catch(() => navigator.serviceWorker.register("/sw.js"));
+        if (registration && "showNotification" in registration) {
+          await registration.showNotification(notification.title, options);
+          return;
+        }
       }
       new Notification(notification.title, options);
     } catch {
       // The in-app alert remains visible if the operating system rejects a notification.
     }
+  }
+  private playAdminNotificationSound(type?: string, _forceSound = false) {
+    if (typeof window === "undefined") return;
+    try {
+      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const context = new AudioContextClass();
+      if (context.state === "suspended") {
+        void context.resume();
+      }
+      const now = context.currentTime;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      if (type === "ADMIN_LOGIN_FAILED") {
+        oscillator.type = "sawtooth";
+        oscillator.frequency.setValueAtTime(440, now);
+        oscillator.frequency.setValueAtTime(311.13, now + 0.1);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(now);
+        oscillator.stop(now + 0.28);
+      } else if (type === "ADMIN_USER_LOGIN") {
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(440, now);
+        oscillator.frequency.setValueAtTime(554.37, now + 0.08);
+        oscillator.frequency.setValueAtTime(659.25, now + 0.16);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(now);
+        oscillator.stop(now + 0.3);
+      } else {
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(587.33, now);
+        oscillator.frequency.setValueAtTime(880, now + 0.08);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(now);
+        oscillator.stop(now + 0.25);
+      }
+      oscillator.addEventListener("ended", () => void context.close());
+    } catch {}
+  }
+  handleAdminNotification(notification: AdminNotificationEvent, isDirectTest = false) {
+    if (this.adminNotificationIds.has(notification.id)) return;
+    this.adminNotificationIds.add(notification.id);
+    if (this.adminNotificationIds.size > 100) {
+      const first = this.adminNotificationIds.values().next().value;
+      if (first) this.adminNotificationIds.delete(first);
+    }
+    this.playAdminNotificationSound(notification.type, isDirectTest);
+    window.dispatchEvent(new CustomEvent("syora:admin-notification", { detail: notification }));
+    void this.showAdminSystemNotification(notification, isDirectTest);
   }
   private announceIncoming(message: Message) {
     if (typeof window === "undefined") return;
@@ -115,39 +194,6 @@ export class ApiServices implements Services {
         }
       } catch {}
     }
-  }
-  private playAdminNotificationSound(type?: string) {
-    if (typeof window === "undefined" || !this.state.preferences.sound) return;
-    try {
-      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AudioContextClass) return;
-      const context = new AudioContextClass();
-      const now = context.currentTime;
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-      if (type === "ADMIN_LOGIN_FAILED") {
-        oscillator.type = "sawtooth";
-        oscillator.frequency.setValueAtTime(360, now);
-        oscillator.frequency.setValueAtTime(280, now + 0.08);
-        gain.gain.setValueAtTime(0.04, now);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
-        oscillator.connect(gain);
-        gain.connect(context.destination);
-        oscillator.start(now);
-        oscillator.stop(now + 0.22);
-      } else {
-        oscillator.type = "sine";
-        oscillator.frequency.setValueAtTime(587.33, now);
-        oscillator.frequency.setValueAtTime(880, now + 0.08);
-        gain.gain.setValueAtTime(0.035, now);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
-        oscillator.connect(gain);
-        gain.connect(context.destination);
-        oscillator.start(now);
-        oscillator.stop(now + 0.25);
-      }
-      oscillator.addEventListener("ended", () => void context.close());
-    } catch {}
   }
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
@@ -648,12 +694,7 @@ export class ApiServices implements Services {
     socket.on("status:new", () => this.scheduleStatusReload());
     socket.on("status:deleted", () => this.scheduleStatusReload());
     socket.on("admin:notification", (notification: AdminNotificationEvent) => {
-      if (this.adminNotificationIds.has(notification.id)) return;
-      this.adminNotificationIds.add(notification.id);
-      if (this.adminNotificationIds.size > 100) this.adminNotificationIds.delete(this.adminNotificationIds.values().next().value!);
-      this.playAdminNotificationSound(notification.type);
-      window.dispatchEvent(new CustomEvent("syora:admin-notification", { detail: notification }));
-      void this.showAdminSystemNotification(notification);
+      this.handleAdminNotification(notification, false);
     });
     socket.on("session:revoked", () => this.endLocalSession(undefined, false));
     socket.on("session:expired", () => this.endLocalSession(IDLE_MESSAGE));
@@ -1182,10 +1223,40 @@ export class ApiServices implements Services {
   async sendTestAdminNotification(
     type?: AdminNotificationEvent["type"],
   ): Promise<AdminNotificationEvent> {
-    return this.fetch<AdminNotificationEvent>("/api/admin/notifications/test", {
+    const event = await this.fetch<AdminNotificationEvent>("/api/admin/notifications/test", {
       method: "POST",
       body: JSON.stringify({ type: type || "ADMIN_TEST_ALERT" }),
     });
+    this.handleAdminNotification(event, true);
+    return event;
+  }
+  async getAdminNotificationHistory(): Promise<{ items: AdminNotificationEvent[]; unreadCount: number }> {
+    try {
+      return await this.fetch<{ items: AdminNotificationEvent[]; unreadCount: number }>("/api/admin/notifications/history");
+    } catch {
+      const stored: AdminNotificationEvent[] = JSON.parse(localStorage.getItem("syora:admin-notifications-history") || "[]");
+      const unreadCount = stored.filter(i => !i.read).length;
+      return { items: stored, unreadCount };
+    }
+  }
+  async markAdminNotificationsRead(): Promise<void> {
+    try {
+      await this.fetch("/api/admin/notifications/history/read", { method: "POST" });
+    } catch {}
+    try {
+      const stored: AdminNotificationEvent[] = JSON.parse(localStorage.getItem("syora:admin-notifications-history") || "[]");
+      localStorage.setItem("syora:admin-notifications-history", JSON.stringify(stored.map(i => ({ ...i, read: true }))));
+      window.dispatchEvent(new CustomEvent("syora:admin-history-updated"));
+    } catch {}
+  }
+  async clearAdminNotificationHistory(): Promise<void> {
+    try {
+      await this.fetch("/api/admin/notifications/history", { method: "DELETE" });
+    } catch {}
+    try {
+      localStorage.removeItem("syora:admin-notifications-history");
+      window.dispatchEvent(new CustomEvent("syora:admin-history-updated"));
+    } catch {}
   }
 }
 function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {

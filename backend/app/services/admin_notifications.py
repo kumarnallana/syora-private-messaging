@@ -8,8 +8,8 @@ from sqlalchemy import select
 
 from app.config.settings import get_settings
 from app.db.session import SessionLocal
-from app.models import ConversationParticipant, Message, PushSubscription, User, UserPreference, now
-from app.realtime.socket import emit_user, session_is_visible
+from app.models import AdminNotification, ConversationParticipant, Message, PushSubscription, User, UserPreference, now
+from app.realtime.socket import emit_user, session_is_visible, session_is_viewing
 
 settings = get_settings()
 
@@ -53,13 +53,37 @@ async def _deliver(admin: User, pref: UserPreference | None, payload: dict[str, 
         await emit_user(admin.id, "admin:notification", payload)
     except Exception:
         pass
+    try:
+        async with SessionLocal() as db:
+            raw_id = payload.get("id", "")
+            try:
+                notif_id = uuid.UUID(str(raw_id))
+            except (ValueError, TypeError, AttributeError):
+                notif_id = uuid.uuid4()
+            db.add(AdminNotification(
+                id=notif_id,
+                admin_id=admin.id,
+                type=str(payload.get("type", "ADMIN_TEST_ALERT")),
+                title=str(payload.get("title", "Admin Alert")),
+                body=str(payload.get("body", "")),
+                url=str(payload.get("url", "/settings")),
+                read=False,
+            ))
+            await db.commit()
+    except Exception:
+        pass
     if not _preference(pref, "admin_push_enabled", False):
         return
     async with SessionLocal() as db:
         subscriptions = list((await db.scalars(select(PushSubscription).where(PushSubscription.user_id == admin.id))).all())
         for subscription in subscriptions:
-            if session_is_visible(subscription.session_id):
-                continue
+            is_test = str(payload.get("type", "")).startswith("test-") or payload.get("type") == "ADMIN_TEST_ALERT" or "test" in str(payload.get("id", ""))
+            if not is_test:
+                if conversation_id:
+                    if session_is_viewing(subscription.session_id, conversation_id):
+                        continue
+                elif session_is_visible(subscription.session_id):
+                    continue
             if not await _send_push(subscription, payload):
                 await db.delete(subscription)
         await db.commit()

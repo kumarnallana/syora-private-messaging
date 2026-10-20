@@ -104,6 +104,22 @@ class AdminNotificationTests(unittest.IsolatedAsyncioTestCase):
             await admin_api.trigger_test_notification(None, auth, AsyncMock())
         self.assertEqual(raised.exception.status_code, 403)
 
+    async def test_admin_notification_history_endpoints_forbid_member(self):
+        member = user()
+        auth = SimpleNamespace(user=member, session=SimpleNamespace(id=uuid.uuid4()))
+        with self.assertRaises(HTTPException) as raised:
+            await admin_api.get_admin_notification_history(auth, AsyncMock())
+        self.assertEqual(raised.exception.status_code, 403)
+
+    async def test_admin_notification_history_returns_list_for_admin(self):
+        admin = user("admin", "Admin", "admin")
+        auth = SimpleNamespace(user=admin, session=SimpleNamespace(id=uuid.uuid4()))
+        db = FakeSession({}, [])
+        res = await admin_api.get_admin_notification_history(auth, db)
+        self.assertIn("items", res)
+        self.assertIn("unreadCount", res)
+
 
 if __name__ == "__main__":
     unittest.main()
+

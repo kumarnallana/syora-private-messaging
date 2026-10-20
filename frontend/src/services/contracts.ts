@@ -75,7 +75,7 @@ export interface Services
     values: Partial<
       Pick<
         AdminNotificationSettings,
-        "loginAlerts" | "messageAlerts" | "messagePreview"
+        "loginAlerts" | "messageAlerts" | "messagePreview" | "soundAlerts"
       >
     >,
   ): Promise<AdminNotificationSettings>;
@@ -84,5 +84,8 @@ export interface Services
   sendTestAdminNotification(
     type?: AdminNotificationEvent["type"],
   ): Promise<AdminNotificationEvent>;
+  getAdminNotificationHistory(): Promise<{ items: AdminNotificationEvent[]; unreadCount: number }>;
+  markAdminNotificationsRead(): Promise<void>;
+  clearAdminNotificationHistory(): Promise<void>;
 }
 export type { Message, StatusPost };

@@ -7,7 +7,7 @@ from sqlalchemy import delete
 
 from app.api.deps import api_error, current_auth
 from app.db.session import get_db
-from app.models import PushSubscription, RefreshSession, User, UserPreference, now
+from app.models import AdminNotification, PushSubscription, RefreshSession, User, UserPreference, now
 from app.schemas.inputs import AdminNotificationPreferencesIn, PushSubscriptionIn, TestNotificationIn
 from app.services.sessions import AuthenticatedSession
 from app.config.settings import get_settings
@@ -65,6 +65,77 @@ async def trigger_test_notification(
     event_type = body.type if body and body.type else "ADMIN_TEST_ALERT"
     from app.services.admin_notifications import send_test_notification
     return await send_test_notification(auth.user, event_type)
+
+
+@router.get("/notifications/history")
+async def get_admin_notification_history(
+    auth: AuthenticatedSession = Depends(current_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    if auth.user.role != "admin":
+        raise api_error(403, "ADMIN_REQUIRED", "Administrator access is required.")
+    try:
+        items = list((await db.scalars(
+            select(AdminNotification)
+            .where(AdminNotification.admin_id == auth.user.id)
+            .order_by(AdminNotification.created_at.desc())
+            .limit(50)
+        )).all())
+        unread_count = sum(1 for item in items if not item.read)
+        return {
+            "items": [
+                {
+                    "id": str(item.id),
+                    "type": item.type,
+                    "title": item.title,
+                    "body": item.body,
+                    "url": item.url,
+                    "read": item.read,
+                    "timestamp": item.created_at.isoformat(),
+                }
+                for item in items
+            ],
+            "unreadCount": unread_count,
+        }
+    except Exception:
+        return {"items": [], "unreadCount": 0}
+
+
+@router.post("/notifications/history/read")
+async def mark_admin_notifications_read(
+    auth: AuthenticatedSession = Depends(current_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    if auth.user.role != "admin":
+        raise api_error(403, "ADMIN_REQUIRED", "Administrator access is required.")
+    try:
+        await db.execute(
+            update(AdminNotification)
+            .where(AdminNotification.admin_id == auth.user.id, AdminNotification.read == False)
+            .values(read=True)
+        )
+        await db.commit()
+    except Exception:
+        pass
+    return {"ok": True}
+
+
+@router.delete("/notifications/history")
+async def clear_admin_notification_history(
+    auth: AuthenticatedSession = Depends(current_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    if auth.user.role != "admin":
+        raise api_error(403, "ADMIN_REQUIRED", "Administrator access is required.")
+    try:
+        await db.execute(
+            delete(AdminNotification)
+            .where(AdminNotification.admin_id == auth.user.id)
+        )
+        await db.commit()
+    except Exception:
+        pass
+    return {"ok": True}
 
 
 @router.post("/push-subscriptions", status_code=201)

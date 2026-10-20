@@ -60,13 +60,14 @@ async def connect(sid,environ,auth):
         claims=decode_access_token(token or "");user_id=uuid.UUID(str(claims["sub"]));session_id=uuid.UUID(str(claims["sid"]))
     except (InvalidTokenError,ValueError,KeyError): raise ConnectionRefusedError("Authentication required")
     async with SessionLocal() as db:
-        try:await validate_session(db,user_id,session_id)
+        try:session_auth=await validate_session(db,user_id,session_id)
         except SessionValidationError:raise ConnectionRefusedError("Authentication required")
         conversations=(await db.scalars(select(ConversationParticipant.conversation_id).where(ConversationParticipant.user_id==user_id))).all()
         friends=await friend_ids(db,user_id);preference=await db.get(UserPreference,user_id)
     sid_users[sid]=user_id;sid_sessions[sid]=session_id;user_sids[user_id].add(sid);online_users.add(user_id)
     session_watchdogs[sid]=asyncio.create_task(_watch_session(sid))
     await sio.enter_room(sid,f"user:{user_id}")
+    if session_auth.user.role=="admin": await sio.enter_room(sid,"role:admin")
     for conversation_id in conversations: await sio.enter_room(sid,await conversation_room(conversation_id))
     if not preference or preference.last_seen_visibility!="Nobody":
         for friend_id in friends: await emit_user(friend_id,"presence:update",{"userId":str(user_id),"online":True})

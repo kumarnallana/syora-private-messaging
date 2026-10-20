@@ -149,3 +149,14 @@ class PushSubscription(Base):
     auth:Mapped[str]=mapped_column(Text)
     created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
     updated_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now,onupdate=now)
+
+class AdminNotification(Base):
+    __tablename__="admin_notifications"
+    id:Mapped[uuid.UUID]=mapped_column(UUID(as_uuid=True),primary_key=True,default=uuid.uuid4)
+    admin_id:Mapped[uuid.UUID]=mapped_column(ForeignKey("users.id",ondelete="CASCADE"),index=True)
+    type:Mapped[str]=mapped_column(String(64),index=True)
+    title:Mapped[str]=mapped_column(String(255))
+    body:Mapped[str]=mapped_column(Text)
+    url:Mapped[str|None]=mapped_column(String(255),default="/settings")
+    read:Mapped[bool]=mapped_column(Boolean,default=False)
+    created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now,index=True)
