@@ -249,6 +249,36 @@
   .admin-notification-settings > header {
     @apply flex items-start gap-[10px] border-b border-border p-[15px];
   }
+  .admin-notification-header-row {
+    @apply flex items-center justify-between gap-[12px] w-full;
+  }
+  .admin-notification-header-title {
+    @apply flex items-start gap-[10px];
+  }
+  .admin-notification-header-title > svg {
+    @apply mt-[1px] size-[19px] shrink-0 text-accent;
+  }
+  .admin-notification-header-title > span {
+    @apply grid gap-[3px];
+  }
+  .admin-live-chip {
+    @apply inline-flex items-center gap-[6px] rounded-full border border-success/30 bg-success/10 px-[9px] py-[3px] text-[11px] font-medium text-success shrink-0;
+  }
+  .admin-status-card {
+    @apply flex items-center justify-between gap-[14px] p-[14px_15px] border-b border-border bg-surface/30;
+  }
+  .admin-status-card__copy {
+    @apply grid gap-[3px];
+  }
+  .admin-status-card__copy strong {
+    @apply text-[13px] font-medium text-text-primary;
+  }
+  .admin-status-card__copy small {
+    @apply text-[12px] leading-[1.45] text-muted;
+  }
+  .admin-permission-active {
+    @apply inline-flex items-center gap-[5px] rounded-full border border-success/35 bg-success/10 px-[10px] py-[4px] text-[12px] font-medium text-success shrink-0;
+  }
   .admin-notification-settings > header > svg {
     @apply mt-[1px] size-[19px] shrink-0 text-accent;
   }
@@ -302,6 +332,9 @@
   .admin-notification-history__title > svg {
     @apply text-accent;
   }
+  .admin-notification-history__actions {
+    @apply flex items-center gap-[8px];
+  }
   .admin-notification-count {
     @apply rounded-full px-[7px] py-[1px] text-[11px] font-semibold text-accent;
     background: var(--accent-soft);
@@ -311,6 +344,9 @@
   }
   .admin-notification-history__item {
     @apply flex items-center justify-between gap-[12px] rounded-[10px] border border-border bg-panel p-[10px_12px] transition-colors hover:border-accent/40;
+  }
+  .admin-notification-history__item.is-unread {
+    @apply border-accent/40 bg-accent/5;
   }
   .admin-notification-history__left {
     @apply flex items-start gap-[10px] min-w-0 flex-1;

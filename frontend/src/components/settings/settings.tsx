@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Activity, AlertCircle, Bell, CheckCircle2, ChevronRight, ImageIcon, LoaderCircle, Lock, LogOut, Monitor, Moon, RefreshCw, RotateCcw, Shield, ShieldAlert, Sun, Trash2, Upload, UserCheck, UserRound, UsersRound, UserX } from 'lucide-react';
+import { Activity, AlertCircle, Bell, CheckCircle2, CheckCheck, ChevronRight, ImageIcon, LoaderCircle, Lock, LogOut, Monitor, Moon, RefreshCw, RotateCcw, Shield, ShieldAlert, Sun, Trash2, Upload, UserCheck, UserRound, UsersRound, UserX, Volume2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '@/stores/use-app';
 import { Avatar, Modal } from '@/components/shared/ui';
@@ -31,19 +31,49 @@ export function Settings() {
   const [testingAlert, setTestingAlert] = useState<string>();
   const [notificationHistory, setNotificationHistory] = useState<AdminNotificationEvent[]>([]);
   const [revokingUserId, setRevokingUserId] = useState<string>();
+  const [browserPermission, setBrowserPermission] = useState<NotificationPermission | 'unsupported'>('default');
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setBrowserPermission(Notification.permission);
+    } else {
+      setBrowserPermission('unsupported');
+    }
+  }, []);
+
+  async function requestBrowserPermission() {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      try {
+        const res = await Notification.requestPermission();
+        setBrowserPermission(res);
+        if (res === 'granted') {
+          setNotice({ kind: 'success', text: 'Browser desktop notifications enabled on this device.' });
+        } else if (res === 'denied') {
+          setNotice({ kind: 'error', text: 'Browser notifications were denied in your browser settings.' });
+        }
+      } catch {}
+    }
+  }
+
+  const loadHistory = useCallback(async () => {
     if (me?.role !== 'admin') return;
-    const loadHistory = () => {
+    try {
+      const res = await services.getAdminNotificationHistory();
+      setNotificationHistory(res.items);
+    } catch {
       try {
         const stored = localStorage.getItem('syora:admin-notifications-history');
         if (stored) setNotificationHistory(JSON.parse(stored));
       } catch {}
-    };
-    loadHistory();
+    }
+  }, [me?.role, services]);
+
+  useEffect(() => {
+    if (me?.role !== 'admin') return;
+    void loadHistory();
     window.addEventListener('syora:admin-history-updated', loadHistory);
     return () => window.removeEventListener('syora:admin-history-updated', loadHistory);
-  }, [me?.role]);
+  }, [loadHistory, me?.role]);
 
   async function sendTestAlert(type: AdminNotificationEvent['type'] = 'ADMIN_TEST_ALERT') {
     if (testingAlert) return;
@@ -51,7 +81,8 @@ export function Settings() {
     setNotice(undefined);
     try {
       const event = await services.sendTestAdminNotification(type);
-      setNotice({ kind: 'success', text: `Test alert (${event.title}) sent.` });
+      setNotice({ kind: 'success', text: `Test alert (${event.title}) delivered with audio chime & toast.` });
+      await loadHistory();
     } catch (cause) {
       setNotice({ kind: 'error', text: cause instanceof Error ? cause.message : 'Test alert could not be sent.' });
     } finally {
@@ -59,10 +90,20 @@ export function Settings() {
     }
   }
 
-  function clearNotificationHistory() {
-    localStorage.removeItem('syora:admin-notifications-history');
+  async function clearNotificationHistory() {
+    try {
+      await services.clearAdminNotificationHistory();
+    } catch {}
     setNotificationHistory([]);
     setNotice({ kind: 'success', text: 'Admin notification history cleared.' });
+  }
+
+  async function markAllNotificationsRead() {
+    try {
+      await services.markAdminNotificationsRead();
+      setNotificationHistory(prev => prev.map(item => ({ ...item, read: true })));
+      setNotice({ kind: 'success', text: 'All admin alerts marked as read.' });
+    } catch {}
   }
 
   const loadAdminMetrics = useCallback(async () => {
@@ -116,7 +157,7 @@ export function Settings() {
     finally { setBlockingId(undefined); }
   }
 
-  async function updateAdminNotifications(values: Partial<Pick<AdminNotificationSettings, 'loginAlerts' | 'messageAlerts' | 'messagePreview'>>) {
+  async function updateAdminNotifications(values: Partial<Pick<AdminNotificationSettings, 'loginAlerts' | 'messageAlerts' | 'messagePreview' | 'soundAlerts'>>) {
     if (adminNotificationPending) return;
     setAdminNotificationPending(true); setNotice(undefined);
     try { setAdminNotifications(await services.updateAdminNotificationSettings(values)); setNotice({ kind: 'success', text: 'Admin notifications updated.' }); }
@@ -153,15 +194,50 @@ export function Settings() {
       {me?.role === 'admin' && (
         <section className="admin-notification-settings" aria-label="Admin notifications">
           <header>
-            <Bell/>
-            <span>
-              <strong>Admin notifications</strong>
-              <small>Alerts and security monitoring reserved for the authenticated SYORA administrator.</small>
-            </span>
+            <div className="admin-notification-header-row">
+              <div className="admin-notification-header-title">
+                <Bell/>
+                <span>
+                  <strong>Admin notifications</strong>
+                  <small>Alerts and security monitoring reserved for the authenticated SYORA administrator.</small>
+                </span>
+              </div>
+              <span className="admin-live-chip">
+                <span className="admin-drawer-pulse" />
+                Live monitoring active
+              </span>
+            </div>
           </header>
           {adminNotifications ? (
             <>
+              <div className="admin-status-card">
+                <div className="admin-status-card__copy">
+                  <strong>Desktop browser alerts</strong>
+                  <small>
+                    {browserPermission === 'granted'
+                      ? 'Browser notifications are enabled. System popups will appear even when SYORA is in the background.'
+                      : browserPermission === 'denied'
+                      ? 'Browser popups are currently blocked in browser site permissions.'
+                      : 'Allow browser notifications on this device to see system popups when alerts arrive.'}
+                  </small>
+                </div>
+                {browserPermission === 'default' && (
+                  <button
+                    type="button"
+                    className="button small"
+                    onClick={() => void requestBrowserPermission()}
+                  >
+                    Enable desktop alerts
+                  </button>
+                )}
+                {browserPermission === 'granted' && (
+                  <span className="admin-permission-active">
+                    <CheckCircle2 size={14} /> Active
+                  </span>
+                )}
+              </div>
               <Toggle disabled={adminNotificationPending} label="Sign-in activity alerts" description="Notify me when a member signs in successfully or a sign-in attempt fails." value={adminNotifications.loginAlerts} onChange={value => void updateAdminNotifications({ loginAlerts: value })}/>
+              <Toggle disabled={adminNotificationPending} label="Admin alert chimes" description="Play distinct audible tones for security alerts, member sign-ins, and live test alerts." value={adminNotifications.soundAlerts !== false} onChange={value => void updateAdminNotifications({ soundAlerts: value })}/>
               <Toggle disabled={adminNotificationPending} label="Messages to me" description="Notify me only when a direct message is addressed to my admin account." value={adminNotifications.messageAlerts} onChange={value => void updateAdminNotifications({ messageAlerts: value })}/>
               <Toggle disabled={adminNotificationPending} label="Message preview" description="Include message text in notifications that may appear on a lock screen." value={adminNotifications.messagePreview} onChange={value => void updateAdminNotifications({ messagePreview: value })}/>
               <div className="admin-push-control">
@@ -216,20 +292,31 @@ export function Settings() {
                     <strong>Recent alert activity</strong>
                     {notificationHistory.length > 0 && <span className="admin-notification-count">{notificationHistory.length}</span>}
                   </div>
-                  {notificationHistory.length > 0 && (
-                    <button
-                      type="button"
-                      className="button secondary small"
-                      onClick={clearNotificationHistory}
-                    >
-                      <Trash2 size={13} /> Clear log
-                    </button>
-                  )}
+                  <div className="admin-notification-history__actions">
+                    {notificationHistory.some(i => !i.read) && (
+                      <button
+                        type="button"
+                        className="button secondary small"
+                        onClick={() => void markAllNotificationsRead()}
+                      >
+                        <CheckCheck size={13} /> Mark read
+                      </button>
+                    )}
+                    {notificationHistory.length > 0 && (
+                      <button
+                        type="button"
+                        className="button secondary small"
+                        onClick={() => void clearNotificationHistory()}
+                      >
+                        <Trash2 size={13} /> Clear log
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {notificationHistory.length > 0 ? (
                   <div className="admin-notification-history__list">
                     {notificationHistory.map((item) => (
-                      <div className="admin-notification-history__item" key={item.id}>
+                      <div className={cn("admin-notification-history__item", !item.read && "is-unread")} key={item.id}>
                         <div className="admin-notification-history__left">
                           <span
                             className={cn(

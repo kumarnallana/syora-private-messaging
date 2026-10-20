@@ -12,6 +12,7 @@ import { cn } from "@/utils/cn";
 import {
   ArrowLeft,
   Bell,
+  CheckCheck,
   CircleDot,
   LogOut,
   MessageCircle,
@@ -19,13 +20,14 @@ import {
   Settings2,
   Shield,
   ShieldAlert,
+  Trash2,
   UserCheck,
   Users,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { AdminNotificationEvent } from "@/types";
 export function Shell({ children }: { children: React.ReactNode }) {
   const {
@@ -46,6 +48,35 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [showPushPrompt, setShowPushPrompt] = useState(false);
   const [pushPromptPending, setPushPromptPending] = useState(false);
   const [pushPromptError, setPushPromptError] = useState("");
+  const [showAdminDrawer, setShowAdminDrawer] = useState(false);
+  const [adminHistory, setAdminHistory] = useState<AdminNotificationEvent[]>([]);
+  const [unreadAdminCount, setUnreadAdminCount] = useState(0);
+
+  const loadAdminHistory = useCallback(async () => {
+    if (me?.role !== "admin") return;
+    try {
+      const res = await services.getAdminNotificationHistory();
+      setAdminHistory(res.items);
+      setUnreadAdminCount(res.unreadCount);
+    } catch {
+      try {
+        const stored: AdminNotificationEvent[] = JSON.parse(
+          localStorage.getItem("syora:admin-notifications-history") || "[]",
+        );
+        setAdminHistory(stored);
+        setUnreadAdminCount(stored.filter((item) => !item.read).length);
+      } catch {}
+    }
+  }, [me?.role, services]);
+
+  useEffect(() => {
+    if (me?.role !== "admin") return;
+    void loadAdminHistory();
+    const handleUpdate = () => void loadAdminHistory();
+    window.addEventListener("syora:admin-history-updated", handleUpdate);
+    return () =>
+      window.removeEventListener("syora:admin-history-updated", handleUpdate);
+  }, [loadAdminHistory, me?.role]);
 
   const incomingFriendRequests = friendships.filter(
     (item) => item.to === me?.id && item.status === "pending",
@@ -65,7 +96,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
       icon: Users,
       badge: incomingFriendRequests,
     },
-    { href: "/settings", label: "Settings", icon: Settings2 },
+    {
+      href: "/settings",
+      label: "Settings",
+      icon: Settings2,
+      badge:
+        me?.role === "admin" && unreadAdminCount > 0
+          ? unreadAdminCount
+          : undefined,
+    },
   ];
   useEffect(() => {
     window.dispatchEvent(new Event("syora:navigation"));
@@ -76,7 +115,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       const activeConversation = pathname === "/chats" ? new URLSearchParams(window.location.search).get("conversation") : null;
       try {
         const stored: AdminNotificationEvent[] = JSON.parse(localStorage.getItem("syora:admin-notifications-history") || "[]");
-        const next = [notification, ...stored.filter(item => item.id !== notification.id)].slice(0, 30);
+        const next = [{ ...notification, read: false }, ...stored.filter(item => item.id !== notification.id)].slice(0, 50);
         localStorage.setItem("syora:admin-notifications-history", JSON.stringify(next));
         window.dispatchEvent(new CustomEvent("syora:admin-history-updated"));
       } catch {}
@@ -90,7 +129,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
   useEffect(() => {
     if (!adminNotification || isPaused) return;
-    const timer = window.setTimeout(() => setAdminNotification(undefined), 6000);
+    const timer = window.setTimeout(() => setAdminNotification(undefined), 6500);
     return () => window.clearTimeout(timer);
   }, [adminNotification, isPaused]);
   useEffect(() => {
@@ -159,6 +198,31 @@ export function Shell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
         <div className="rail-bottom">
+          {me?.role === "admin" && (
+            <button
+              type="button"
+              className={cn("rail-link rail-bell-button", showAdminDrawer && "is-active")}
+              title="Admin Notification Center"
+              aria-label={`Admin alerts (${unreadAdminCount} unread)`}
+              onClick={() => {
+                setShowAdminDrawer((prev) => !prev);
+                if (!showAdminDrawer && unreadAdminCount > 0) {
+                  void services.markAdminNotificationsRead();
+                  setUnreadAdminCount(0);
+                }
+              }}
+            >
+              <span className="rail-icon-wrap">
+                <Bell size={21} />
+                {unreadAdminCount > 0 && (
+                  <span className="rail-badge rail-badge--alert" aria-hidden="true">
+                    {unreadAdminCount > 99 ? "99+" : unreadAdminCount}
+                  </span>
+                )}
+              </span>
+              <span>Alerts</span>
+            </button>
+          )}
           <button
             className="rail-link rail-link--danger"
             title="Log out"
@@ -183,6 +247,133 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <div className="app-content">{children}</div>
       {connection === "connecting" && <div className="connection-banner" role="status">Connecting…</div>}
       {connection === "offline" && <div className="connection-banner" role="status">Offline — new activity will reconnect automatically.</div>}
+      {showAdminDrawer && (
+        <aside className="admin-notifications-drawer" role="dialog" aria-label="Admin Notification Center">
+          <header className="admin-drawer-header">
+            <div className="admin-drawer-header__title">
+              <span className="admin-drawer-pulse" title="Real-time alert channel active" />
+              <Bell size={18} />
+              <h2>Admin Alerts</h2>
+              {adminHistory.length > 0 && (
+                <span className="admin-notification-count">{adminHistory.length}</span>
+              )}
+            </div>
+            <div className="admin-drawer-header__actions">
+              {unreadAdminCount > 0 && (
+                <button
+                  type="button"
+                  className="button secondary small"
+                  title="Mark all as read"
+                  onClick={() => {
+                    void services.markAdminNotificationsRead();
+                    setUnreadAdminCount(0);
+                  }}
+                >
+                  <CheckCheck size={14} /> Read
+                </button>
+              )}
+              {adminHistory.length > 0 && (
+                <button
+                  type="button"
+                  className="button secondary small"
+                  title="Clear history"
+                  onClick={() => {
+                    void services.clearAdminNotificationHistory();
+                    setAdminHistory([]);
+                    setUnreadAdminCount(0);
+                  }}
+                >
+                  <Trash2 size={13} />
+                </button>
+              )}
+              <button
+                type="button"
+                className="icon-button"
+                title="Close drawer"
+                aria-label="Close drawer"
+                onClick={() => setShowAdminDrawer(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </header>
+          <div className="admin-drawer-content">
+            {adminHistory.length === 0 ? (
+              <div className="admin-drawer-empty">
+                <Bell size={32} />
+                <p>No admin alerts recorded yet.</p>
+                <small>Real-time security alerts and user sign-in events will appear here.</small>
+                <button
+                  type="button"
+                  className="button secondary small"
+                  onClick={() => {
+                    void services.sendTestAdminNotification("ADMIN_TEST_ALERT");
+                  }}
+                >
+                  Send test alert
+                </button>
+              </div>
+            ) : (
+              <div className="admin-drawer-list">
+                {adminHistory.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={cn(
+                      "admin-drawer-item",
+                      !item.read && "is-unread",
+                      item.type === "ADMIN_LOGIN_FAILED" && "admin-drawer-item--warning",
+                      item.type === "ADMIN_USER_LOGIN" && "admin-drawer-item--login",
+                      item.type === "ADMIN_DIRECT_MESSAGE" && "admin-drawer-item--message",
+                    )}
+                    onClick={() => {
+                      setShowAdminDrawer(false);
+                      if (item.url) router.push(item.url);
+                    }}
+                  >
+                    <span className="admin-drawer-item__icon">
+                      {item.type === "ADMIN_LOGIN_FAILED" ? (
+                        <ShieldAlert size={16} />
+                      ) : item.type === "ADMIN_USER_LOGIN" ? (
+                        <UserCheck size={16} />
+                      ) : item.type === "ADMIN_DIRECT_MESSAGE" ? (
+                        <MessageSquare size={16} />
+                      ) : (
+                        <Bell size={16} />
+                      )}
+                    </span>
+                    <div className="admin-drawer-item__body">
+                      <div className="admin-drawer-item__top">
+                        <span className="admin-notification-badge">
+                          {item.type === "ADMIN_LOGIN_FAILED"
+                            ? "Security Alert"
+                            : item.type === "ADMIN_USER_LOGIN"
+                            ? "Sign-in"
+                            : item.type === "ADMIN_DIRECT_MESSAGE"
+                            ? "Message"
+                            : "Test"}
+                        </span>
+                        <time>{formatNotificationTime(item.timestamp)}</time>
+                      </div>
+                      <strong>{item.title}</strong>
+                      <p>{item.body}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <footer className="admin-drawer-footer">
+            <Link
+              href="/settings?section=notifications"
+              className="button secondary small w-full"
+              onClick={() => setShowAdminDrawer(false)}
+            >
+              Configure admin notifications & push
+            </Link>
+          </footer>
+        </aside>
+      )}
       {(showPushPrompt || adminNotification) && (
         <div className="admin-notifications-container" aria-live="polite">
           {showPushPrompt && (
@@ -246,18 +437,33 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 <strong>{adminNotification.title}</strong>
                 <small>{adminNotification.body}</small>
               </button>
-              <button
-                type="button"
-                className="admin-notification-close"
-                title="Dismiss notification"
-                aria-label="Dismiss notification"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setAdminNotification(undefined);
-                }}
-              >
-                <X size={15} />
-              </button>
+              <div className="admin-toast-actions">
+                <button
+                  type="button"
+                  className="admin-toast-btn"
+                  title="Open notification history"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAdminDrawer(true);
+                    setAdminNotification(undefined);
+                  }}
+                >
+                  History
+                </button>
+                <button
+                  type="button"
+                  className="admin-notification-close"
+                  title="Dismiss notification"
+                  aria-label="Dismiss notification"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAdminNotification(undefined);
+                  }}
+                >
+                  <X size={15} />
+                </button>
+              </div>
+              <div className={cn("admin-toast-progress", isPaused && "is-paused")} />
             </aside>
           )}
         </div>
@@ -355,3 +561,14 @@ export function PreviewNote() {
     </div>
   );
 }
+
+function formatNotificationTime(timestamp?: string) {
+  if (!timestamp) return "Just now";
+  const diff = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
+  if (diff < 30) return "Just now";
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
