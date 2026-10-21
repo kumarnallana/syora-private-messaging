@@ -3,6 +3,10 @@ import type {
   AdminMetrics,
   AdminNotificationEvent,
   AdminNotificationSettings,
+  AIConversationSummary,
+  AIMessage,
+  AISendResult,
+  AITemplate,
   AppState,
   Attachment,
   Preferences,
@@ -749,6 +753,134 @@ export class MockServices implements Services {
     const preferences = { ...this.state.preferences, ...values };
     this.settings.set(me, preferences);
     this.update({ preferences });
+  }
+  private mockAITemplates: AITemplate[] = [
+    {
+      id: "status-update",
+      category: "Updates",
+      title: "Project Status Update",
+      description: "Share progress, milestones achieved, and current blockers clearly.",
+      template: "Hi {name},\n\nHere is a quick update on the project:\n- Completed: Core modules and review\n- Next steps: Testing and deployment by end of week.\n- Blockers: None at this time.\n\nLet me know your thoughts!",
+      prompt_starter: "Give my manager a concise status update on our project",
+    },
+    {
+      id: "meeting-reschedule",
+      category: "Meetings",
+      title: "Reschedule Meeting",
+      description: "Politely propose a new time slot without inconveniencing the attendee.",
+      template: "Hi {name},\n\nDue to an unexpected conflict, I will need to reschedule our upcoming meeting. Would tomorrow afternoon work instead? Apologies for the inconvenience!",
+      prompt_starter: "Ask to reschedule our meeting to tomorrow afternoon politely",
+    },
+    {
+      id: "gentle-followup",
+      category: "Follow-ups",
+      title: "Gentle Follow-up",
+      description: "Polite reminder on a pending review or unanswered message.",
+      template: "Hi {name},\n\nJust following up on my previous note. When you have a moment, please let me know your thoughts. Thanks!",
+      prompt_starter: "Follow up gently on the proposal I sent last week",
+    },
+  ];
+  private mockAIConversations: AIConversationSummary[] = [];
+  private mockAIMessages = new Map<string, AIMessage[]>();
+
+  async getAITemplates(): Promise<{ templates: AITemplate[] }> {
+    await pause();
+    return { templates: this.mockAITemplates };
+  }
+  async getAIContacts(): Promise<{ contacts: User[] }> {
+    await pause();
+    return { contacts: this.state.users.filter(u => u.id !== this.state.currentUserId) };
+  }
+  async getAIConversations(): Promise<AIConversationSummary[]> {
+    await pause();
+    return this.mockAIConversations;
+  }
+  async createAIConversation(title?: string): Promise<AIConversationSummary> {
+    await pause();
+    const id = "mock-ai-" + Date.now();
+    const item: AIConversationSummary = {
+      id,
+      title: title || "New Assistant Chat",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    this.mockAIConversations.unshift(item);
+    this.mockAIMessages.set(id, []);
+    return item;
+  }
+  async getAIConversation(id: string): Promise<{ id: string; title: string; messages: AIMessage[] }> {
+    await pause();
+    const conv = this.mockAIConversations.find(c => c.id === id) || {
+      id,
+      title: "Assistant Chat",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    return { id, title: conv.title, messages: this.mockAIMessages.get(id) || [] };
+  }
+  async deleteAIConversation(id: string): Promise<void> {
+    await pause();
+    this.mockAIConversations = this.mockAIConversations.filter(c => c.id !== id);
+    this.mockAIMessages.delete(id);
+  }
+  async sendAIChat(
+    conversationId: string,
+    payload: { prompt: string; previous_draft?: string; refinement?: string; recipient_name?: string; channel?: string },
+  ): Promise<any> {
+    await pause();
+    const targetName = payload.recipient_name || "there";
+    const draft = `Hi ${targetName},\n\nI am reaching out regarding ${payload.prompt}.\n\nPlease let me know your thoughts.\n\nBest regards,`;
+    const asstMessage: AIMessage = {
+      id: "msg-" + Date.now(),
+      role: "assistant",
+      content: `I've prepared a professional message for ${targetName}. You can review, refine, or approve it below.`,
+      draft_message: draft,
+      recipient_name: payload.recipient_name,
+      channel: (payload.channel as any) || "syora",
+      send_status: "draft",
+      created_at: new Date().toISOString(),
+    };
+    const list = this.mockAIMessages.get(conversationId) || [];
+    list.push(
+      {
+        id: "usr-" + Date.now(),
+        role: "user",
+        content: payload.prompt,
+        created_at: new Date().toISOString(),
+      },
+      asstMessage,
+    );
+    this.mockAIMessages.set(conversationId, list);
+    return {
+      message_id: asstMessage.id,
+      role: "assistant",
+      content: asstMessage.content,
+      draft_message: draft,
+      recipient: payload.recipient_name ? { name: payload.recipient_name } : null,
+      channel: payload.channel || "syora",
+      is_send_command: false,
+      requires_authorization: false,
+      suggested_actions: ["Make more concise", "More formal", "Friendlier", "Add clear CTA"],
+    };
+  }
+  async sendAIAuthorizedMessage(payload: {
+    conversation_id?: string;
+    recipient_id?: string;
+    recipient_name: string;
+    channel: "syora" | "whatsapp" | "email";
+    message: string;
+    authorized: boolean;
+    phone_or_email?: string;
+  }): Promise<AISendResult> {
+    await pause();
+    return {
+      success: true,
+      status: payload.channel === "syora" ? "delivered" : "authorized",
+      channel: payload.channel,
+      recipient_name: payload.recipient_name,
+      timestamp: new Date().toISOString(),
+      confirmation: `Message successfully processed for ${payload.recipient_name} via ${payload.channel}.`,
+    };
   }
 }
 export const services: Services = new MockServices();

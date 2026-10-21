@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     vapid_public_key: str = Field(default="", alias="VAPID_PUBLIC_KEY")
     vapid_private_key: str = Field(default="", alias="VAPID_PRIVATE_KEY")
     vapid_subject: str = Field(default="mailto:admin@example.com", alias="VAPID_SUBJECT")
+    openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
+    gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
 
     @field_validator("database_url",mode="before")
     @classmethod

@@ -3,6 +3,10 @@ import type {
   AdminMetrics,
   AdminNotificationEvent,
   AdminNotificationSettings,
+  AIConversationSummary,
+  AIMessage,
+  AISendResult,
+  AITemplate,
   Attachment,
   Conversation,
   Message,
@@ -1257,6 +1261,50 @@ export class ApiServices implements Services {
       localStorage.removeItem("syora:admin-notifications-history");
       window.dispatchEvent(new CustomEvent("syora:admin-history-updated"));
     } catch {}
+  }
+  async getAITemplates(): Promise<{ templates: AITemplate[] }> {
+    return this.fetch<{ templates: AITemplate[] }>("/api/ai/templates");
+  }
+  async getAIContacts(): Promise<{ contacts: User[] }> {
+    return this.fetch<{ contacts: User[] }>("/api/ai/contacts");
+  }
+  async getAIConversations(): Promise<AIConversationSummary[]> {
+    return this.fetch<AIConversationSummary[]>("/api/ai/conversations");
+  }
+  async createAIConversation(title?: string): Promise<AIConversationSummary> {
+    return this.fetch<AIConversationSummary>("/api/ai/conversations", {
+      method: "POST",
+      body: JSON.stringify({ title: title || "New Assistant Chat" }),
+    });
+  }
+  async getAIConversation(id: string): Promise<{ id: string; title: string; messages: AIMessage[] }> {
+    return this.fetch<{ id: string; title: string; messages: AIMessage[] }>(`/api/ai/conversations/${id}`);
+  }
+  async deleteAIConversation(id: string): Promise<void> {
+    await this.fetch(`/api/ai/conversations/${id}`, { method: "DELETE" });
+  }
+  async sendAIChat(
+    conversationId: string,
+    payload: { prompt: string; previous_draft?: string; refinement?: string; recipient_name?: string; channel?: string },
+  ): Promise<any> {
+    return this.fetch(`/api/ai/conversations/${conversationId}/chat`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+  async sendAIAuthorizedMessage(payload: {
+    conversation_id?: string;
+    recipient_id?: string;
+    recipient_name: string;
+    channel: "syora" | "whatsapp" | "email";
+    message: string;
+    authorized: boolean;
+    phone_or_email?: string;
+  }): Promise<AISendResult> {
+    return this.fetch<AISendResult>("/api/ai/send", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
   }
 }
 function urlBase64ToUint8Array(value: string): Uint8Array<ArrayBuffer> {

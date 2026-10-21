@@ -2,6 +2,10 @@ import type {
   AdminMetrics,
   AdminNotificationEvent,
   AdminNotificationSettings,
+  AIConversationSummary,
+  AIMessage,
+  AISendResult,
+  AITemplate,
   AppState,
   Attachment,
   Message,
@@ -87,5 +91,24 @@ export interface Services
   getAdminNotificationHistory(): Promise<{ items: AdminNotificationEvent[]; unreadCount: number }>;
   markAdminNotificationsRead(): Promise<void>;
   clearAdminNotificationHistory(): Promise<void>;
+  getAITemplates(): Promise<{ templates: AITemplate[] }>;
+  getAIContacts(): Promise<{ contacts: User[] }>;
+  getAIConversations(): Promise<AIConversationSummary[]>;
+  createAIConversation(title?: string): Promise<AIConversationSummary>;
+  getAIConversation(id: string): Promise<{ id: string; title: string; messages: AIMessage[] }>;
+  deleteAIConversation(id: string): Promise<void>;
+  sendAIChat(
+    conversationId: string,
+    payload: { prompt: string; previous_draft?: string; refinement?: string; recipient_name?: string; channel?: string },
+  ): Promise<any>;
+  sendAIAuthorizedMessage(payload: {
+    conversation_id?: string;
+    recipient_id?: string;
+    recipient_name: string;
+    channel: "syora" | "whatsapp" | "email";
+    message: string;
+    authorized: boolean;
+    phone_or_email?: string;
+  }): Promise<AISendResult>;
 }
 export type { Message, StatusPost };
