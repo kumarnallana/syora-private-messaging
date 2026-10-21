@@ -20,6 +20,7 @@ import {
   Settings2,
   Shield,
   ShieldAlert,
+  Sparkles,
   Trash2,
   UserCheck,
   Users,
@@ -89,6 +90,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   const navLinks = [
     { href: "/chats", label: "Chats", icon: MessageCircle, badge: unreadChats },
+    { href: "/ai", label: "Syora AI", icon: Sparkles },
     { href: "/status", label: "Status", icon: CircleDot },
     {
       href: "/contacts",

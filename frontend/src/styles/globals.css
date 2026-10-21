@@ -32,6 +32,7 @@
 @import "./profile/profile.css";
 @import "./settings/settings.css";
 @import "./auth/auth.css";
+@import "./ai/ai.css";
 :root {
   color-scheme: dark;
   --bg: #101116;
