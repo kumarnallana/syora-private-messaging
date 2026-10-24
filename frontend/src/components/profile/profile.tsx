@@ -415,20 +415,20 @@ export function Profile() {
           </div>
           {notice && (
             <div
-              className={`notice is-${notice.kind}`}
+              className={`app-toast is-${notice.kind}`}
               role={notice.kind === "error" ? "alert" : "status"}
             >
-              <span className="notice__icon">
+              <span className="app-toast__icon">
                 {notice.kind === "success" ? (
                   <CheckCircle2 size={15} />
                 ) : (
                   <AlertCircle size={15} />
                 )}
               </span>
-              <span className="notice__text">{notice.text}</span>
+              <span className="app-toast__text">{notice.text}</span>
               <button
                 type="button"
-                className="notice__close"
+                className="app-toast__close"
                 onClick={() => setNotice(undefined)}
                 aria-label="Dismiss notice"
               >

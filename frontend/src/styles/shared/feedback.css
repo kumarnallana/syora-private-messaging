@@ -313,4 +313,85 @@
     from { opacity: 0; transform: translateY(-6px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  .app-toast {
+    @apply fixed left-1/2 z-[350] flex min-w-[240px] max-w-[min(520px,calc(100vw-28px))] -translate-x-1/2 items-center gap-[11px] rounded-full border px-[16px] py-[9px] text-[13px] font-medium shadow-[0_16px_45px_rgba(0,0,0,0.65)] backdrop-blur-2xl transition-all;
+    top: max(20px, env(safe-area-inset-top));
+    background: rgba(20, 16, 32, 0.94);
+    border-color: rgba(255, 255, 255, 0.12);
+    animation: app-toast-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .app-toast__icon {
+    @apply flex size-[24px] shrink-0 items-center justify-center rounded-full;
+  }
+  .app-toast__text {
+    @apply flex-1 text-[13px] font-medium leading-snug text-text-primary tracking-tight;
+  }
+  .app-toast__close {
+    @apply -mr-[4px] flex size-[22px] shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-white/10 hover:text-text-primary border-0 bg-transparent cursor-pointer;
+  }
+
+  .app-toast.is-success {
+    border-color: rgba(52, 211, 153, 0.35);
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65), 0 0 24px rgba(52, 211, 153, 0.14);
+  }
+  .app-toast.is-success .app-toast__icon {
+    background: rgba(52, 211, 153, 0.16);
+    color: #34d399;
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.25);
+  }
+
+  .app-toast.is-error {
+    border-color: rgba(248, 113, 113, 0.35);
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65), 0 0 24px rgba(248, 113, 113, 0.14);
+  }
+  .app-toast.is-error .app-toast__icon {
+    background: rgba(248, 113, 113, 0.16);
+    color: #f87171;
+    box-shadow: 0 0 10px rgba(248, 113, 113, 0.25);
+  }
+
+  .app-toast.is-loading,
+  .app-toast.is-info {
+    border-color: rgba(170, 150, 242, 0.35);
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65), 0 0 24px rgba(170, 150, 242, 0.14);
+  }
+  .app-toast.is-loading .app-toast__icon,
+  .app-toast.is-info .app-toast__icon {
+    background: rgba(170, 150, 242, 0.16);
+    color: var(--accent);
+  }
+
+  :root[data-theme="light"] .app-toast {
+    background: rgba(255, 255, 255, 0.96);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  }
+
+  @keyframes app-toast-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -14px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0) scale(1);
+    }
+  }
+
+  .page-notice {
+    @apply fixed left-1/2 z-[350] -translate-x-1/2 max-w-[min(520px,calc(100vw-28px))] min-w-[240px] rounded-full;
+    top: max(20px, env(safe-area-inset-top));
+    background: rgba(20, 16, 32, 0.94);
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(24px);
+    animation: app-toast-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @media (max-width: 899px) {
+    .app-toast,
+    .page-notice {
+      top: calc(env(safe-area-inset-top) + 72px);
+    }
+  }
 }

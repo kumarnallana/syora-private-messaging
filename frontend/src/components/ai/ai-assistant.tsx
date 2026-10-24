@@ -525,7 +525,7 @@ export function AIAssistant() {
         }}
       >
         <div className="ai-sidebar__item-header">
-          <MessageSquare size={13} className="shrink-0 text-accent/80" />
+          <MessageSquare size={13} className="ai-sidebar__item-icon" />
           {isEditing ? (
             <div className="flex items-center gap-[4px] flex-1" onClick={(e) => e.stopPropagation()}>
               <input
@@ -559,6 +559,9 @@ export function AIAssistant() {
           ) : (
             <>
               <span className="ai-sidebar__item-title">{c.title || "Untitled Session"}</span>
+              <span className="ai-sidebar__item-time">
+                {formatRelativeTime(c.updated_at || c.created_at)}
+              </span>
               <div className="ai-sidebar__item-actions" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
@@ -581,27 +584,12 @@ export function AIAssistant() {
           )}
         </div>
 
-        {/* Snippet Preview */}
-        {(c.last_draft || c.last_message) && (
+        {/* Subtle Snippet Preview */}
+        {(c.last_draft || c.last_message) && !isEditing && (
           <div className="ai-sidebar__item-snippet">
             {c.last_draft || c.last_message}
           </div>
         )}
-
-        {/* Metadata Footer */}
-        <div className="ai-sidebar__item-meta">
-          <div className="flex items-center gap-[4px]">
-            <span className="ai-sidebar__item-pill">
-              {c.message_count ? `${c.message_count} msg${c.message_count > 1 ? "s" : ""}` : "1 msg"}
-            </span>
-            {c.last_recipient && (
-              <span className="ai-sidebar__item-pill text-accent font-medium">
-                {c.last_recipient}
-              </span>
-            )}
-          </div>
-          <span>{formatRelativeTime(c.updated_at || c.created_at)}</span>
-        </div>
       </div>
     );
   };
@@ -1594,51 +1582,58 @@ export function AIAssistant() {
 
       {/* Mobile History Sidebar Drawer */}
       {showHistorySidebar && (
-        <div className="ai-sidebar--mobile">
-          <div className="ai-sidebar__header">
-            <h3>
-              <Bot size={18} className="text-accent" />
-              <span>AI Chat History</span>
-            </h3>
-            <button
-              type="button"
-              className="icon-button"
-              onClick={() => setShowHistorySidebar(false)}
-            >
-              <X size={18} />
-            </button>
-          </div>
+        <>
+          <div
+            className="fixed inset-0 z-[275] bg-black/60 backdrop-blur-sm lg:hidden"
+            onClick={() => setShowHistorySidebar(false)}
+            aria-hidden="true"
+          />
+          <div className="ai-sidebar--mobile">
+            <div className="ai-sidebar__header">
+              <h3>
+                <Bot size={18} className="text-accent" />
+                <span>AI Chat History</span>
+              </h3>
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => setShowHistorySidebar(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
 
-          <div className="ai-sidebar__search">
-            <div className="relative flex items-center">
-              <Search size={13} className="absolute left-[9px] text-muted pointer-events-none" />
-              <input
-                type="text"
-                className="ai-sidebar__search-input pl-[28px]"
-                placeholder="Search chat history..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+            <div className="ai-sidebar__search">
+              <div className="relative flex items-center">
+                <Search size={13} className="absolute left-[9px] text-muted pointer-events-none" />
+                <input
+                  type="text"
+                  className="ai-sidebar__search-input pl-[28px]"
+                  placeholder="Search chat history..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="ai-sidebar__list">
+              {filteredConversations.map((c) => renderSessionItem(c, true))}
+            </div>
+
+            <div className="p-[12px] border-t border-border">
+              <button
+                type="button"
+                className="button primary small w-full justify-center"
+                onClick={() => {
+                  setShowHistorySidebar(false);
+                  void handleNewChat();
+                }}
+              >
+                <Plus size={14} /> New Chat
+              </button>
             </div>
           </div>
-
-          <div className="ai-sidebar__list">
-            {filteredConversations.map((c) => renderSessionItem(c, true))}
-          </div>
-
-          <div className="p-[12px] border-t border-border">
-            <button
-              type="button"
-              className="button primary small w-full justify-center"
-              onClick={() => {
-                setShowHistorySidebar(false);
-                void handleNewChat();
-              }}
-            >
-              <Plus size={14} /> New Chat
-            </button>
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

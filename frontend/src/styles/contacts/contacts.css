@@ -40,9 +40,6 @@
     @apply flex min-h-[140px] flex-col items-center justify-center gap-[14px] rounded-[11px] border border-danger/30 px-[20px] text-center text-[14px] text-danger;
     background: var(--danger-soft);
   }
-  .page-notice {
-    @apply mt-[12px] mb-0;
-  }
   .search-initial-hint {
     @apply mt-[10px] text-[13px] text-muted;
   }
