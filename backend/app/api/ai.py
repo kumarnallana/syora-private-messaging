@@ -4,7 +4,7 @@ import uuid
 from typing import Any
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import api_error, current_user
 from app.config.settings import get_settings
@@ -28,6 +28,7 @@ from app.services.ai_assistant import (
     TEMPLATES,
     call_external_llm_if_available,
     extract_recipient_and_channel,
+    get_ai_diagnostics,
     match_user_contact,
     refine_message_text,
     synthesize_professional_message,
@@ -57,6 +58,15 @@ class SendMessageIn(BaseModel):
 
 class CreateConversationIn(BaseModel):
     title: str = Field(default="New Assistant Chat", max_length=120)
+
+
+class UpdateConversationIn(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+
+
+@router.get("/diagnostics")
+async def get_diagnostics(user: User = Depends(current_user)):
+    return await get_ai_diagnostics(get_settings())
 
 
 @router.get("/templates")
@@ -89,15 +99,29 @@ async def get_ai_contacts(user: User = Depends(current_user), db: AsyncSession =
 async def list_ai_conversations(user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
     stmt = select(AIConversation).where(AIConversation.user_id == user.id).order_by(AIConversation.updated_at.desc())
     convs = (await db.scalars(stmt)).all()
-    return [
-        {
+    items = []
+    for c in convs:
+        latest = await db.scalar(
+            select(AIMessage)
+            .where(AIMessage.conversation_id == c.id)
+            .order_by(AIMessage.created_at.desc())
+            .limit(1)
+        )
+        msg_count = await db.scalar(
+            select(func.count()).select_from(AIMessage).where(AIMessage.conversation_id == c.id)
+        ) or 0
+        items.append({
             "id": str(c.id),
             "title": c.title,
             "created_at": c.created_at.isoformat(),
             "updated_at": c.updated_at.isoformat(),
-        }
-        for c in convs
-    ]
+            "message_count": msg_count,
+            "last_message": latest.content[:90] if latest else "",
+            "last_draft": latest.draft_message[:90] if (latest and latest.draft_message) else "",
+            "last_recipient": latest.recipient_name if latest else "",
+            "last_channel": latest.channel if latest else "",
+        })
+    return items
 
 
 @router.post("/conversations", status_code=201)
@@ -143,6 +167,22 @@ async def get_ai_conversation(conversation_id: uuid.UUID, user: User = Depends(c
             for m in messages
         ],
     }
+
+
+@router.patch("/conversations/{conversation_id}")
+async def update_ai_conversation(
+    conversation_id: uuid.UUID,
+    body: UpdateConversationIn,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    conv = await db.get(AIConversation, conversation_id)
+    if not conv or conv.user_id != user.id:
+        raise api_error(404, "NOT_FOUND", "AI conversation not found.")
+    conv.title = body.title.strip()
+    conv.updated_at = now()
+    await db.commit()
+    return {"id": str(conv.id), "title": conv.title, "updated_at": conv.updated_at.isoformat()}
 
 
 @router.delete("/conversations/{conversation_id}")
@@ -233,18 +273,15 @@ async def chat_with_ai(
 
     # Generate or refine message
     settings = get_settings()
-    llm_draft = None
-
-    if settings.openai_api_key or settings.gemini_api_key:
-        system_instruction = (
-            "You are Syora AI, a world-class professional messaging assistant. "
-            "Write concise, polished, professional messages for real-world workplace and networking scenarios. "
-            "Return the message draft directly without markdown wrapping unless requested."
-        )
-        llm_draft = await call_external_llm_if_available(system_instruction, body.prompt, settings)
+    system_instruction = (
+        "You are Syora AI, a world-class professional messaging assistant. "
+        "Write concise, polished, professional messages for real-world workplace and networking scenarios. "
+        "Return the message draft directly without markdown wrapping unless requested."
+    )
+    llm_draft, provider_label = await call_external_llm_if_available(system_instruction, body.prompt, settings)
 
     if llm_draft:
-        reasoning = f"I've tailored a professional draft for {recipient_display or 'your recipient'}. Feel free to review or refine it."
+        reasoning = f"I've tailored a professional draft for {recipient_display or 'your recipient'} using {provider_label}. Feel free to review or refine it."
         draft = llm_draft.strip()
         actions = ["Make more concise", "More formal", "Friendlier", "Add clear CTA"]
     else:
@@ -255,6 +292,7 @@ async def chat_with_ai(
             refinement_instruction=body.refinement,
             sender_name=user.display_name,
         )
+        provider_label = "Syora Neural Engine"
 
     # Save user message
     user_msg = AIMessage(
@@ -276,6 +314,7 @@ async def chat_with_ai(
         send_status="draft",
         metadata_json=json.dumps({
             "action": "draft_created",
+            "provider": provider_label,
             "recipient": matched_contact,
             "channel": target_channel,
             "suggested_actions": actions,
@@ -297,6 +336,7 @@ async def chat_with_ai(
         "role": "assistant",
         "content": reasoning,
         "draft_message": draft,
+        "provider": provider_label,
         "recipient": matched_contact,
         "channel": target_channel,
         "is_send_command": False,

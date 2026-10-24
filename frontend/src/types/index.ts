@@ -12,7 +12,27 @@ export interface AdminMetrics { signedInUsers: number; previouslySignedInUsers: 
 export interface AdminNotificationSettings { loginAlerts: boolean; messageAlerts: boolean; messagePreview: boolean; soundAlerts?: boolean; pushEnabled: boolean; pushSupported: boolean; publicKey?: string }
 export interface AdminNotificationEvent { id: string; type: 'ADMIN_USER_LOGIN' | 'ADMIN_LOGIN_FAILED' | 'ADMIN_DIRECT_MESSAGE' | 'ADMIN_TEST_ALERT'; title: string; body: string; url: string; timestamp: string; conversationId?: string; senderName?: string; read?: boolean }
 export interface AITemplate { id: string; category: string; title: string; description: string; template: string; prompt_starter: string }
-export interface AIConversationSummary { id: string; title: string; created_at: string; updated_at: string }
+export interface AIConversationSummary {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count?: number;
+  last_message?: string;
+  last_draft?: string;
+  last_recipient?: string;
+  last_channel?: string;
+}
+export interface AIDiagnostics {
+  active_provider: 'gemini' | 'ollama' | 'openai' | 'builtin';
+  provider_name: string;
+  is_external_configured: boolean;
+  gemini: { configured: boolean; model: string };
+  ollama: { configured: boolean; base_url: string; model: string; healthy?: boolean; models?: string[]; error?: string };
+  openai: { configured: boolean; model: string };
+  preferred_provider: string;
+  notes: string;
+}
 export interface AIMessage {
   id: string;
   role: 'user' | 'assistant';

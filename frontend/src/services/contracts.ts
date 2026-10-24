@@ -3,6 +3,7 @@ import type {
   AdminNotificationEvent,
   AdminNotificationSettings,
   AIConversationSummary,
+  AIDiagnostics,
   AIMessage,
   AISendResult,
   AITemplate,
@@ -91,10 +92,12 @@ export interface Services
   getAdminNotificationHistory(): Promise<{ items: AdminNotificationEvent[]; unreadCount: number }>;
   markAdminNotificationsRead(): Promise<void>;
   clearAdminNotificationHistory(): Promise<void>;
+  getAIDiagnostics(): Promise<AIDiagnostics>;
   getAITemplates(): Promise<{ templates: AITemplate[] }>;
   getAIContacts(): Promise<{ contacts: User[] }>;
   getAIConversations(): Promise<AIConversationSummary[]>;
   createAIConversation(title?: string): Promise<AIConversationSummary>;
+  renameAIConversation(id: string, title: string): Promise<AIConversationSummary>;
   getAIConversation(id: string): Promise<{ id: string; title: string; messages: AIMessage[] }>;
   deleteAIConversation(id: string): Promise<void>;
   sendAIChat(

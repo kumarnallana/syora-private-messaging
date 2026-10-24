@@ -1,7 +1,7 @@
 "use client";
 
 import { useApp } from "@/stores/use-app";
-import type { AIConversationSummary, AIMessage, AISendResult, AITemplate, User } from "@/types";
+import type { AIConversationSummary, AIDiagnostics, AIMessage, AISendResult, AITemplate, User } from "@/types";
 import { cn } from "@/utils/cn";
 import {
   ArrowLeft,
@@ -11,6 +11,7 @@ import {
   CheckCheck,
   CheckCircle2,
   Copy,
+  Cpu,
   ExternalLink,
   History,
   LayoutGrid,
@@ -23,18 +24,47 @@ import {
   PenLine,
   Plus,
   RefreshCw,
+  Search,
   Send,
+  Server,
+  Settings,
   Shield,
   ShieldAlert,
+  ShieldCheck,
   Sparkles,
+  Terminal,
   Trash2,
   User as UserIcon,
   Volume2,
   X,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+function formatRelativeTime(isoString?: string): string {
+  if (!isoString) return "";
+  try {
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return "";
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHours = Math.floor(diffMin / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffSec < 45) return "Just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString([], { month: "short", day: "numeric" });
+  } catch {
+    return "";
+  }
+}
 
 export function AIAssistant() {
   const { me, services, users } = useApp();
@@ -46,6 +76,17 @@ export function AIAssistant() {
   const [messages, setMessages] = useState<AIMessage[]>([]);
   const [templates, setTemplates] = useState<AITemplate[]>([]);
   const [contacts, setContacts] = useState<User[]>([]);
+
+  // Diagnostics & Provider state
+  const [diagnostics, setDiagnostics] = useState<AIDiagnostics | null>(null);
+  const [showDiagnosticsModal, setShowDiagnosticsModal] = useState(false);
+  const [isCheckingDiagnostics, setIsCheckingDiagnostics] = useState(false);
+  const [copiedSnippet, setCopiedSnippet] = useState<string | null>(null);
+
+  // Search & Rename for conversation history
+  const [searchQuery, setSearchQuery] = useState("");
+  const [editingConvId, setEditingConvId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
 
   // Composer
   const [inputPrompt, setInputPrompt] = useState("");
@@ -80,14 +121,16 @@ export function AIAssistant() {
   // Load Initial Data
   const loadInitialData = useCallback(async () => {
     try {
-      const [tplRes, contRes, convs] = await Promise.all([
-        services.getAITemplates(),
-        services.getAIContacts(),
-        services.getAIConversations(),
+      const [tplRes, contRes, convs, diag] = await Promise.all([
+        services.getAITemplates().catch(() => ({ templates: [] })),
+        services.getAIContacts().catch(() => ({ contacts: [] })),
+        services.getAIConversations().catch(() => []),
+        services.getAIDiagnostics().catch(() => null),
       ]);
       setTemplates(tplRes.templates || []);
       setContacts(contRes.contacts || []);
       setConversations(convs || []);
+      if (diag) setDiagnostics(diag);
 
       if (convs && convs.length > 0) {
         setActiveConversationId(convs[0].id);
@@ -101,6 +144,24 @@ export function AIAssistant() {
       console.error("Failed to load AI initial data", err);
     }
   }, [services]);
+
+  const handleRefreshDiagnostics = async () => {
+    setIsCheckingDiagnostics(true);
+    try {
+      const diag = await services.getAIDiagnostics();
+      setDiagnostics(diag);
+    } catch (err) {
+      console.warn("Diagnostics refresh failed", err);
+    } finally {
+      setIsCheckingDiagnostics(false);
+    }
+  };
+
+  const handleCopySnippet = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedSnippet(key);
+    setTimeout(() => setCopiedSnippet(null), 2200);
+  };
 
   useEffect(() => {
     void loadInitialData();
@@ -228,6 +289,44 @@ export function AIAssistant() {
     }
   };
 
+  // Rename Chat
+  const handleStartRename = (conv: AIConversationSummary, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingConvId(conv.id);
+    setEditingTitle(conv.title || "Untitled Session");
+  };
+
+  const handleSaveRename = async (convId: string, e?: React.FormEvent | React.MouseEvent | React.KeyboardEvent) => {
+    if (e) e.stopPropagation();
+    const trimmed = editingTitle.trim();
+    if (!trimmed) {
+      setEditingConvId(null);
+      return;
+    }
+    try {
+      await services.renameAIConversation(convId, trimmed);
+      setConversations((prev) =>
+        prev.map((c) => (c.id === convId ? { ...c, title: trimmed } : c))
+      );
+    } catch (err: any) {
+      console.error("Failed to rename conversation", err);
+    } finally {
+      setEditingConvId(null);
+    }
+  };
+
+  // Filtered Conversations for Search
+  const filteredConversations = conversations.filter((c) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (c.title && c.title.toLowerCase().includes(q)) ||
+      (c.last_message && c.last_message.toLowerCase().includes(q)) ||
+      (c.last_draft && c.last_draft.toLowerCase().includes(q)) ||
+      (c.last_recipient && c.last_recipient.toLowerCase().includes(q))
+    );
+  });
+
   // Send Prompt to AI
   const handleSendPrompt = async (
     promptToSend?: string,
@@ -297,7 +396,7 @@ export function AIAssistant() {
         }
       }
 
-      // Refresh conversations list for title update
+      // Refresh conversations list for title and snippet update
       const updatedConvs = await services.getAIConversations();
       setConversations(updatedConvs);
     } catch (err: any) {
@@ -373,6 +472,103 @@ export function AIAssistant() {
       ? templates
       : templates.filter((t) => t.category === selectedCategory);
 
+  // Helper renderer for session item
+  const renderSessionItem = (c: AIConversationSummary, isMobile = false) => {
+    const isActive = c.id === activeConversationId;
+    const isEditing = editingConvId === c.id;
+
+    return (
+      <div
+        key={c.id}
+        className={cn("ai-sidebar__item", isActive && "is-active")}
+        onClick={() => {
+          setActiveConversationId(c.id);
+          setAuthorizingMsgId(null);
+          if (isMobile) setShowHistorySidebar(false);
+        }}
+      >
+        <div className="ai-sidebar__item-header">
+          <MessageSquare size={13} className="shrink-0 text-accent/80" />
+          {isEditing ? (
+            <div className="flex items-center gap-[4px] flex-1" onClick={(e) => e.stopPropagation()}>
+              <input
+                type="text"
+                className="ai-sidebar__rename-input"
+                value={editingTitle}
+                autoFocus
+                onChange={(e) => setEditingTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleSaveRename(c.id, e);
+                  if (e.key === "Escape") setEditingConvId(null);
+                }}
+              />
+              <button
+                type="button"
+                className="ai-sidebar__item-action-btn text-accent"
+                onClick={(e) => void handleSaveRename(c.id, e)}
+                title="Save title"
+              >
+                <Check size={12} />
+              </button>
+              <button
+                type="button"
+                className="ai-sidebar__item-action-btn text-muted"
+                onClick={() => setEditingConvId(null)}
+                title="Cancel"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ) : (
+            <>
+              <span className="ai-sidebar__item-title">{c.title || "Untitled Session"}</span>
+              <div className="ai-sidebar__item-actions" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  className="ai-sidebar__item-action-btn"
+                  onClick={(e) => handleStartRename(c, e)}
+                  title="Rename session"
+                >
+                  <PenLine size={12} />
+                </button>
+                <button
+                  type="button"
+                  className="ai-sidebar__item-action-btn text-danger/80 hover:text-danger"
+                  onClick={(e) => void handleDeleteChat(c.id, e)}
+                  title="Delete chat"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Snippet Preview */}
+        {(c.last_draft || c.last_message) && (
+          <div className="ai-sidebar__item-snippet">
+            {c.last_draft || c.last_message}
+          </div>
+        )}
+
+        {/* Metadata Footer */}
+        <div className="ai-sidebar__item-meta">
+          <div className="flex items-center gap-[4px]">
+            <span className="ai-sidebar__item-pill">
+              {c.message_count ? `${c.message_count} msg${c.message_count > 1 ? "s" : ""}` : "1 msg"}
+            </span>
+            {c.last_recipient && (
+              <span className="ai-sidebar__item-pill text-accent font-medium">
+                {c.last_recipient}
+              </span>
+            )}
+          </div>
+          <span>{formatRelativeTime(c.updated_at || c.created_at)}</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="ai-layout">
       {/* Session History Sidebar (Desktop) */}
@@ -392,33 +588,41 @@ export function AIAssistant() {
           </button>
         </div>
 
+        {/* Search Bar for Past Conversations */}
+        <div className="ai-sidebar__search">
+          <div className="relative flex items-center">
+            <Search size={13} className="absolute left-[9px] text-muted pointer-events-none" />
+            <input
+              type="text"
+              className="ai-sidebar__search-input pl-[28px]"
+              placeholder="Search chat history..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="absolute right-[8px] text-muted hover:text-text-primary"
+                onClick={() => setSearchQuery("")}
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Rich Conversation History Cards */}
         <div className="ai-sidebar__list">
           {conversations.length === 0 ? (
             <div className="p-[20px] text-center text-muted text-[13px]">
               No previous chats found.
             </div>
+          ) : filteredConversations.length === 0 ? (
+            <div className="p-[20px] text-center text-muted text-[12.5px]">
+              No chats matching &ldquo;{searchQuery}&rdquo;
+            </div>
           ) : (
-            conversations.map((c) => (
-              <div
-                key={c.id}
-                className={cn("ai-sidebar__item", c.id === activeConversationId && "is-active")}
-                onClick={() => {
-                  setActiveConversationId(c.id);
-                  setAuthorizingMsgId(null);
-                }}
-              >
-                <MessageSquare size={14} className="shrink-0 text-accent/80" />
-                <span className="ai-sidebar__item-title">{c.title || "Untitled Session"}</span>
-                <button
-                  type="button"
-                  className="ai-sidebar__item-delete"
-                  onClick={(e) => void handleDeleteChat(c.id, e)}
-                  title="Delete chat"
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            ))
+            filteredConversations.map((c) => renderSessionItem(c))
           )}
         </div>
 
@@ -463,9 +667,38 @@ export function AIAssistant() {
           </div>
 
           <div className="ai-header__actions">
+            {/* AI Provider Status Pill (Google Gemini / Ollama / Built-in) */}
             <button
               type="button"
-              className="button secondary small"
+              className="ai-provider-badge"
+              onClick={() => setShowDiagnosticsModal(true)}
+              title="AI Engine Diagnostics & Provider Setup"
+            >
+              <span
+                className={cn(
+                  "ai-provider-badge__dot",
+                  diagnostics?.is_external_configured
+                    ? "ai-provider-badge__dot--active"
+                    : "ai-provider-badge__dot--fallback"
+                )}
+              />
+              <span className="flex items-center gap-[5px]">
+                {diagnostics?.active_provider === "gemini" && <Zap size={13} className="text-amber-400" />}
+                {diagnostics?.active_provider === "ollama" && <Cpu size={13} className="text-emerald-400" />}
+                {diagnostics?.active_provider === "builtin" && <Sparkles size={13} className="text-accent" />}
+                <span>
+                  {diagnostics?.active_provider === "gemini"
+                    ? "Gemini 1.5 Flash"
+                    : diagnostics?.active_provider === "ollama"
+                    ? `Ollama (${diagnostics.ollama?.model || "llama3.2"})`
+                    : "Syora Engine"}
+                </span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className="button secondary small hidden sm:inline-flex"
               onClick={() => setShowTemplatesModal(true)}
             >
               <LayoutGrid size={14} /> Templates
@@ -535,6 +768,35 @@ export function AIAssistant() {
                   )}
 
                   <div className="ai-msg__bubble">
+                    {/* Author & Timestamp Header */}
+                    <div className="ai-msg__header">
+                      <div className="ai-msg__author">
+                        {isUser ? (
+                          <>
+                            <UserIcon size={12} className="text-accent" />
+                            <span>{me?.name || "You"}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={12} className="text-accent" />
+                            <span>Syora AI</span>
+                            <span className="ai-msg__tag">
+                              {msg.metadata?.action === "send_authorization_prompt"
+                                ? "Authorization Check"
+                                : diagnostics?.active_provider === "gemini"
+                                ? "Gemini 1.5 Flash"
+                                : diagnostics?.active_provider === "ollama"
+                                ? "Local Ollama"
+                                : "Syora Engine"}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <span className="text-[10px]">
+                        {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+
                     {/* User Prompt / Assistant Explanation */}
                     <div className={cn(!isUser && "ai-msg__reasoning")}>{msg.content}</div>
 
@@ -653,7 +915,7 @@ export function AIAssistant() {
                       <div className="ai-auth-card">
                         <div className="ai-auth-card__header">
                           <div className="ai-auth-card__icon">
-                            <Shield size={18} />
+                            <ShieldCheck size={18} />
                           </div>
                           <div className="ai-auth-card__title">
                             <strong>Outbound Send Authorization Required</strong>
@@ -905,6 +1167,35 @@ export function AIAssistant() {
         {/* Bottom Composer */}
         <div className="ai-composer">
           <div className="ai-composer__inner">
+            {/* Tone Selector Toolbar */}
+            <div className="ai-tone-bar">
+              <span className="text-[11px] font-medium text-muted mr-[4px]">Tone:</span>
+              {[
+                { label: "⚡ Concise", rule: "concise" },
+                { label: "👔 Formal", rule: "formal" },
+                { label: "🤝 Friendly", rule: "friendly" },
+                { label: "🎯 Action", rule: "action" },
+                { label: "🕊️ Diplomatic", rule: "diplomatic" },
+                { label: "🚨 Urgent", rule: "urgent" },
+              ].map((t) => (
+                <button
+                  key={t.rule}
+                  type="button"
+                  className="ai-tone-pill"
+                  onClick={() => {
+                    const latestDraftMsg = [...messages].reverse().find((m) => m.draft_message);
+                    if (latestDraftMsg) {
+                      void handleSendPrompt(`Make this message ${t.rule}`, t.rule, latestDraftMsg.id);
+                    } else {
+                      setInputPrompt((prev) => (prev ? `${prev} (in a ${t.rule} tone)` : `Draft a ${t.rule} message for `));
+                    }
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
             <div className="ai-composer__bar">
               <textarea
                 className="ai-composer__textarea"
@@ -948,6 +1239,171 @@ export function AIAssistant() {
           </div>
         </div>
       </main>
+
+      {/* AI Provider & Diagnostics Modal */}
+      {showDiagnosticsModal && (
+        <div className="modal-backdrop" onClick={() => setShowDiagnosticsModal(false)}>
+          <div
+            className="modal-card max-w-[620px] w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div className="flex items-center gap-[8px]">
+                <Cpu size={18} className="text-accent" />
+                <h3 className="text-[16px] font-semibold">AI Assistant Engine & Diagnostics</h3>
+              </div>
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => setShowDiagnosticsModal(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-[16px_20px] space-y-[14px] max-h-[520px] overflow-y-auto">
+              {/* Active Engine Card */}
+              <div className="p-[12px_14px] rounded-[10px] bg-surface/70 border border-border flex items-center justify-between">
+                <div>
+                  <small className="text-[11px] font-semibold uppercase text-muted tracking-wider">
+                    Current Active Engine
+                  </small>
+                  <div className="text-[15px] font-semibold text-text-primary flex items-center gap-[6px] mt-[2px]">
+                    {diagnostics?.active_provider === "gemini" && <Zap size={16} className="text-amber-400" />}
+                    {diagnostics?.active_provider === "ollama" && <Cpu size={16} className="text-emerald-400" />}
+                    {diagnostics?.active_provider === "builtin" && <Sparkles size={16} className="text-accent" />}
+                    <span>{diagnostics?.provider_name || "Syora Built-in Engine"}</span>
+                  </div>
+                  <p className="text-[11.5px] text-muted mt-[2px]">{diagnostics?.notes}</p>
+                </div>
+                <button
+                  type="button"
+                  className="button secondary small"
+                  onClick={handleRefreshDiagnostics}
+                  disabled={isCheckingDiagnostics}
+                  title="Re-test engine connection"
+                >
+                  {isCheckingDiagnostics ? (
+                    <LoaderCircle size={13} className="spin" />
+                  ) : (
+                    <RefreshCw size={13} />
+                  )}
+                  <span>Refresh</span>
+                </button>
+              </div>
+
+              {/* Provider Options Guidance */}
+              <div className="text-[12.5px] text-text-secondary leading-relaxed">
+                Syora AI supports three modes depending on your deployment:
+              </div>
+
+              {/* Option 1: Google Gemini */}
+              <div className={cn("ai-diag-card", diagnostics?.active_provider === "gemini" && "is-active")}>
+                <div className="flex items-center justify-between mb-[6px]">
+                  <div className="flex items-center gap-[6px]">
+                    <Zap size={15} className="text-amber-400" />
+                    <strong className="text-[13.5px] text-text-primary">Google Gemini</strong>
+                    <span className="text-[10px] uppercase font-bold text-accent bg-accent/15 px-[6px] py-[1px] rounded">
+                      Recommended for Hosted Website
+                    </span>
+                  </div>
+                  <span className={cn("text-[11px] font-medium", diagnostics?.gemini.configured ? "text-success" : "text-muted")}>
+                    {diagnostics?.gemini.configured ? "Configured" : "Not configured"}
+                  </span>
+                </div>
+                <p className="text-[12px] text-muted mb-[8px] leading-relaxed">
+                  Best if website visitors access your site online. Google AI Studio provides a free API key with generous limits.
+                </p>
+                <div className="ai-diag-code">
+                  <code>GEMINI_API_KEY=your_gemini_key_here</code>
+                  <button
+                    type="button"
+                    className="text-accent hover:underline text-[11px] shrink-0"
+                    onClick={() => handleCopySnippet("GEMINI_API_KEY=", "gemini")}
+                  >
+                    {copiedSnippet === "gemini" ? "Copied" : "Copy"}
+                  </button>
+                </div>
+                <div className="mt-[6px]">
+                  <a
+                    href="https://aistudio.google.com/app/apikey"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-accent hover:underline inline-flex items-center gap-[4px]"
+                  >
+                    Get free Gemini API Key <ExternalLink size={11} />
+                  </a>
+                </div>
+              </div>
+
+              {/* Option 2: Local Ollama */}
+              <div className={cn("ai-diag-card", diagnostics?.active_provider === "ollama" && "is-active")}>
+                <div className="flex items-center justify-between mb-[6px]">
+                  <div className="flex items-center gap-[6px]">
+                    <Cpu size={15} className="text-emerald-400" />
+                    <strong className="text-[13.5px] text-text-primary">Local Ollama</strong>
+                    <span className="text-[10px] uppercase font-bold text-emerald-500 bg-emerald-500/15 px-[6px] py-[1px] rounded">
+                      100% Free & Private
+                    </span>
+                  </div>
+                  <span className={cn("text-[11px] font-medium", diagnostics?.ollama.healthy ? "text-success" : "text-muted")}>
+                    {diagnostics?.ollama.healthy ? "Connected & Healthy" : "Offline / Not Running"}
+                  </span>
+                </div>
+                <p className="text-[12px] text-muted mb-[8px] leading-relaxed">
+                  Best for local developers or self-hosted servers. Runs directly on your device with zero API keys or external calls.
+                </p>
+                <div className="ai-diag-code mb-[6px]">
+                  <code>ollama run llama3.2</code>
+                  <button
+                    type="button"
+                    className="text-accent hover:underline text-[11px] shrink-0"
+                    onClick={() => handleCopySnippet("ollama run llama3.2", "ollama_cmd")}
+                  >
+                    {copiedSnippet === "ollama_cmd" ? "Copied" : "Copy"}
+                  </button>
+                </div>
+                <div className="ai-diag-code">
+                  <code>OLLAMA_ENABLED=true</code>
+                  <button
+                    type="button"
+                    className="text-accent hover:underline text-[11px] shrink-0"
+                    onClick={() => handleCopySnippet("OLLAMA_ENABLED=true", "ollama_env")}
+                  >
+                    {copiedSnippet === "ollama_env" ? "Copied" : "Copy"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Option 3: Built-in Offline Fallback */}
+              <div className={cn("ai-diag-card", diagnostics?.active_provider === "builtin" && "is-active")}>
+                <div className="flex items-center justify-between mb-[6px]">
+                  <div className="flex items-center gap-[6px]">
+                    <Sparkles size={15} className="text-accent" />
+                    <strong className="text-[13.5px] text-text-primary">Syora Neural Engine</strong>
+                  </div>
+                  <span className="text-[11px] font-medium text-success">
+                    Always Ready
+                  </span>
+                </div>
+                <p className="text-[12px] text-muted leading-relaxed">
+                  Deterministic built-in message synthesizer. Ensures the assistant never throws errors or stops working even without internet or API keys.
+                </p>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="button primary small"
+                onClick={() => setShowDiagnosticsModal(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Templates Modal */}
       {showTemplatesModal && (
@@ -1029,20 +1485,21 @@ export function AIAssistant() {
             </button>
           </div>
 
+          <div className="ai-sidebar__search">
+            <div className="relative flex items-center">
+              <Search size={13} className="absolute left-[9px] text-muted pointer-events-none" />
+              <input
+                type="text"
+                className="ai-sidebar__search-input pl-[28px]"
+                placeholder="Search chat history..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+
           <div className="ai-sidebar__list">
-            {conversations.map((c) => (
-              <div
-                key={c.id}
-                className={cn("ai-sidebar__item", c.id === activeConversationId && "is-active")}
-                onClick={() => {
-                  setActiveConversationId(c.id);
-                  setShowHistorySidebar(false);
-                }}
-              >
-                <MessageSquare size={14} className="shrink-0 text-accent/80" />
-                <span className="ai-sidebar__item-title">{c.title || "Untitled Session"}</span>
-              </div>
-            ))}
+            {filteredConversations.map((c) => renderSessionItem(c, true))}
           </div>
 
           <div className="p-[12px] border-t border-border">

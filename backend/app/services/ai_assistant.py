@@ -278,63 +278,212 @@ def synthesize_professional_message(
     return reasoning, draft, actions
 
 
-def _sync_http_post(url: str, headers: dict[str, str], payload: dict[str, Any]) -> dict[str, Any] | None:
-    try:
+def _sync_http_request(url: str, method: str = "GET", headers: dict[str, str] | None = None, payload: dict[str, Any] | None = None, timeout: float = 10.0) -> tuple[int, dict[str, Any] | None, str]:
+    """Execute HTTP request with diagnostic details."""
+    req_headers = {"User-Agent": "Syora-AI/1.0", "Accept": "application/json"}
+    if headers:
+        req_headers.update(headers)
+    data = None
+    if payload is not None:
         data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
-        with urllib.request.urlopen(req, timeout=10.0) as resp:
-            if resp.status == 200:
-                return json.loads(resp.read().decode("utf-8"))
-    except Exception:
+        if "Content-Type" not in req_headers:
+            req_headers["Content-Type"] = "application/json"
+
+    try:
+        req = urllib.request.Request(url, data=data, headers=req_headers, method=method)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            body = resp.read().decode("utf-8")
+            try:
+                parsed = json.loads(body)
+            except Exception:
+                parsed = None
+            return resp.status, parsed, body
+    except urllib.error.HTTPError as e:
+        err_body = ""
+        try:
+            err_body = e.read().decode("utf-8")
+        except Exception:
+            pass
+        return e.code, None, err_body
+    except Exception as e:
+        return 0, None, str(e)
+
+
+async def check_ollama_health(base_url: str, model: str) -> tuple[bool, list[str]]:
+    """Check if Ollama is accessible and what models are installed."""
+    def _check():
+        code, data, _ = _sync_http_request(f"{base_url.rstrip('/')}/api/tags", method="GET", timeout=2.0)
+        if code == 200 and data and "models" in data:
+            names = [m.get("name", "") for m in data.get("models", [])]
+            return True, names
+        return False, []
+    return await asyncio.to_thread(_check)
+
+
+async def call_gemini_api(system_prompt: str, user_prompt: str, api_key: str, model: str = "gemini-1.5-flash") -> str | None:
+    """Call Google Gemini Generative Language API with model fallback."""
+    models_to_try = [model, "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
+    seen = set()
+    models_to_try = [m for m in models_to_try if not (m in seen or seen.add(m))]
+
+    payload = {
+        "systemInstruction": {
+            "parts": [{"text": system_prompt}]
+        },
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": user_prompt}]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.7,
+            "maxOutputTokens": 1024
+        }
+    }
+
+    def _call(target_model: str):
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{target_model}:generateContent?key={api_key}"
+        code, data, err = _sync_http_request(url, method="POST", payload=payload, timeout=12.0)
+        if code == 200 and data and "candidates" in data and data["candidates"]:
+            parts = data["candidates"][0].get("content", {}).get("parts", [])
+            if parts and "text" in parts[0]:
+                return parts[0]["text"]
         return None
+
+    for m in models_to_try:
+        text = await asyncio.to_thread(_call, m)
+        if text:
+            return text
     return None
+
+
+async def call_ollama_api(system_prompt: str, user_prompt: str, base_url: str, model: str = "llama3.2") -> str | None:
+    """Call local Ollama instance (free, private, no API key needed)."""
+    def _call():
+        chat_url = f"{base_url.rstrip('/')}/api/chat"
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            "stream": False
+        }
+        code, data, _ = _sync_http_request(chat_url, method="POST", payload=payload, timeout=20.0)
+        if code == 200 and data and "message" in data:
+            return data["message"].get("content")
+
+        gen_url = f"{base_url.rstrip('/')}/api/generate"
+        gen_payload = {
+            "model": model,
+            "system": system_prompt,
+            "prompt": user_prompt,
+            "stream": False
+        }
+        code, data, _ = _sync_http_request(gen_url, method="POST", payload=gen_payload, timeout=20.0)
+        if code == 200 and data and "response" in data:
+            return data.get("response")
+
+        return None
+
+    return await asyncio.to_thread(_call)
 
 
 async def call_external_llm_if_available(
     system_prompt: str,
     user_prompt: str,
     settings: Any,
-) -> str | None:
-    """Optionally query OpenAI or Gemini if an API key is configured."""
+) -> tuple[str | None, str]:
+    """Query the preferred or available LLM provider (Gemini, Ollama, OpenAI, or Built-in).
+    Returns (generated_text, provider_label).
+    """
+    pref = (getattr(settings, "ai_preferred_provider", "auto") or "auto").lower()
+
+    # 1. Gemini
+    if (pref == "gemini" or (pref == "auto" and settings.gemini_api_key)) and settings.gemini_api_key:
+        res = await call_gemini_api(system_prompt, user_prompt, settings.gemini_api_key, getattr(settings, "gemini_model", "gemini-1.5-flash"))
+        if res:
+            return res, f"Gemini ({getattr(settings, 'gemini_model', 'gemini-1.5-flash')})"
+
+    # 2. Ollama (Local)
+    ollama_url = getattr(settings, "ollama_base_url", "http://localhost:11434")
+    ollama_model = getattr(settings, "ollama_model", "llama3.2")
+    if pref == "ollama" or pref == "auto":
+        res = await call_ollama_api(system_prompt, user_prompt, ollama_url, ollama_model)
+        if res:
+            return res, f"Ollama ({ollama_model})"
+
+    # 3. OpenAI
     if settings.openai_api_key:
         try:
-            res = await asyncio.to_thread(
-                _sync_http_post,
-                "https://api.openai.com/v1/chat/completions",
-                {"Authorization": f"Bearer {settings.openai_api_key}", "Content-Type": "application/json"},
-                {
+            def _call_openai():
+                url = "https://api.openai.com/v1/chat/completions"
+                headers = {"Authorization": f"Bearer {settings.openai_api_key}"}
+                payload = {
                     "model": "gpt-4o-mini",
                     "messages": [
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
                     ],
                     "temperature": 0.6,
-                },
-            )
-            if res and "choices" in res and res["choices"]:
-                return res["choices"][0]["message"]["content"]
+                }
+                code, data, _ = _sync_http_request(url, method="POST", headers=headers, payload=payload, timeout=12.0)
+                if code == 200 and data and "choices" in data and data["choices"]:
+                    return data["choices"][0]["message"]["content"]
+                return None
+            res = await asyncio.to_thread(_call_openai)
+            if res:
+                return res, "OpenAI (gpt-4o-mini)"
         except Exception:
             pass
 
-    if settings.gemini_api_key:
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={settings.gemini_api_key}"
-            res = await asyncio.to_thread(
-                _sync_http_post,
-                url,
-                {"Content-Type": "application/json"},
-                {
-                    "contents": [
-                        {"role": "user", "parts": [{"text": f"{system_prompt}\n\nUser request: {user_prompt}"}]}
-                    ],
-                },
-            )
-            if res and "candidates" in res and res["candidates"]:
-                parts = res["candidates"][0].get("content", {}).get("parts", [])
-                if parts:
-                    return parts[0].get("text")
-        except Exception:
-            pass
+    return None, "Built-in Neural Engine"
 
-    return None
+
+async def get_ai_diagnostics(settings: Any) -> dict[str, Any]:
+    """Return complete status and diagnostic info about connected AI engines."""
+    ollama_url = getattr(settings, "ollama_base_url", "http://localhost:11434")
+    ollama_model = getattr(settings, "ollama_model", "llama3.2")
+    ollama_ok, ollama_models = await check_ollama_health(ollama_url, ollama_model)
+
+    has_gemini = bool(settings.gemini_api_key and len(settings.gemini_api_key) > 5)
+    has_openai = bool(settings.openai_api_key and len(settings.openai_api_key) > 5)
+
+    if has_gemini:
+        active_provider = "gemini"
+        active_label = f"Google Gemini ({getattr(settings, 'gemini_model', 'gemini-1.5-flash')})"
+    elif ollama_ok:
+        active_provider = "ollama"
+        active_label = f"Ollama Local ({ollama_model})"
+    elif has_openai:
+        active_provider = "openai"
+        active_label = "OpenAI (gpt-4o-mini)"
+    else:
+        active_provider = "builtin"
+        active_label = "Syora Neural Engine (Built-in)"
+
+    return {
+        "active_provider": active_provider,
+        "active_label": active_label,
+        "gemini": {
+            "configured": has_gemini,
+            "model": getattr(settings, "gemini_model", "gemini-1.5-flash"),
+        },
+        "ollama": {
+            "configured": getattr(settings, "ollama_enabled", False) or ollama_ok,
+            "running": ollama_ok,
+            "base_url": ollama_url,
+            "model": ollama_model,
+            "installed_models": ollama_models,
+        },
+        "openai": {
+            "configured": has_openai,
+        },
+        "builtin": {
+            "available": True,
+            "always_ready": True,
+        },
+    }
+
 

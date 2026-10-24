@@ -4,6 +4,7 @@ import type {
   AdminNotificationEvent,
   AdminNotificationSettings,
   AIConversationSummary,
+  AIDiagnostics,
   AIMessage,
   AISendResult,
   AITemplate,
@@ -1262,6 +1263,9 @@ export class ApiServices implements Services {
       window.dispatchEvent(new CustomEvent("syora:admin-history-updated"));
     } catch {}
   }
+  async getAIDiagnostics(): Promise<AIDiagnostics> {
+    return this.fetch<AIDiagnostics>("/api/ai/diagnostics");
+  }
   async getAITemplates(): Promise<{ templates: AITemplate[] }> {
     return this.fetch<{ templates: AITemplate[] }>("/api/ai/templates");
   }
@@ -1275,6 +1279,12 @@ export class ApiServices implements Services {
     return this.fetch<AIConversationSummary>("/api/ai/conversations", {
       method: "POST",
       body: JSON.stringify({ title: title || "New Assistant Chat" }),
+    });
+  }
+  async renameAIConversation(id: string, title: string): Promise<AIConversationSummary> {
+    return this.fetch<AIConversationSummary>(`/api/ai/conversations/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ title }),
     });
   }
   async getAIConversation(id: string): Promise<{ id: string; title: string; messages: AIMessage[] }> {

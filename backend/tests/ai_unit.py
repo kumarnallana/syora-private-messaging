@@ -72,6 +72,24 @@ class TestAIAssistant(unittest.TestCase):
         refined = refine_message_text(initial, "make it friendly and warm")
         self.assertIn("Hope you're having", refined)
 
+    def test_diagnostics(self):
+        import asyncio
+        from app.config.settings import Settings
+        from app.services.ai_assistant import get_ai_diagnostics
+        settings = Settings(
+            DATABASE_URL="postgresql+asyncpg://user:pass@localhost:5432/test",
+            JWT_ACCESS_SECRET="12345678901234567890123456789012",
+            JWT_REFRESH_SECRET="12345678901234567890123456789012",
+            CLIENT_ORIGINS=["http://localhost:3000"],
+            GEMINI_API_KEY="",
+            OLLAMA_ENABLED=False,
+        )
+        diag = asyncio.run(get_ai_diagnostics(settings))
+        self.assertIn("active_provider", diag)
+        self.assertIn("gemini", diag)
+        self.assertIn("ollama", diag)
+        self.assertIn("builtin", diag)
+
 
 if __name__ == "__main__":
     unittest.main()

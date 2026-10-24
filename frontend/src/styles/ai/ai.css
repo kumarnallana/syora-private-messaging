@@ -21,28 +21,60 @@
     @apply flex items-center gap-[8px] text-[15px] font-semibold tracking-tight;
   }
 
+  .ai-sidebar__search {
+    @apply p-[8px_12px] border-b border-border/70;
+  }
+
+  .ai-sidebar__search-input {
+    @apply w-full rounded-[8px] border border-border bg-surface/60 px-[10px] py-[6px] text-[12px] text-text-primary placeholder:text-muted/60 focus:border-accent/60 focus:outline-none transition-colors;
+  }
+
   .ai-sidebar__list {
     @apply flex-1 overflow-y-auto p-[10px] grid gap-[6px];
   }
 
   .ai-sidebar__item {
-    @apply flex items-center justify-between gap-[10px] rounded-[10px] p-[10px_12px] text-left text-[13px] text-muted transition-colors hover:bg-surface hover:text-text-primary cursor-pointer border border-transparent;
+    @apply flex flex-col gap-[4px] rounded-[10px] p-[9px_12px] text-left text-[13px] text-muted transition-all hover:bg-surface hover:text-text-primary cursor-pointer border border-transparent relative;
   }
 
   .ai-sidebar__item.is-active {
-    @apply bg-surface text-text-primary font-medium border-border;
+    @apply bg-surface text-text-primary font-medium border-border border-l-[3px] border-l-accent shadow-sm;
+  }
+
+  .ai-sidebar__item-header {
+    @apply flex items-center justify-between gap-[6px];
   }
 
   .ai-sidebar__item-title {
-    @apply truncate flex-1;
+    @apply truncate flex-1 font-medium text-[13px] text-text-primary;
   }
 
-  .ai-sidebar__item-delete {
-    @apply opacity-0 transition-opacity text-muted hover:text-danger p-[2px];
+  .ai-sidebar__item-snippet {
+    @apply text-[11px] text-muted/80 line-clamp-1 leading-normal;
   }
 
-  .ai-sidebar__item:hover .ai-sidebar__item-delete {
+  .ai-sidebar__item-meta {
+    @apply flex items-center justify-between gap-[6px] text-[10px] text-muted/70 mt-[2px];
+  }
+
+  .ai-sidebar__item-pill {
+    @apply inline-flex items-center gap-[3px] rounded px-[5px] py-[1px] bg-panel border border-border text-[9.5px] text-muted;
+  }
+
+  .ai-sidebar__item-actions {
+    @apply flex items-center gap-[2px] opacity-0 transition-opacity;
+  }
+
+  .ai-sidebar__item:hover .ai-sidebar__item-actions {
     @apply opacity-100;
+  }
+
+  .ai-sidebar__item-action-btn {
+    @apply p-[2px] rounded text-muted hover:text-text-primary transition-colors;
+  }
+
+  .ai-sidebar__rename-input {
+    @apply flex-1 rounded px-[6px] py-[2px] text-[12px] bg-panel border border-accent text-text-primary focus:outline-none;
   }
 
   .ai-main {
@@ -314,5 +346,61 @@
   .ai-send-btn:not(:disabled):hover {
     background: var(--accent-strong);
     transform: scale(1.04);
+  }
+
+  /* Provider Status Badge in Header */
+  .ai-provider-badge {
+    @apply inline-flex items-center gap-[6px] rounded-full border border-border bg-surface px-[10px] py-[3.5px] text-[11.5px] font-medium text-text-primary transition-all hover:border-accent/60 hover:bg-surface/90 cursor-pointer shadow-sm;
+  }
+
+  .ai-provider-badge__dot {
+    @apply size-[7px] rounded-full shrink-0;
+  }
+
+  .ai-provider-badge__dot--active {
+    @apply bg-emerald-400 shadow-[0_0_6px_#34d399];
+  }
+
+  .ai-provider-badge__dot--fallback {
+    @apply bg-amber-400 shadow-[0_0_6px_#fbbf24];
+  }
+
+  /* Message Author Header */
+  .ai-msg__header {
+    @apply flex items-center justify-between gap-[8px] mb-[6px] text-[11px] text-muted;
+  }
+
+  .ai-msg__author {
+    @apply flex items-center gap-[6px] font-semibold text-[12px] text-text-primary;
+  }
+
+  .ai-msg__tag {
+    @apply inline-flex items-center gap-[3px] rounded-full px-[6px] py-[1px] text-[10px] font-medium bg-accent/15 text-accent border border-accent/20;
+  }
+
+  /* Tone Selector Toolbar */
+  .ai-tone-bar {
+    @apply flex items-center gap-[6px] overflow-x-auto py-[6px] px-[2px] mb-[6px] scrollbar-none;
+  }
+
+  .ai-tone-pill {
+    @apply inline-flex items-center gap-[4px] rounded-full border border-border bg-surface/80 px-[9px] py-[3px] text-[11px] text-muted transition-all hover:border-accent hover:text-text-primary whitespace-nowrap cursor-pointer shrink-0 select-none;
+  }
+
+  .ai-tone-pill:hover {
+    background: var(--accent-soft);
+  }
+
+  /* AI Diagnostics & Setup Modal Cards */
+  .ai-diag-card {
+    @apply rounded-[12px] border border-border bg-surface/40 p-[14px] transition-all relative overflow-hidden;
+  }
+
+  .ai-diag-card.is-active {
+    @apply border-accent/60 bg-accent/5 shadow-md;
+  }
+
+  .ai-diag-code {
+    @apply font-mono text-[11px] p-[8px_10px] rounded-[8px] bg-panel border border-border/80 text-text-primary flex items-center justify-between gap-[8px] select-all;
   }
 }

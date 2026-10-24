@@ -4,6 +4,7 @@ import type {
   AdminNotificationEvent,
   AdminNotificationSettings,
   AIConversationSummary,
+  AIDiagnostics,
   AIMessage,
   AISendResult,
   AITemplate,
@@ -783,6 +784,19 @@ export class MockServices implements Services {
   private mockAIConversations: AIConversationSummary[] = [];
   private mockAIMessages = new Map<string, AIMessage[]>();
 
+  async getAIDiagnostics(): Promise<AIDiagnostics> {
+    await pause();
+    return {
+      active_provider: "builtin",
+      provider_name: "Mock / Syora Built-in Engine",
+      is_external_configured: false,
+      gemini: { configured: false, model: "gemini-1.5-flash" },
+      ollama: { configured: false, base_url: "http://localhost:11434", model: "llama3.2" },
+      openai: { configured: false, model: "gpt-4o-mini" },
+      preferred_provider: "auto",
+      notes: "Mock mode is active. In live mode, Gemini or local Ollama can be used.",
+    };
+  }
   async getAITemplates(): Promise<{ templates: AITemplate[] }> {
     await pause();
     return { templates: this.mockAITemplates };
@@ -807,6 +821,21 @@ export class MockServices implements Services {
     this.mockAIConversations.unshift(item);
     this.mockAIMessages.set(id, []);
     return item;
+  }
+  async renameAIConversation(id: string, title: string): Promise<AIConversationSummary> {
+    await pause();
+    const conv = this.mockAIConversations.find(c => c.id === id);
+    if (conv) {
+      conv.title = title;
+      conv.updated_at = new Date().toISOString();
+      return conv;
+    }
+    return {
+      id,
+      title,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
   }
   async getAIConversation(id: string): Promise<{ id: string; title: string; messages: AIMessage[] }> {
     await pause();
