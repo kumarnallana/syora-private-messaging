@@ -83,8 +83,8 @@ def extract_recipient_and_channel(prompt: str) -> tuple[str | None, str | None]:
         channel = "syora"
 
     patterns = [
-        r"(?:send|deliver|forward|message)\s+(?:this\s+)?(?:message\s+)?to\s+([A-Za-z0-9_.\s]+?)(?:\s+(?:on|via|through|using|in)\s+(?:whatsapp|email|syora|chat)|\s*$)",
-        r"(?:ask|tell|write to)\s+([A-Za-z0-9_.\s]+?)(?:\s+(?:on|via|through|in)\s+(?:whatsapp|email|syora|chat)|\s+that|\s+if|\s+to|\s*$)",
+        r"(?:send|deliver|forward|message)\s+(?:this\s+)?(?:message\s+)?to\s+([A-Za-z0-9_.\s]+?)(?:\s+(?:on|via|through|using|in)\s+(?:whatsapp|email|syora|chat)|\s+(?:for|about)\b|\s*$)",
+        r"(?:ask|tell|write to|remind|ping)\s+([A-Za-z0-9_.\s]+?)(?:\s+(?:on|via|through|in)\s+(?:whatsapp|email|syora|chat)|\s+(?:for|about|that|if|to)\b|\s*$)",
     ]
     recipient = None
     for pattern in patterns:
@@ -92,7 +92,7 @@ def extract_recipient_and_channel(prompt: str) -> tuple[str | None, str | None]:
         if m:
             candidate = m.group(1).strip()
             # Clean candidate
-            candidate = re.sub(r"\b(on|via|through|using|in|whatsapp|email|syora|chat)\b.*$", "", candidate, flags=re.IGNORECASE).strip()
+            candidate = re.sub(r"\b(on|via|through|using|in|for|about|whatsapp|email|syora|chat)\b.*$", "", candidate, flags=re.IGNORECASE).strip()
             if candidate and len(candidate.split()) <= 3 and candidate.lower() not in {"them", "him", "her", "someone", "a", "the", "me"}:
                 recipient = candidate
                 break
@@ -320,9 +320,9 @@ async def check_ollama_health(base_url: str, model: str) -> tuple[bool, list[str
     return await asyncio.to_thread(_check)
 
 
-async def call_gemini_api(system_prompt: str, user_prompt: str, api_key: str, model: str = "gemini-1.5-flash") -> str | None:
+async def call_gemini_api(system_prompt: str, user_prompt: str, api_key: str, model: str = "gemini-3.8-flash") -> str | None:
     """Call Google Gemini Generative Language API with model fallback."""
-    models_to_try = [model, "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
+    models_to_try = [model, "gemini-3.8-flash", "gemini-2.5-flash", "gemini-flash-latest", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
     seen = set()
     models_to_try = [m for m in models_to_try if not (m in seen or seen.add(m))]
 

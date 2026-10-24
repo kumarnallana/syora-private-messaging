@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     vapid_subject: str = Field(default="mailto:admin@example.com", alias="VAPID_SUBJECT")
     openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
     gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
-    gemini_model: str = Field(default="gemini-1.5-flash", alias="GEMINI_MODEL")
+    gemini_model: str = Field(default="gemini-3.8-flash", alias="GEMINI_MODEL")
     ollama_base_url: str = Field(default="http://localhost:11434", alias="OLLAMA_BASE_URL")
     ollama_model: str = Field(default="llama3.2", alias="OLLAMA_MODEL")
     ollama_enabled: bool = Field(default=False, alias="OLLAMA_ENABLED")

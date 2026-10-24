@@ -82,75 +82,75 @@
   }
 
   .ai-header {
-    @apply flex items-center justify-between border-b border-border px-[18px] py-[13px] bg-panel/80 backdrop-blur-md shrink-0;
+    @apply flex items-center justify-between border-b border-border px-[8px] sm:px-[18px] py-[6px] sm:py-[12px] bg-panel/90 backdrop-blur-md shrink-0 gap-[4px] sm:gap-[12px] min-h-[48px] sm:min-h-[52px];
   }
 
   .ai-header__brand {
-    @apply flex items-center gap-[10px];
+    @apply flex items-center gap-[6px] sm:gap-[10px] min-w-0 flex-1 overflow-hidden;
   }
 
   .ai-header__badge {
-    @apply flex items-center gap-[6px] rounded-full px-[10px] py-[3px] text-[11px] font-semibold text-accent;
+    @apply hidden md:inline-flex items-center gap-[6px] rounded-full px-[8px] py-[2px] text-[10.5px] font-semibold text-accent;
     background: var(--accent-soft);
   }
 
   .ai-header__actions {
-    @apply flex items-center gap-[8px];
+    @apply flex items-center gap-[4px] sm:gap-[8px] shrink-0;
   }
 
   .ai-chat-scroll {
-    @apply flex-1 overflow-y-auto p-[16px_20px] lg:p-[24px_36px];
+    @apply flex-1 overflow-y-auto p-[8px_8px] sm:p-[16px_20px] lg:p-[24px_36px] min-h-0;
   }
 
   .ai-chat-inner {
-    @apply mx-auto max-w-[800px] grid gap-[20px] pb-[20px];
+    @apply mx-auto max-w-[800px] grid gap-[10px] sm:gap-[18px] pb-[16px];
   }
 
   /* Empty state & Hero */
   .ai-hero {
-    @apply mx-auto max-w-[700px] text-center pt-[20px] pb-[10px];
+    @apply mx-auto max-w-[700px] text-center pt-[6px] sm:pt-[20px] pb-[6px] sm:pb-[10px];
   }
 
   .ai-hero__badge {
-    @apply inline-flex items-center gap-[7px] rounded-full border border-accent/30 bg-accent/10 px-[12px] py-[4px] text-[12px] font-medium text-accent mb-[14px];
+    @apply inline-flex items-center gap-[6px] rounded-full border border-accent/30 bg-accent/10 px-[8px] sm:px-[12px] py-[2.5px] sm:py-[4px] text-[10.5px] sm:text-[12px] font-medium text-accent mb-[6px] sm:mb-[14px];
   }
 
   .ai-hero h1 {
-    @apply text-[24px] lg:text-[28px] font-semibold text-text-primary tracking-tight mb-[8px];
+    @apply text-[16px] sm:text-[24px] lg:text-[28px] font-semibold text-text-primary tracking-tight mb-[4px] sm:mb-[8px] px-[4px];
   }
 
   .ai-hero p {
-    @apply text-[14px] text-muted leading-relaxed max-w-[540px] mx-auto mb-[24px];
+    @apply text-[11.5px] sm:text-[14px] text-muted leading-relaxed max-w-[540px] mx-auto mb-[10px] sm:mb-[24px] px-[6px];
   }
 
   .ai-templates-grid {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[12px] text-left;
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[8px] sm:gap-[12px] text-left px-[2px];
   }
 
   .ai-template-card {
-    @apply flex flex-col justify-between rounded-[12px] border border-border bg-panel p-[14px] transition-all hover:border-accent/50 hover:bg-surface/50 cursor-pointer shadow-sm hover:shadow-md;
+    @apply flex flex-col justify-between rounded-[10px] sm:rounded-[12px] border border-border bg-panel p-[10px] sm:p-[14px] transition-all hover:border-accent/50 hover:bg-surface/50 cursor-pointer shadow-sm hover:shadow-md;
   }
 
   .ai-template-card__header {
-    @apply flex items-center justify-between mb-[6px];
+    @apply flex items-center justify-between mb-[4px] sm:mb-[6px];
   }
 
   .ai-template-card__category {
-    @apply rounded-[6px] px-[6px] py-[2px] text-[10px] font-bold uppercase tracking-wider text-accent;
+    @apply rounded-[5px] px-[5px] py-[1px] text-[9.5px] font-bold uppercase tracking-wider text-accent;
     background: var(--accent-soft);
   }
 
   .ai-template-card strong {
-    @apply block text-[14px] font-medium text-text-primary mb-[4px];
+    @apply block text-[13px] sm:text-[14px] font-medium text-text-primary mb-[3px] sm:mb-[4px];
   }
 
   .ai-template-card p {
-    @apply text-[12px] text-muted leading-relaxed line-clamp-2;
+    @apply text-[11.5px] sm:text-[12px] text-muted leading-relaxed line-clamp-2;
   }
 
   /* Messages */
   .ai-msg {
-    @apply flex gap-[12px] max-w-full;
+    @apply flex gap-[8px] sm:gap-[12px] max-w-full;
   }
 
   .ai-msg--user {
@@ -162,7 +162,7 @@
   }
 
   .ai-msg__bubble {
-    @apply relative max-w-[92%] md:max-w-[84%] rounded-[16px] p-[14px_16px] text-[14px] leading-relaxed shadow-sm;
+    @apply relative max-w-[96%] sm:max-w-[88%] lg:max-w-[82%] rounded-[14px] sm:rounded-[16px] p-[10px_12px] sm:p-[14px_16px] text-[13px] sm:text-[14px] leading-relaxed shadow-sm;
   }
 
   .ai-msg--user .ai-msg__bubble {
@@ -175,7 +175,7 @@
   }
 
   .ai-msg__avatar {
-    @apply flex size-[32px] shrink-0 items-center justify-center rounded-full text-accent mt-[2px];
+    @apply flex size-[28px] sm:size-[32px] shrink-0 items-center justify-center rounded-full text-accent mt-[2px];
     background: var(--accent-soft);
   }
 
@@ -310,7 +310,8 @@
 
   /* Composer */
   .ai-composer {
-    @apply shrink-0 border-t border-border bg-panel p-[12px_16px] lg:p-[14px_24px] relative;
+    @apply shrink-0 border-t border-border bg-panel p-[8px_10px] sm:p-[12px_16px] lg:p-[14px_24px] relative;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
 
   .ai-composer__inner {
@@ -318,20 +319,20 @@
   }
 
   .ai-composer__bar {
-    @apply relative flex items-end gap-[8px] rounded-[16px] border border-border bg-surface p-[8px_12px] transition-colors focus-within:border-accent/60 shadow-inner;
+    @apply relative flex items-end gap-[6px] sm:gap-[8px] rounded-[14px] sm:rounded-[16px] border border-border bg-surface p-[6px_8px] sm:p-[8px_12px] transition-colors focus-within:border-accent/60 shadow-inner;
   }
 
   .ai-composer__textarea {
-    @apply flex-1 max-h-[140px] resize-none border-0 bg-transparent p-[4px_6px] text-[14px] text-text-primary placeholder:text-muted/60 focus:outline-none focus:ring-0 leading-relaxed;
+    @apply flex-1 min-h-[38px] max-h-[120px] resize-none border-0 bg-transparent p-[3px_4px] text-[14px] text-text-primary placeholder:text-muted/60 focus:outline-none focus:ring-0 leading-relaxed;
     font-family: inherit;
   }
 
   .ai-composer__buttons {
-    @apply flex items-center gap-[6px] shrink-0 pb-[2px];
+    @apply flex items-center gap-[4px] sm:gap-[6px] shrink-0 pb-[1px];
   }
 
   .ai-mic-btn {
-    @apply flex size-[34px] items-center justify-center rounded-full text-muted transition-colors hover:bg-panel hover:text-text-primary border-0 bg-transparent cursor-pointer;
+    @apply flex size-[30px] sm:size-[34px] items-center justify-center rounded-full text-muted transition-colors hover:bg-panel hover:text-text-primary border-0 bg-transparent cursor-pointer;
   }
 
   .ai-mic-btn.is-recording {
@@ -339,7 +340,7 @@
   }
 
   .ai-send-btn {
-    @apply flex size-[34px] items-center justify-center rounded-full text-white transition-all border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed;
+    @apply flex size-[30px] sm:size-[34px] items-center justify-center rounded-full text-white transition-all border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed;
     background: var(--accent);
   }
 
@@ -350,11 +351,11 @@
 
   /* Provider Status Badge in Header */
   .ai-provider-badge {
-    @apply inline-flex items-center gap-[6px] rounded-full border border-border bg-surface px-[10px] py-[3.5px] text-[11.5px] font-medium text-text-primary transition-all hover:border-accent/60 hover:bg-surface/90 cursor-pointer shadow-sm;
+    @apply inline-flex items-center gap-[4px] sm:gap-[6px] rounded-full border border-border bg-surface px-[7px] sm:px-[10px] py-[2.5px] sm:py-[3.5px] text-[10.5px] sm:text-[11.5px] font-medium text-text-primary transition-all hover:border-accent/60 hover:bg-surface/90 cursor-pointer shadow-sm shrink-0 select-none;
   }
 
   .ai-provider-badge__dot {
-    @apply size-[7px] rounded-full shrink-0;
+    @apply size-[6px] sm:size-[7px] rounded-full shrink-0;
   }
 
   .ai-provider-badge__dot--active {
@@ -367,24 +368,31 @@
 
   /* Message Author Header */
   .ai-msg__header {
-    @apply flex items-center justify-between gap-[8px] mb-[6px] text-[11px] text-muted;
+    @apply flex items-center justify-between gap-[6px] sm:gap-[8px] mb-[4px] sm:mb-[6px] text-[10.5px] sm:text-[11px] text-muted;
   }
 
   .ai-msg__author {
-    @apply flex items-center gap-[6px] font-semibold text-[12px] text-text-primary;
+    @apply flex items-center gap-[4px] sm:gap-[6px] font-semibold text-[11.5px] sm:text-[12px] text-text-primary;
   }
 
   .ai-msg__tag {
-    @apply inline-flex items-center gap-[3px] rounded-full px-[6px] py-[1px] text-[10px] font-medium bg-accent/15 text-accent border border-accent/20;
+    @apply inline-flex items-center gap-[3px] rounded-full px-[5px] sm:px-[6px] py-[1px] text-[9.5px] sm:text-[10px] font-medium bg-accent/15 text-accent border border-accent/20;
   }
 
   /* Tone Selector Toolbar */
   .ai-tone-bar {
-    @apply flex items-center gap-[6px] overflow-x-auto py-[6px] px-[2px] mb-[6px] scrollbar-none;
+    @apply flex items-center gap-[4px] sm:gap-[6px] overflow-x-auto py-[2px] sm:py-[5px] px-[2px] mb-[4px];
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ai-tone-bar::-webkit-scrollbar {
+    display: none;
   }
 
   .ai-tone-pill {
-    @apply inline-flex items-center gap-[4px] rounded-full border border-border bg-surface/80 px-[9px] py-[3px] text-[11px] text-muted transition-all hover:border-accent hover:text-text-primary whitespace-nowrap cursor-pointer shrink-0 select-none;
+    @apply inline-flex items-center gap-[3px] sm:gap-[4px] rounded-full border border-border bg-surface/80 px-[7px] sm:px-[9px] py-[2px] sm:py-[3px] text-[10px] sm:text-[11px] text-muted transition-all hover:border-accent hover:text-text-primary whitespace-nowrap cursor-pointer shrink-0 select-none;
   }
 
   .ai-tone-pill:hover {
@@ -393,7 +401,7 @@
 
   /* AI Diagnostics & Setup Modal Cards */
   .ai-diag-card {
-    @apply rounded-[12px] border border-border bg-surface/40 p-[14px] transition-all relative overflow-hidden;
+    @apply rounded-[12px] border border-border bg-surface/40 p-[12px] sm:p-[14px] transition-all relative overflow-hidden;
   }
 
   .ai-diag-card.is-active {
@@ -401,6 +409,10 @@
   }
 
   .ai-diag-code {
-    @apply font-mono text-[11px] p-[8px_10px] rounded-[8px] bg-panel border border-border/80 text-text-primary flex items-center justify-between gap-[8px] select-all;
+    @apply font-mono text-[10.5px] sm:text-[11px] p-[6px_8px] sm:p-[8px_10px] rounded-[8px] bg-panel border border-border/80 text-text-primary flex items-center justify-between gap-[6px] select-all;
+  }
+
+  .ai-key-input {
+    @apply w-full rounded-[8px] border border-border bg-panel px-[10px] py-[7px] text-[12px] font-mono text-text-primary placeholder:text-muted/60 focus:border-accent focus:outline-none transition-colors;
   }
 }

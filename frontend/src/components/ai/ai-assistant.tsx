@@ -82,6 +82,8 @@ export function AIAssistant() {
   const [showDiagnosticsModal, setShowDiagnosticsModal] = useState(false);
   const [isCheckingDiagnostics, setIsCheckingDiagnostics] = useState(false);
   const [copiedSnippet, setCopiedSnippet] = useState<string | null>(null);
+  const [geminiApiKeyInput, setGeminiApiKeyInput] = useState<string>("");
+  const [apiKeyStatus, setApiKeyStatus] = useState<"idle" | "testing" | "valid" | "invalid">("idle");
 
   // Search & Rename for conversation history
   const [searchQuery, setSearchQuery] = useState("");
@@ -161,6 +163,41 @@ export function AIAssistant() {
     navigator.clipboard.writeText(text);
     setCopiedSnippet(key);
     setTimeout(() => setCopiedSnippet(null), 2200);
+  };
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("syora:gemini-api-key") || "";
+      setGeminiApiKeyInput(stored);
+    }
+  }, []);
+
+  const handleSaveAndTestApiKey = async () => {
+    const key = geminiApiKeyInput.trim();
+    setApiKeyStatus("testing");
+    try {
+      if (typeof window !== "undefined") {
+        if (key) {
+          localStorage.setItem("syora:gemini-api-key", key);
+        } else {
+          localStorage.removeItem("syora:gemini-api-key");
+        }
+      }
+      if (key) {
+        const { callGeminiAPI } = await import("@/services/ai-engine");
+        const res = await callGeminiAPI("You are Syora AI.", "Say hello", key, "gemini-3.8-flash");
+        if (res) {
+          setApiKeyStatus("valid");
+        } else {
+          setApiKeyStatus("invalid");
+        }
+      } else {
+        setApiKeyStatus("idle");
+      }
+      await handleRefreshDiagnostics();
+    } catch {
+      setApiKeyStatus("invalid");
+    }
   };
 
   useEffect(() => {
@@ -650,16 +687,16 @@ export function AIAssistant() {
             >
               <History size={18} />
             </button>
-            <div className="flex items-center gap-[9px]">
-              <span className="flex size-[32px] items-center justify-center rounded-[9px] bg-accent/20 text-accent">
-                <Sparkles size={18} />
+            <div className="flex items-center gap-[6px] sm:gap-[9px] min-w-0">
+              <span className="flex size-[28px] sm:size-[32px] items-center justify-center rounded-[8px] sm:rounded-[9px] bg-accent/20 text-accent shrink-0">
+                <Sparkles size={16} />
               </span>
-              <div>
-                <h2 className="text-[15px] font-semibold tracking-tight leading-tight flex items-center gap-[8px]">
+              <div className="min-w-0">
+                <h2 className="text-[14px] sm:text-[15px] font-semibold tracking-tight leading-tight flex items-center gap-[6px] sm:gap-[8px]">
                   <span>Syora AI</span>
                   <span className="ai-header__badge">Assistant</span>
                 </h2>
-                <small className="text-[12px] text-muted">
+                <small className="text-[11.5px] sm:text-[12px] text-muted hidden sm:block truncate">
                   Professional Message Generator & Dispatcher
                 </small>
               </div>
@@ -667,7 +704,7 @@ export function AIAssistant() {
           </div>
 
           <div className="ai-header__actions">
-            {/* AI Provider Status Pill (Google Gemini / Ollama / Built-in) */}
+            {/* AI Provider Status Pill */}
             <button
               type="button"
               className="ai-provider-badge"
@@ -682,13 +719,13 @@ export function AIAssistant() {
                     : "ai-provider-badge__dot--fallback"
                 )}
               />
-              <span className="flex items-center gap-[5px]">
-                {diagnostics?.active_provider === "gemini" && <Zap size={13} className="text-amber-400" />}
-                {diagnostics?.active_provider === "ollama" && <Cpu size={13} className="text-emerald-400" />}
-                {diagnostics?.active_provider === "builtin" && <Sparkles size={13} className="text-accent" />}
-                <span>
+              <span className="flex items-center gap-[4px] truncate max-w-[80px] xs:max-w-[120px] sm:max-w-none">
+                {diagnostics?.active_provider === "gemini" && <Zap size={13} className="text-amber-400 shrink-0" />}
+                {diagnostics?.active_provider === "ollama" && <Cpu size={13} className="text-emerald-400 shrink-0" />}
+                {diagnostics?.active_provider === "builtin" && <Sparkles size={13} className="text-accent shrink-0" />}
+                <span className="truncate">
                   {diagnostics?.active_provider === "gemini"
-                    ? "Gemini 1.5 Flash"
+                    ? "Gemini 3.8 Flash"
                     : diagnostics?.active_provider === "ollama"
                     ? `Ollama (${diagnostics.ollama?.model || "llama3.2"})`
                     : "Syora Engine"}
@@ -698,17 +735,19 @@ export function AIAssistant() {
 
             <button
               type="button"
-              className="button secondary small hidden sm:inline-flex"
+              className="button secondary small hidden md:inline-flex"
               onClick={() => setShowTemplatesModal(true)}
             >
               <LayoutGrid size={14} /> Templates
             </button>
             <button
               type="button"
-              className="button primary small"
+              className="button primary small shrink-0 px-[8px] sm:px-[12px]"
               onClick={handleNewChat}
+              title="Start a new chat"
             >
-              <Plus size={14} /> New Chat
+              <Plus size={15} />
+              <span className="hidden xs:inline sm:inline">New Chat</span>
             </button>
           </div>
         </header>
@@ -729,10 +768,10 @@ export function AIAssistant() {
                 </p>
 
                 <div className="ai-templates-grid">
-                  {templates.slice(0, 6).map((tpl) => (
+                  {templates.slice(0, 6).map((tpl, idx) => (
                     <div
                       key={tpl.id}
-                      className="ai-template-card"
+                      className={cn("ai-template-card", idx >= 3 && "hidden sm:flex")}
                       onClick={() => void handleSendPrompt(tpl.prompt_starter)}
                     >
                       <div>
@@ -746,6 +785,17 @@ export function AIAssistant() {
                     </div>
                   ))}
                 </div>
+                {templates.length > 3 && (
+                  <div className="mt-[10px] sm:hidden">
+                    <button
+                      type="button"
+                      className="button secondary small w-full justify-center text-[12px]"
+                      onClick={() => setShowTemplatesModal(true)}
+                    >
+                      <LayoutGrid size={13} /> View All {templates.length} Scenario Templates
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1156,10 +1206,20 @@ export function AIAssistant() {
 
         {/* Error Notice */}
         {errorNotice && (
-          <div className="px-[16px] lg:px-[24px] mb-[8px]">
-            <div className="rounded-[8px] bg-danger/15 border border-danger/30 p-[8px_14px] text-[12.5px] text-danger flex items-center gap-[8px]">
-              <ShieldAlert size={15} />
-              <span>{errorNotice}</span>
+          <div className="px-[10px] sm:px-[16px] lg:px-[24px] mb-[8px]">
+            <div className="rounded-[8px] bg-danger/15 border border-danger/30 p-[8px_12px] text-[12px] sm:text-[12.5px] text-danger flex items-center justify-between gap-[8px]">
+              <div className="flex items-center gap-[8px] min-w-0">
+                <ShieldAlert size={15} className="shrink-0" />
+                <span className="truncate">{errorNotice}</span>
+              </div>
+              <button
+                type="button"
+                className="p-[2px] rounded hover:bg-danger/20 text-danger shrink-0"
+                onClick={() => setErrorNotice(null)}
+                title="Dismiss notice"
+              >
+                <X size={14} />
+              </button>
             </div>
           </div>
         )}
@@ -1304,26 +1364,83 @@ export function AIAssistant() {
                     <Zap size={15} className="text-amber-400" />
                     <strong className="text-[13.5px] text-text-primary">Google Gemini</strong>
                     <span className="text-[10px] uppercase font-bold text-accent bg-accent/15 px-[6px] py-[1px] rounded">
-                      Recommended for Hosted Website
+                      Live Cloud AI
                     </span>
                   </div>
                   <span className={cn("text-[11px] font-medium", diagnostics?.gemini.configured ? "text-success" : "text-muted")}>
-                    {diagnostics?.gemini.configured ? "Configured" : "Not configured"}
+                    {diagnostics?.gemini.configured ? "Active & Ready" : "Not configured"}
                   </span>
                 </div>
-                <p className="text-[12px] text-muted mb-[8px] leading-relaxed">
-                  Best if website visitors access your site online. Google AI Studio provides a free API key with generous limits.
+                <p className="text-[12px] text-muted mb-[10px] leading-relaxed">
+                  Powered by <strong>Gemini 3.8 Flash</strong>. You can paste any Gemini API key below to activate instantly:
                 </p>
-                <div className="ai-diag-code">
-                  <code>GEMINI_API_KEY=your_gemini_key_here</code>
-                  <button
-                    type="button"
-                    className="text-accent hover:underline text-[11px] shrink-0"
-                    onClick={() => handleCopySnippet("GEMINI_API_KEY=", "gemini")}
-                  >
-                    {copiedSnippet === "gemini" ? "Copied" : "Copy"}
-                  </button>
+
+                {/* API Key Input and Test Bar */}
+                <div className="space-y-[8px] mb-[10px]">
+                  <div className="flex items-center gap-[8px]">
+                    <input
+                      type="password"
+                      className="ai-key-input"
+                      placeholder="Paste Gemini API Key (e.g. AQ... or AIza...)"
+                      value={geminiApiKeyInput}
+                      onChange={(e) => {
+                        setGeminiApiKeyInput(e.target.value);
+                        setApiKeyStatus("idle");
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="button primary small shrink-0"
+                      onClick={handleSaveAndTestApiKey}
+                      disabled={apiKeyStatus === "testing"}
+                    >
+                      {apiKeyStatus === "testing" ? (
+                        <>
+                          <LoaderCircle size={13} className="spin" /> Testing...
+                        </>
+                      ) : (
+                        "Save & Test"
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-[4px] text-[11px]">
+                    <div className="flex items-center gap-[5px]">
+                      {apiKeyStatus === "valid" && (
+                        <span className="text-success flex items-center gap-[4px] font-medium">
+                          <CheckCircle2 size={13} /> Gemini 3.8 Flash verified & active!
+                        </span>
+                      )}
+                      {apiKeyStatus === "invalid" && (
+                        <span className="text-danger flex items-center gap-[4px] font-medium">
+                          <ShieldAlert size={13} /> Key test failed. Fallback to built-in synthesizer.
+                        </span>
+                      )}
+                      {apiKeyStatus === "idle" && (
+                        <span className="text-muted">
+                          Key is securely saved in your browser storage.
+                        </span>
+                      )}
+                    </div>
+                    {geminiApiKeyInput && (
+                      <button
+                        type="button"
+                        className="text-accent hover:underline text-[11px]"
+                        onClick={() => {
+                          setGeminiApiKeyInput("");
+                          if (typeof window !== "undefined") {
+                            localStorage.removeItem("syora:gemini-api-key");
+                          }
+                          setApiKeyStatus("idle");
+                          void handleRefreshDiagnostics();
+                        }}
+                      >
+                        Clear Saved Key
+                      </button>
+                    )}
+                  </div>
                 </div>
+
                 <div className="mt-[6px]">
                   <a
                     href="https://aistudio.google.com/app/apikey"
@@ -1331,7 +1448,7 @@ export function AIAssistant() {
                     rel="noopener noreferrer"
                     className="text-[11px] text-accent hover:underline inline-flex items-center gap-[4px]"
                   >
-                    Get free Gemini API Key <ExternalLink size={11} />
+                    Get free Gemini API Key from Google AI Studio <ExternalLink size={11} />
                   </a>
                 </div>
               </div>
