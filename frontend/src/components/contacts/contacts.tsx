@@ -67,13 +67,20 @@ export function Contacts() {
     });
   }
 
-  async function act(id: string, success: string, work: () => Promise<unknown>) {
+  async function act(id: string, _success: string, work: () => Promise<unknown>) {
     if (actingId) return;
     setActingId(id);
     setNotice(undefined);
-    try { await work(); setNotice({ kind: 'success', text: success }); }
-    catch (cause) { setNotice({ kind: 'error', text: cause instanceof Error ? cause.message : 'That action could not be completed.' }); }
-    finally { setActingId(undefined); }
+    try {
+      await work();
+    } catch (cause) {
+      setNotice({
+        kind: 'error',
+        text: cause instanceof Error ? cause.message : 'That action could not be completed.',
+      });
+    } finally {
+      setActingId(undefined);
+    }
   }
 
   function actions(user: User) {

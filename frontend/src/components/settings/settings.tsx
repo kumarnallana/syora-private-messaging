@@ -171,7 +171,6 @@ export function Settings() {
       await services.clearAdminNotificationHistory();
     } catch {}
     setNotificationHistory([]);
-    setNotice({ kind: "success", text: "Admin notification history cleared." });
   }
 
   async function markAllNotificationsRead() {
@@ -180,7 +179,6 @@ export function Settings() {
       setNotificationHistory((prev) =>
         prev.map((item) => ({ ...item, read: true })),
       );
-      setNotice({ kind: "success", text: "All admin alerts marked as read." });
     } catch {}
   }
 
@@ -254,7 +252,6 @@ export function Settings() {
     setNotice(undefined);
     try {
       await services.updatePreferences({ [key]: value });
-      setNotice({ kind: "success", text: "Settings updated." });
     } catch (cause) {
       setNotice({
         kind: "error",
@@ -274,7 +271,6 @@ export function Settings() {
     setNotice(undefined);
     try {
       await services.block(id);
-      setNotice({ kind: "success", text: `${name} is unblocked.` });
     } catch (cause) {
       setNotice({
         kind: "error",
@@ -303,7 +299,6 @@ export function Settings() {
       setAdminNotifications(
         await services.updateAdminNotificationSettings(values),
       );
-      setNotice({ kind: "success", text: "Admin notifications updated." });
     } catch (cause) {
       setNotice({
         kind: "error",
@@ -776,14 +771,6 @@ export function Settings() {
         title="Settings"
         description="Privacy, notifications, and appearance."
       />
-      {pending && (
-        <div className="settings-toast is-loading" role="status">
-          <span className="settings-toast__icon">
-            <LoaderCircle size={14} className="spin" />
-          </span>
-          <span className="settings-toast__text">Saving setting…</span>
-        </div>
-      )}
       {notice && (
         <div
           className={`settings-toast is-${notice.kind}`}

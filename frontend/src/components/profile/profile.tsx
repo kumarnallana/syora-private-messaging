@@ -30,6 +30,7 @@ export function Profile() {
   const [username, setUsername] = useState(normalizeUsername(me!.username));
   const [about, setAbout] = useState(me!.about);
   const [notice, setNotice] = useState<Notice>();
+  const [justSaved, setJustSaved] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -136,7 +137,6 @@ export function Profile() {
       setPreview(item.url);
       await services.updateProfile({ avatar: item.url }, setAvatarProgress);
       setFailedPhoto(undefined);
-      setNotice({ kind: "success", text: "Profile photo updated." });
       URL.revokeObjectURL(item.url);
       temporary.current = null;
       setPreview(undefined);
@@ -159,7 +159,6 @@ export function Profile() {
     setNotice(undefined);
     try {
       await services.updateProfile({ removeAvatar: true } as any);
-      setNotice({ kind: "success", text: "Profile photo removed." });
       setPreview(undefined);
       if (temporary.current) {
         URL.revokeObjectURL(temporary.current);
@@ -197,7 +196,8 @@ export function Profile() {
         about: about.trim(),
       });
       setUsername(normalized);
-      setNotice({ kind: "success", text: "Profile saved." });
+      setJustSaved(true);
+      window.setTimeout(() => setJustSaved(false), 2500);
     } catch (cause) {
       const message =
         cause instanceof Error ? cause.message : "Profile could not be saved.";
@@ -442,7 +442,7 @@ export function Profile() {
                 ? "Saving your changes…"
                 : dirty
                   ? "Unsaved changes"
-                  : notice?.kind === "success"
+                  : justSaved
                     ? "Saved"
                     : "Up to date"}
             </span>
