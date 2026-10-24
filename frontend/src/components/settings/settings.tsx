@@ -41,6 +41,7 @@ import {
   UserRound,
   UsersRound,
   UserX,
+  X,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -89,6 +90,12 @@ export function Settings() {
       setBrowserPermission("unsupported");
     }
   }, []);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(undefined), 3800);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   async function requestBrowserPermission() {
     if (typeof window !== "undefined" && "Notification" in window) {
@@ -771,8 +778,10 @@ export function Settings() {
       />
       {pending && (
         <div className="settings-toast is-loading" role="status">
-          <LoaderCircle className="spin" />
-          <span>Saving setting…</span>
+          <span className="settings-toast__icon">
+            <LoaderCircle size={14} className="spin" />
+          </span>
+          <span className="settings-toast__text">Saving setting…</span>
         </div>
       )}
       {notice && (
@@ -780,8 +789,22 @@ export function Settings() {
           className={`settings-toast is-${notice.kind}`}
           role={notice.kind === "error" ? "alert" : "status"}
         >
-          {notice.kind === "success" ? <CheckCircle2 /> : <AlertCircle />}
-          <span>{notice.text}</span>
+          <span className="settings-toast__icon">
+            {notice.kind === "success" ? (
+              <CheckCircle2 size={15} />
+            ) : (
+              <AlertCircle size={15} />
+            )}
+          </span>
+          <span className="settings-toast__text">{notice.text}</span>
+          <button
+            type="button"
+            className="settings-toast__close"
+            onClick={() => setNotice(undefined)}
+            aria-label="Dismiss notice"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
       <div className="settings-mobile-main" hidden={Boolean(section)}>

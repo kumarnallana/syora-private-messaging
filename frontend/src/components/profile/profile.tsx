@@ -8,6 +8,7 @@ import {
   AlertCircle,
   AtSign,
   Camera,
+  CheckCircle2,
   Image as ImageIcon,
   LoaderCircle,
   Mail,
@@ -15,6 +16,7 @@ import {
   Save,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -58,6 +60,12 @@ export function Profile() {
     },
     [],
   );
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(undefined), 3800);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
   useEffect(() => {
     if (!dirty && !busy) return;
     const protect = (event: BeforeUnloadEvent) => {
@@ -406,12 +414,27 @@ export function Profile() {
             <small>Only you can see this address.</small>
           </div>
           {notice && (
-            <p
+            <div
               className={`notice is-${notice.kind}`}
               role={notice.kind === "error" ? "alert" : "status"}
             >
-              {notice.text}
-            </p>
+              <span className="notice__icon">
+                {notice.kind === "success" ? (
+                  <CheckCircle2 size={15} />
+                ) : (
+                  <AlertCircle size={15} />
+                )}
+              </span>
+              <span className="notice__text">{notice.text}</span>
+              <button
+                type="button"
+                className="notice__close"
+                onClick={() => setNotice(undefined)}
+                aria-label="Dismiss notice"
+              >
+                <X size={14} />
+              </button>
+            </div>
           )}
           <div className="profile-actions">
             <span className="profile-save-state" aria-live="polite">
