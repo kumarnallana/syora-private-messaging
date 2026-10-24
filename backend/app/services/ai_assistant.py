@@ -466,6 +466,13 @@ async def get_ai_diagnostics(settings: Any) -> dict[str, Any]:
     return {
         "active_provider": active_provider,
         "active_label": active_label,
+        "provider_name": active_label,
+        "is_external_configured": has_gemini or ollama_ok or has_openai,
+        "notes": (
+            "Connected to Google Gemini API." if active_provider == "gemini"
+            else f"Connected to local Ollama at {ollama_url}." if active_provider == "ollama"
+            else "Syora Neural Engine active. Deterministic offline synthesizer with zero external dependencies."
+        ),
         "gemini": {
             "configured": has_gemini,
             "model": getattr(settings, "gemini_model", "gemini-1.5-flash"),
@@ -473,12 +480,14 @@ async def get_ai_diagnostics(settings: Any) -> dict[str, Any]:
         "ollama": {
             "configured": getattr(settings, "ollama_enabled", False) or ollama_ok,
             "running": ollama_ok,
+            "healthy": ollama_ok,
             "base_url": ollama_url,
             "model": ollama_model,
             "installed_models": ollama_models,
         },
         "openai": {
             "configured": has_openai,
+            "model": "gpt-4o-mini",
         },
         "builtin": {
             "available": True,

@@ -86,9 +86,31 @@ class TestAIAssistant(unittest.TestCase):
         )
         diag = asyncio.run(get_ai_diagnostics(settings))
         self.assertIn("active_provider", diag)
+        self.assertIn("provider_name", diag)
+        self.assertIn("is_external_configured", diag)
+        self.assertFalse(diag["is_external_configured"])
+        self.assertEqual(diag["active_provider"], "builtin")
         self.assertIn("gemini", diag)
         self.assertIn("ollama", diag)
         self.assertIn("builtin", diag)
+
+    def test_external_llm_fallback(self):
+        import asyncio
+        from app.config.settings import Settings
+        from app.services.ai_assistant import call_external_llm_if_available
+        settings = Settings(
+            DATABASE_URL="postgresql+asyncpg://user:pass@localhost:5432/test",
+            JWT_ACCESS_SECRET="12345678901234567890123456789012",
+            JWT_REFRESH_SECRET="12345678901234567890123456789012",
+            CLIENT_ORIGINS=["http://localhost:3000"],
+            GEMINI_API_KEY="",
+            OLLAMA_ENABLED=False,
+            ai_preferred_provider="auto",
+        )
+        # With no keys, should gracefully return (None, 'Built-in Neural Engine')
+        text, label = asyncio.run(call_external_llm_if_available("sys", "prompt", settings))
+        self.assertIsNone(text)
+        self.assertEqual(label, "Built-in Neural Engine")
 
 
 if __name__ == "__main__":
