@@ -248,6 +248,28 @@
     @apply text-[11px] font-semibold uppercase tracking-wider text-muted;
   }
 
+  .ai-auth-card select,
+  .ai-auth-card select.input {
+    @apply w-full rounded-[10px] border border-border bg-surface px-[13px] py-[9.5px] text-[13.5px] text-text-primary outline-none transition-[border-color,background-color] duration-150 focus:border-accent cursor-pointer;
+    color-scheme: dark;
+  }
+
+  .ai-auth-card select option {
+    background-color: #181424 !important;
+    color: #f3effa !important;
+    padding: 8px 12px;
+  }
+
+  :root[data-theme="light"] .ai-auth-card select,
+  :root[data-theme="light"] .ai-auth-card select.input {
+    color-scheme: light;
+  }
+
+  :root[data-theme="light"] .ai-auth-card select option {
+    background-color: #ffffff !important;
+    color: #1e1b2e !important;
+  }
+
   .ai-auth-channel-tabs {
     @apply flex items-center gap-[6px] rounded-[8px] bg-surface p-[3px] border border-border;
   }

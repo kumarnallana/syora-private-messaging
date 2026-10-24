@@ -1019,6 +1019,7 @@ export function AIAssistant() {
                             <select
                               className="input"
                               value={targetRecipientId}
+                              style={{ colorScheme: "dark" }}
                               onChange={(e) => {
                                 const id = e.target.value;
                                 setTargetRecipientId(id);
@@ -1026,9 +1027,15 @@ export function AIAssistant() {
                                 if (found) setTargetRecipientName(found.name);
                               }}
                             >
-                              <option value="">Select a contact...</option>
+                              <option value="" className="bg-[#181424] text-[#f3effa]">
+                                Select a contact...
+                              </option>
                               {contacts.map((c) => (
-                                <option key={c.id} value={c.id}>
+                                <option
+                                  key={c.id}
+                                  value={c.id}
+                                  className="bg-[#181424] text-[#f3effa]"
+                                >
                                   {c.name} (@{c.username})
                                 </option>
                               ))}

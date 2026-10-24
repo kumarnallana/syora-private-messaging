@@ -8,4 +8,32 @@
   .search-field .icon-button {
     @apply h-[36px] w-[30px];
   }
+
+  .input,
+  select.input,
+  input.input {
+    @apply w-full rounded-[10px] border border-border bg-surface px-[13px] py-[9.5px] text-[13.5px] text-text-primary outline-none transition-[border-color,background-color] duration-150 focus:border-accent;
+    color-scheme: dark;
+  }
+
+  select.input {
+    @apply cursor-pointer;
+  }
+
+  select option {
+    background-color: #181424 !important;
+    color: #f3effa !important;
+    padding: 9px 12px;
+  }
+
+  :root[data-theme="light"] .input,
+  :root[data-theme="light"] select.input,
+  :root[data-theme="light"] input.input {
+    color-scheme: light;
+  }
+
+  :root[data-theme="light"] select option {
+    background-color: #ffffff !important;
+    color: #1e1b2e !important;
+  }
 }

@@ -264,7 +264,7 @@ export async function callGeminiAPI(
   const cleanKey = (apiKey || process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "").trim();
   if (!cleanKey || cleanKey.length < 8) return null;
 
-  const modelsToTry = [modelName, "gemini-3.8-flash", "gemini-flash-latest", "gemini-2.5-flash", "gemini-1.5-flash"];
+  const modelsToTry = [modelName, "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest", "gemini-2.5-flash", "gemini-1.5-flash"];
   const uniqueModels = Array.from(new Set(modelsToTry));
 
   const combinedPrompt = systemInstruction
