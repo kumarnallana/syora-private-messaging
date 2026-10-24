@@ -144,7 +144,7 @@ async def notify_admins_of_failed_login(identifier: str, user_id: uuid.UUID | No
             "userId": str(member.id) if member and member.role != "admin" else None,
             "username": member.username if member and member.role != "admin" else None,
             "timestamp": now().isoformat(),
-            "url": "/settings",
+            "url": "/settings?section=notifications",
         }
         await _deliver(admin, pref, payload)
 
@@ -212,7 +212,7 @@ async def send_test_notification(admin: User, event_type: str = "ADMIN_TEST_ALER
             "title": "Failed sign-in attempt",
             "body": "A sign-in attempt for an unknown account was rejected.",
             "timestamp": now().isoformat(),
-            "url": "/settings",
+            "url": "/settings?section=notifications",
         }
     elif event_type == "ADMIN_DIRECT_MESSAGE":
         payload = {

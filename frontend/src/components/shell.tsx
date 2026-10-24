@@ -196,6 +196,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 )}
               </span>
               <span>{label}</span>
+            </Link>
           ))}
           {me?.role === "admin" && (
             <button
@@ -274,7 +275,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {connection === "connecting" && <div className="connection-banner" role="status">Connecting…</div>}
       {connection === "offline" && <div className="connection-banner" role="status">Offline — new activity will reconnect automatically.</div>}
       {showAdminDrawer && (
-        <aside className="admin-notifications-drawer" role="dialog" aria-label="Admin Notification Center">
+        <>
+          <div
+            className="fixed inset-0 z-[268] bg-black/60 backdrop-blur-sm lg:hidden"
+            onClick={() => setShowAdminDrawer(false)}
+            aria-hidden="true"
+          />
+          <aside className="admin-notifications-drawer" role="dialog" aria-label="Admin Notification Center">
           <header className="admin-drawer-header">
             <div className="admin-drawer-header__title">
               <span className="admin-drawer-pulse" title="Real-time alert channel active" />
@@ -354,7 +361,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
                     )}
                     onClick={() => {
                       setShowAdminDrawer(false);
-                      if (item.url) router.push(item.url);
+                      if (item.url) {
+                        const targetUrl = item.url === "/settings" ? "/settings?section=notifications" : item.url;
+                        router.push(targetUrl);
+                      }
                     }}
                   >
                     <span className="admin-drawer-item__icon">
@@ -399,7 +409,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </Link>
           </footer>
         </aside>
-      )}
+      </>
+    )}
       {(showPushPrompt || adminNotification) && (
         <div className="admin-notifications-container" aria-live="polite">
           {showPushPrompt && (
@@ -444,7 +455,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 type="button"
                 className="admin-notification-body"
                 onClick={() => {
-                  router.push(adminNotification.url);
+                  const targetUrl = adminNotification.url === "/settings" ? "/settings?section=notifications" : adminNotification.url;
+                  router.push(targetUrl);
                   setAdminNotification(undefined);
                 }}
               >

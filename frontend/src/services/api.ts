@@ -96,6 +96,60 @@ export class ApiServices implements Services {
   private activeRequests = new Set<AbortController>();
   private adminContextCleanup?: () => void;
   private adminNotificationIds = new Set<string>();
+  private sharedAudioContext?: AudioContext;
+  private audioUnlocked = false;
+
+  private initAudioUnlock() {
+    if (typeof window === "undefined" || this.audioUnlocked) return;
+    const unlock = () => {
+      try {
+        const AudioContextClass =
+          window.AudioContext ||
+          (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+            .webkitAudioContext;
+        if (AudioContextClass) {
+          if (!this.sharedAudioContext || this.sharedAudioContext.state === "closed") {
+            this.sharedAudioContext = new AudioContextClass();
+          }
+          if (this.sharedAudioContext.state === "suspended") {
+            void this.sharedAudioContext.resume();
+          }
+        }
+      } catch {}
+      this.audioUnlocked = true;
+      window.removeEventListener("touchstart", unlock, true);
+      window.removeEventListener("touchend", unlock, true);
+      window.removeEventListener("pointerdown", unlock, true);
+      window.removeEventListener("click", unlock, true);
+      window.removeEventListener("keydown", unlock, true);
+    };
+    window.addEventListener("touchstart", unlock, { capture: true, passive: true });
+    window.addEventListener("touchend", unlock, { capture: true, passive: true });
+    window.addEventListener("pointerdown", unlock, { capture: true, passive: true });
+    window.addEventListener("click", unlock, { capture: true, passive: true });
+    window.addEventListener("keydown", unlock, { capture: true, passive: true });
+  }
+
+  private getAudioContext(): AudioContext | undefined {
+    if (typeof window === "undefined") return undefined;
+    try {
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (!AudioContextClass) return undefined;
+      if (!this.sharedAudioContext || this.sharedAudioContext.state === "closed") {
+        this.sharedAudioContext = new AudioContextClass();
+      }
+      if (this.sharedAudioContext.state === "suspended") {
+        void this.sharedAudioContext.resume();
+      }
+      return this.sharedAudioContext;
+    } catch {
+      return undefined;
+    }
+  }
+
   private async showAdminSystemNotification(
     notification: AdminNotificationEvent,
     isDirectTest = false,
@@ -139,12 +193,20 @@ export class ApiServices implements Services {
   private playAdminNotificationSound(type?: string, _forceSound = false) {
     if (typeof window === "undefined") return;
     try {
-      const AudioContextClass =
-        window.AudioContext ||
-        (window as typeof window & { webkitAudioContext?: typeof AudioContext })
-          .webkitAudioContext;
-      if (!AudioContextClass) return;
-      const context = new AudioContextClass();
+      if ("vibrate" in navigator && typeof navigator.vibrate === "function") {
+        if (type === "ADMIN_LOGIN_FAILED") {
+          navigator.vibrate([120, 60, 120, 60, 180]);
+        } else if (type === "ADMIN_USER_LOGIN") {
+          navigator.vibrate([80, 50, 100]);
+        } else {
+          navigator.vibrate(100);
+        }
+      }
+    } catch {}
+
+    try {
+      const context = this.getAudioContext();
+      if (!context) return;
       if (context.state === "suspended") {
         void context.resume();
       }
@@ -183,7 +245,6 @@ export class ApiServices implements Services {
         oscillator.start(now);
         oscillator.stop(now + 0.25);
       }
-      oscillator.addEventListener("ended", () => void context.close());
     } catch {}
   }
   handleAdminNotification(
@@ -223,28 +284,18 @@ export class ApiServices implements Services {
     }
     if (this.state.preferences.sound) {
       try {
-        const AudioContextClass =
-          window.AudioContext ||
-          (
-            window as typeof window & {
-              webkitAudioContext?: typeof AudioContext;
-            }
-          ).webkitAudioContext;
-        if (AudioContextClass) {
-          const context = new AudioContextClass();
+        const context = this.getAudioContext();
+        if (context) {
+          const now = context.currentTime;
           const oscillator = context.createOscillator();
           const gain = context.createGain();
           oscillator.frequency.value = 520;
-          gain.gain.setValueAtTime(0.025, context.currentTime);
-          gain.gain.exponentialRampToValueAtTime(
-            0.0001,
-            context.currentTime + 0.12,
-          );
+          gain.gain.setValueAtTime(0.025, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
           oscillator.connect(gain);
           gain.connect(context.destination);
-          oscillator.start();
-          oscillator.stop(context.currentTime + 0.12);
-          oscillator.addEventListener("ended", () => void context.close());
+          oscillator.start(now);
+          oscillator.stop(now + 0.12);
         }
       } catch {}
     }
@@ -253,6 +304,7 @@ export class ApiServices implements Services {
     this.listeners.add(fn);
     if (!this.started && typeof window !== "undefined") {
       this.started = true;
+      this.initAudioUnlock();
       this.loadLocalPreferences();
       window.addEventListener("online", this.handleOnline);
       window.addEventListener("offline", this.handleOffline);

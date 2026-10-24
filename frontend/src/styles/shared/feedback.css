@@ -72,8 +72,12 @@
     animation-play-state: paused;
   }
   @keyframes toast-countdown {
-    from { width: 100%; }
-    to { width: 0%; }
+    from {
+      width: 100%;
+    }
+    to {
+      width: 0%;
+    }
   }
   .rail-badge--alert {
     background: var(--danger) !important;
@@ -81,8 +85,15 @@
     animation: alert-badge-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
   @keyframes alert-badge-pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.85; transform: scale(1.1); }
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.85;
+      transform: scale(1.1);
+    }
   }
   .rail-bell-button {
     @apply border-0 bg-transparent cursor-pointer text-muted transition-colors hover:text-text-primary;
@@ -96,8 +107,14 @@
     animation: drawer-slide-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
   @keyframes drawer-slide-in {
-    from { opacity: 0; transform: translateY(-10px) scale(0.98); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    from {
+      opacity: 0;
+      transform: translateY(-10px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
   .admin-drawer-header {
     @apply flex items-center justify-between border-b border-border/80 px-[16px] py-[13px] bg-surface/50;
@@ -120,9 +137,15 @@
     animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
   @keyframes pulse-ring {
-    0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-    70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    0% {
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
   }
   .admin-drawer-content {
     @apply flex-1 overflow-y-auto p-[10px_12px];
@@ -197,16 +220,34 @@
     @apply mt-[8px] flex justify-end gap-[8px];
   }
   @keyframes admin-notification-in {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   @media (max-width: 899px) {
     .admin-notifications-container {
-      @apply left-[14px] right-[14px] top-[calc(env(safe-area-inset-top)+12px)] max-w-none;
+      @apply left-[12px] right-[12px] top-[calc(env(safe-area-inset-top)+10px)] max-w-none;
     }
     .admin-notifications-drawer {
-      @apply left-[12px] right-[12px] top-[calc(env(safe-area-inset-top)+12px)] max-w-none;
-      max-height: calc(100dvh - env(safe-area-inset-top) - 80px);
+      @apply left-[10px] right-[10px] top-[calc(env(safe-area-inset-top)+10px)] max-w-none shadow-[0_24px_70px_#000e];
+      max-height: calc(100dvh - env(safe-area-inset-top) - 85px);
+    }
+    .admin-notification-toast {
+      @apply p-[10px_12px] gap-[9px];
+    }
+    .admin-toast-btn {
+      @apply text-[10px] px-[6px] py-[2.5px];
+    }
+    .admin-drawer-header {
+      @apply px-[14px] py-[11px];
+    }
+    .admin-drawer-content {
+      @apply p-[8px_10px];
     }
   }
   .empty-state {

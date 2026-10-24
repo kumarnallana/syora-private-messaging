@@ -14,8 +14,34 @@ api.add_middleware(
     allow_origins=settings.client_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_headers=["*"],
 )
+
+@api.get("/", tags=["system"])
+async def root():
+    return {
+        "service": "SYORA API",
+        "version": "0.1.0",
+        "framework": "FastAPI",
+        "status": "online",
+        "docs": "/docs",
+        "api_docs": "/api/docs",
+        "openapi": "/openapi.json",
+        "routers": [
+            "auth (/api/auth)",
+            "users (/api/users)",
+            "chat (/api/chat)",
+            "media (/api/media)",
+            "status (/api/status)",
+            "admin (/api/admin)",
+            "ai (/api/ai)",
+        ],
+    }
+
+@api.get("/docs", include_in_schema=False)
+async def docs_redirect():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/api/docs")
 
 @api.exception_handler(HTTPException)
 async def http_error(_: Request, exc: HTTPException):
