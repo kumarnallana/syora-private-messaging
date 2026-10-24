@@ -383,29 +383,66 @@
     @apply rounded-[9px] border border-dashed border-border p-[18px] text-center text-[12px] leading-[1.6];
   }
   .settings-toast {
-    @apply fixed left-1/2 z-[240] flex min-w-[220px] max-w-[calc(100vw-28px)] -translate-x-1/2 items-center gap-[10px] rounded-[11px] border px-[15px] py-[12px] text-[13px] font-medium shadow-[0_12px_38px_#0008];
+    @apply fixed left-1/2 z-[250] flex min-w-[220px] max-w-[min(480px,calc(100vw-32px))] -translate-x-1/2 items-center gap-[11px] rounded-full border px-[15px] py-[8.5px] text-[13px] font-medium shadow-[0_16px_40px_rgba(0,0,0,0.65)] backdrop-blur-2xl transition-all;
     top: max(18px, env(safe-area-inset-top));
-    background: var(--panel);
-    animation: settings-toast-in 180ms ease-out both;
+    background: rgba(22, 18, 34, 0.88);
+    border-color: rgba(255, 255, 255, 0.1);
+    animation: settings-toast-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
-  .settings-toast > svg {
-    @apply size-[19px] shrink-0;
+  .settings-toast__icon {
+    @apply flex size-[24px] shrink-0 items-center justify-center rounded-full;
   }
+  .settings-toast__text {
+    @apply flex-1 text-[13px] font-medium leading-snug text-text-primary tracking-tight;
+  }
+  .settings-toast__close {
+    @apply -mr-[4px] flex size-[22px] shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-white/10 hover:text-text-primary border-0 bg-transparent cursor-pointer;
+  }
+
   .settings-toast.is-success {
-    @apply border-success/50 text-success;
-    background: color-mix(in srgb, var(--success-soft) 90%, var(--panel));
+    border-color: rgba(52, 211, 153, 0.35);
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65), 0 0 24px rgba(52, 211, 153, 0.14);
   }
+  .settings-toast.is-success .settings-toast__icon {
+    background: rgba(52, 211, 153, 0.16);
+    color: #34d399;
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.25);
+  }
+
   .settings-toast.is-error {
-    @apply border-danger/50 text-danger;
-    background: color-mix(in srgb, var(--danger-soft) 90%, var(--panel));
+    border-color: rgba(248, 113, 113, 0.35);
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65), 0 0 24px rgba(248, 113, 113, 0.14);
   }
+  .settings-toast.is-error .settings-toast__icon {
+    background: rgba(248, 113, 113, 0.16);
+    color: #f87171;
+    box-shadow: 0 0 10px rgba(248, 113, 113, 0.25);
+  }
+
   .settings-toast.is-loading {
-    @apply border-accent/40 text-accent;
+    border-color: rgba(170, 150, 242, 0.35);
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65), 0 0 24px rgba(170, 150, 242, 0.14);
+  }
+  .settings-toast.is-loading .settings-toast__icon {
+    background: rgba(170, 150, 242, 0.16);
+    color: var(--accent);
+  }
+
+  :root[data-theme="light"] .settings-toast {
+    background: rgba(255, 255, 255, 0.94);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.03);
   }
 
   @keyframes settings-toast-in {
-    from { opacity: 0; transform: translate(-50%, -8px); }
-    to { opacity: 1; transform: translate(-50%, 0); }
+    from {
+      opacity: 0;
+      transform: translate(-50%, -12px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0) scale(1);
+    }
   }
 
   @media (min-width: 900px) {
