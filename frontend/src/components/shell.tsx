@@ -196,8 +196,32 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 )}
               </span>
               <span>{label}</span>
-            </Link>
           ))}
+          {me?.role === "admin" && (
+            <button
+              type="button"
+              className={cn("rail-link rail-bell-button lg:hidden", showAdminDrawer && "is-active")}
+              title="Admin Notification Center"
+              aria-label={`Admin alerts (${unreadAdminCount} unread)`}
+              onClick={() => {
+                setShowAdminDrawer((prev) => !prev);
+                if (!showAdminDrawer && unreadAdminCount > 0) {
+                  void services.markAdminNotificationsRead();
+                  setUnreadAdminCount(0);
+                }
+              }}
+            >
+              <span className="rail-icon-wrap">
+                <Bell size={21} />
+                {unreadAdminCount > 0 && (
+                  <span className="rail-badge rail-badge--alert" aria-hidden="true">
+                    {unreadAdminCount > 99 ? "99+" : unreadAdminCount}
+                  </span>
+                )}
+              </span>
+              <span>Alerts</span>
+            </button>
+          )}
         </nav>
         <div className="rail-bottom">
           {me?.role === "admin" && (
