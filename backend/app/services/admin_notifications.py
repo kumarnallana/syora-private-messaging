@@ -15,13 +15,16 @@ settings = get_settings()
 
 
 def schedule_failed_login(identifier: str, user_id: uuid.UUID | None = None) -> None:
-    task = asyncio.create_task(notify_admins_of_failed_login(identifier, user_id))
-    task.add_done_callback(lambda completed: completed.exception() if not completed.cancelled() else None)
+    task = asyncio.create_task(
+        notify_admins_of_failed_login(identifier, user_id))
+    task.add_done_callback(
+        lambda completed: completed.exception() if not completed.cancelled() else None)
 
 
 def schedule_admin_message(message_id: uuid.UUID) -> None:
     task = asyncio.create_task(notify_admin_recipient(message_id))
-    task.add_done_callback(lambda completed: completed.exception() if not completed.cancelled() else None)
+    task.add_done_callback(
+        lambda completed: completed.exception() if not completed.cancelled() else None)
 
 
 def _preference(pref: UserPreference | None, field: str, default: bool = True) -> bool:
@@ -31,7 +34,8 @@ def _preference(pref: UserPreference | None, field: str, default: bool = True) -
 async def _send_push(subscription: PushSubscription, payload: dict[str, Any]) -> bool:
     if not settings.vapid_public_key or not settings.vapid_private_key:
         return True
-    info = {"endpoint": subscription.endpoint, "keys": {"p256dh": subscription.p256dh, "auth": subscription.auth}}
+    info = {"endpoint": subscription.endpoint, "keys": {
+        "p256dh": subscription.p256dh, "auth": subscription.auth}}
     try:
         await asyncio.to_thread(
             webpush,
@@ -77,7 +81,8 @@ async def _deliver(admin: User, pref: UserPreference | None, payload: dict[str, 
     async with SessionLocal() as db:
         subscriptions = list((await db.scalars(select(PushSubscription).where(PushSubscription.user_id == admin.id))).all())
         for subscription in subscriptions:
-            is_test = str(payload.get("type", "")).startswith("test-") or payload.get("type") == "ADMIN_TEST_ALERT" or "test" in str(payload.get("id", ""))
+            is_test = str(payload.get("type", "")).startswith("test-") or payload.get(
+                "type") == "ADMIN_TEST_ALERT" or "test" in str(payload.get("id", ""))
             if not is_test:
                 if conversation_id:
                     if session_is_viewing(subscription.session_id, conversation_id):
@@ -126,7 +131,8 @@ async def notify_admins_of_failed_login(identifier: str, user_id: uuid.UUID | No
         member = await db.get(User, user_id) if user_id else None
         admins = list((await db.scalars(select(User).where(User.role == "admin"))).all())
         rows = [(admin, await db.get(UserPreference, admin.id)) for admin in admins]
-    account = f"@{member.username}" if member and member.role != "admin" else _masked_identifier(identifier)
+    account = f"@{member.username}" if member and member.role != "admin" else _masked_identifier(
+        identifier)
     for admin, pref in rows:
         if not _preference(pref, "admin_login_notifications"):
             continue

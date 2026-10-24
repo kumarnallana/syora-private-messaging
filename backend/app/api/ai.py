@@ -82,8 +82,10 @@ async def get_ai_contacts(user: User = Depends(current_user), db: AsyncSession =
         .join(
             Friendship,
             or_(
-                (Friendship.requester_id == user.id) & (Friendship.addressee_id == User.id),
-                (Friendship.addressee_id == user.id) & (Friendship.requester_id == User.id),
+                (Friendship.requester_id == user.id) & (
+                    Friendship.addressee_id == User.id),
+                (Friendship.addressee_id == user.id) & (
+                    Friendship.requester_id == User.id),
             ),
         )
         .where(Friendship.status == FriendshipStatus.ACCEPTED)
@@ -98,7 +100,8 @@ async def get_ai_contacts(user: User = Depends(current_user), db: AsyncSession =
 
 @router.get("/conversations")
 async def list_ai_conversations(user: User = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    stmt = select(AIConversation).where(AIConversation.user_id == user.id).order_by(AIConversation.updated_at.desc())
+    stmt = select(AIConversation).where(AIConversation.user_id ==
+                                        user.id).order_by(AIConversation.updated_at.desc())
     convs = (await db.scalars(stmt)).all()
     items = []
     for c in convs:
@@ -109,7 +112,8 @@ async def list_ai_conversations(user: User = Depends(current_user), db: AsyncSes
             .limit(1)
         )
         msg_count = await db.scalar(
-            select(func.count()).select_from(AIMessage).where(AIMessage.conversation_id == c.id)
+            select(func.count()).select_from(AIMessage).where(
+                AIMessage.conversation_id == c.id)
         ) or 0
         items.append({
             "id": str(c.id),
@@ -144,8 +148,9 @@ async def get_ai_conversation(conversation_id: uuid.UUID, user: User = Depends(c
     conv = await db.get(AIConversation, conversation_id)
     if not conv or conv.user_id != user.id:
         raise api_error(404, "NOT_FOUND", "AI conversation not found.")
-    
-    stmt = select(AIMessage).where(AIMessage.conversation_id == conversation_id).order_by(AIMessage.created_at.asc())
+
+    stmt = select(AIMessage).where(AIMessage.conversation_id ==
+                                   conversation_id).order_by(AIMessage.created_at.asc())
     messages = (await db.scalars(stmt)).all()
     return {
         "id": str(conv.id),
@@ -207,7 +212,8 @@ async def chat_with_ai(
     if not conv or conv.user_id != user.id:
         raise api_error(404, "NOT_FOUND", "AI conversation not found.")
 
-    extracted_recipient, extracted_channel = extract_recipient_and_channel(body.prompt)
+    extracted_recipient, extracted_channel = extract_recipient_and_channel(
+        body.prompt)
     target_recipient_name = body.recipient_name or extracted_recipient
     target_channel = body.channel or extracted_channel
 
@@ -219,7 +225,8 @@ async def chat_with_ai(
 
     # Check if this prompt is an explicit send command (e.g. "Send this to Rahul on WhatsApp")
     is_send_command = bool(
-        re.search(r"^(?:please\s+)?(?:send|deliver|forward)\s+(?:this\s+)?(?:message\s+)?(?:to\s+|now|via|on)", body.prompt, re.I)
+        re.search(
+            r"^(?:please\s+)?(?:send|deliver|forward)\s+(?:this\s+)?(?:message\s+)?(?:to\s+|now|via|on)", body.prompt, re.I)
         or (body.prompt.lower().strip() in {"send", "send it", "send message", "send this", "approve and send"})
     )
 
@@ -245,7 +252,8 @@ async def chat_with_ai(
             content=assistant_text,
             draft_message=draft_to_send,
             recipient_name=recipient_display,
-            recipient_id=uuid.UUID(matched_contact["id"]) if matched_contact and matched_contact.get("id") else None,
+            recipient_id=uuid.UUID(
+                matched_contact["id"]) if matched_contact and matched_contact.get("id") else None,
             channel=target_channel or "syora",
             send_status="pending_approval",
             metadata_json=json.dumps({
@@ -284,7 +292,8 @@ async def chat_with_ai(
     if llm_draft:
         reasoning = f"I've tailored a professional draft for {recipient_display or 'your recipient'} using {provider_label}. Feel free to review or refine it."
         draft = llm_draft.strip()
-        actions = ["Make more concise", "More formal", "Friendlier", "Add clear CTA"]
+        actions = ["Make more concise", "More formal",
+                   "Friendlier", "Add clear CTA"]
     else:
         reasoning, draft, actions = synthesize_professional_message(
             user_prompt=body.prompt,
@@ -310,7 +319,8 @@ async def chat_with_ai(
         content=reasoning,
         draft_message=draft,
         recipient_name=recipient_display,
-        recipient_id=uuid.UUID(matched_contact["id"]) if matched_contact and matched_contact.get("id") else None,
+        recipient_id=uuid.UUID(
+            matched_contact["id"]) if matched_contact and matched_contact.get("id") else None,
         channel=target_channel,
         send_status="draft",
         metadata_json=json.dumps({
@@ -389,7 +399,8 @@ async def send_ai_authorized_message(
             )
 
         if target_user.id == user.id:
-            raise api_error(422, "SELF_SEND", "You cannot send a message to yourself.")
+            raise api_error(422, "SELF_SEND",
+                            "You cannot send a message to yourself.")
 
         # Find or create direct conversation
         key = direct_key(user.id, target_user.id)
@@ -399,8 +410,10 @@ async def send_ai_authorized_message(
             db.add(conv)
             await db.flush()
             db.add_all([
-                ConversationParticipant(conversation_id=conv.id, user_id=user.id),
-                ConversationParticipant(conversation_id=conv.id, user_id=target_user.id),
+                ConversationParticipant(
+                    conversation_id=conv.id, user_id=user.id),
+                ConversationParticipant(
+                    conversation_id=conv.id, user_id=target_user.id),
             ])
             await db.flush()
 
@@ -480,4 +493,5 @@ async def send_ai_authorized_message(
             "confirmation": f"Authorization verified. Launching email client with your message for {body.recipient_name}.",
         }
 
-    raise api_error(400, "UNSUPPORTED_CHANNEL", f"Channel '{body.channel}' is not supported.")
+    raise api_error(400, "UNSUPPORTED_CHANNEL",
+                    f"Channel '{body.channel}' is not supported.")
