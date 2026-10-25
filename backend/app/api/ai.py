@@ -108,7 +108,19 @@ async def list_ai_conversations(user: User = Depends(current_user), db: AsyncSes
         latest = await db.scalar(
             select(AIMessage)
             .where(AIMessage.conversation_id == c.id)
-            .order_by(AIMessage.created_at.desc())
+            .order_by(AIMessage.created_at.desc(), AIMessage.role.asc())
+            .limit(1)
+        )
+        latest_draft_msg = await db.scalar(
+            select(AIMessage)
+            .where(
+                and_(
+                    AIMessage.conversation_id == c.id,
+                    AIMessage.draft_message.isnot(None),
+                    AIMessage.draft_message != "",
+                )
+            )
+            .order_by(AIMessage.created_at.desc(), AIMessage.role.asc())
             .limit(1)
         )
         msg_count = await db.scalar(
@@ -122,9 +134,9 @@ async def list_ai_conversations(user: User = Depends(current_user), db: AsyncSes
             "updated_at": c.updated_at.isoformat(),
             "message_count": msg_count,
             "last_message": latest.content[:90] if latest else "",
-            "last_draft": latest.draft_message[:90] if (latest and latest.draft_message) else "",
-            "last_recipient": latest.recipient_name if latest else "",
-            "last_channel": latest.channel if latest else "",
+            "last_draft": latest_draft_msg.draft_message[:90] if (latest_draft_msg and latest_draft_msg.draft_message) else "",
+            "last_recipient": (latest_draft_msg.recipient_name if latest_draft_msg else (latest.recipient_name if latest else "")) or "",
+            "last_channel": (latest_draft_msg.channel if latest_draft_msg else (latest.channel if latest else "")) or "",
         })
     return items
 
