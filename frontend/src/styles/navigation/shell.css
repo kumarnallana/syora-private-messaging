@@ -13,6 +13,11 @@
   }
   .rail__brand {
     @apply hidden;
+    transition: filter 0.25s ease, transform 0.25s ease;
+  }
+  .rail__brand:hover {
+    filter: drop-shadow(0 0 10px rgba(170, 150, 242, 0.7));
+    transform: scale(1.05);
   }
   .rail__nav {
     @apply flex w-full justify-around;
@@ -22,14 +27,18 @@
   }
   .rail-link.is-active {
     @apply text-accent;
-    background: var(--selection);
+    background: linear-gradient(135deg, rgba(170, 150, 242, 0.16), rgba(120, 100, 220, 0.08));
+    border: 1px solid rgba(170, 150, 242, 0.3);
+    box-shadow: 0 0 16px rgba(170, 150, 242, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
   .rail-link.is-active::before {
     content: "";
-    @apply absolute hidden rounded-full bg-accent;
+    @apply absolute hidden rounded-full;
     left: -8px;
-    width: 3px;
-    height: 22px;
+    width: 3.5px;
+    height: 24px;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
   }
   .rail-link span {
     @apply text-[11px] font-medium;
@@ -80,6 +89,23 @@
   }
   .page-header {
     @apply hidden;
+  }
+
+  @media (max-width: 899px) {
+    .rail-link.is-active {
+      background: rgba(170, 150, 242, 0.12);
+      border-radius: 12px;
+    }
+    .rail-link.is-active::after {
+      content: "";
+      position: absolute;
+      bottom: 3px;
+      width: 14px;
+      height: 3px;
+      border-radius: 9999px;
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+    }
   }
 
   @media (min-width: 900px) {
