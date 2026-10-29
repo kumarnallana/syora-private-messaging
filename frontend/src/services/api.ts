@@ -105,10 +105,16 @@ export class ApiServices implements Services {
       try {
         const AudioContextClass =
           window.AudioContext ||
-          (window as typeof window & { webkitAudioContext?: typeof AudioContext })
-            .webkitAudioContext;
+          (
+            window as typeof window & {
+              webkitAudioContext?: typeof AudioContext;
+            }
+          ).webkitAudioContext;
         if (AudioContextClass) {
-          if (!this.sharedAudioContext || this.sharedAudioContext.state === "closed") {
+          if (
+            !this.sharedAudioContext ||
+            this.sharedAudioContext.state === "closed"
+          ) {
             this.sharedAudioContext = new AudioContextClass();
           }
           if (this.sharedAudioContext.state === "suspended") {
@@ -123,11 +129,23 @@ export class ApiServices implements Services {
       window.removeEventListener("click", unlock, true);
       window.removeEventListener("keydown", unlock, true);
     };
-    window.addEventListener("touchstart", unlock, { capture: true, passive: true });
-    window.addEventListener("touchend", unlock, { capture: true, passive: true });
-    window.addEventListener("pointerdown", unlock, { capture: true, passive: true });
+    window.addEventListener("touchstart", unlock, {
+      capture: true,
+      passive: true,
+    });
+    window.addEventListener("touchend", unlock, {
+      capture: true,
+      passive: true,
+    });
+    window.addEventListener("pointerdown", unlock, {
+      capture: true,
+      passive: true,
+    });
     window.addEventListener("click", unlock, { capture: true, passive: true });
-    window.addEventListener("keydown", unlock, { capture: true, passive: true });
+    window.addEventListener("keydown", unlock, {
+      capture: true,
+      passive: true,
+    });
   }
 
   private getAudioContext(): AudioContext | undefined {
@@ -138,7 +156,10 @@ export class ApiServices implements Services {
         (window as typeof window & { webkitAudioContext?: typeof AudioContext })
           .webkitAudioContext;
       if (!AudioContextClass) return undefined;
-      if (!this.sharedAudioContext || this.sharedAudioContext.state === "closed") {
+      if (
+        !this.sharedAudioContext ||
+        this.sharedAudioContext.state === "closed"
+      ) {
         this.sharedAudioContext = new AudioContextClass();
       }
       if (this.sharedAudioContext.state === "suspended") {
@@ -855,6 +876,34 @@ export class ApiServices implements Services {
         }),
     );
     socket.on("conversation:update", () => this.scheduleConversationReload());
+    socket.on(
+      "conversation:cleared",
+      ({ conversationId }: { conversationId: string }) => {
+        this.loadedMessages.add(conversationId);
+        this.messageCursors.set(conversationId, null);
+        this.update({
+          messages: this.state.messages.filter(
+            (m) => m.conversationId !== conversationId,
+          ),
+        });
+        this.patchConversation(conversationId, { unread: 0 });
+      },
+    );
+    socket.on(
+      "conversation:deleted",
+      ({ conversationId }: { conversationId: string }) => {
+        this.loadedMessages.delete(conversationId);
+        this.messageCursors.delete(conversationId);
+        this.update({
+          conversations: this.state.conversations.filter(
+            (c) => c.id !== conversationId,
+          ),
+          messages: this.state.messages.filter(
+            (m) => m.conversationId !== conversationId,
+          ),
+        });
+      },
+    );
     socket.on("friend:update", (data: any) => {
       this.scheduleContactsReload();
       if (data?.type === "REQUEST_RECEIVED") {
@@ -1710,17 +1759,26 @@ export class ApiServices implements Services {
   }
   async polishMessage(
     draft: string,
-    mode: "polish" | "professional" | "concise" | "friendly" | "action" | "custom",
+    mode:
+      | "polish"
+      | "professional"
+      | "concise"
+      | "friendly"
+      | "action"
+      | "custom",
     customInstruction?: string,
   ): Promise<{ polished_text: string; provider?: string }> {
-    return this.fetch<{ polished_text: string; provider?: string }>("/api/ai/polish", {
-      method: "POST",
-      body: JSON.stringify({
-        draft,
-        mode,
-        custom_instruction: customInstruction,
-      }),
-    });
+    return this.fetch<{ polished_text: string; provider?: string }>(
+      "/api/ai/polish",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          draft,
+          mode,
+          custom_instruction: customInstruction,
+        }),
+      },
+    );
   }
   async sendAIChat(
     conversationId: string,
@@ -1761,6 +1819,7 @@ export class ApiServices implements Services {
       extractRecipientAndChannel,
       synthesizeProfessionalMessage,
       callGeminiAPI,
+      polishMessageLocally,
     } = await import("./ai-engine");
     const savedGeminiKey =
       (typeof window !== "undefined"
@@ -1818,10 +1877,7 @@ export class ApiServices implements Services {
       return { cleared: true, count: 0 } as T;
     }
 
-    if (
-      path.startsWith("/api/ai/conversations/") &&
-      init.method === "DELETE"
-    ) {
+    if (path.startsWith("/api/ai/conversations/") && init.method === "DELETE") {
       const parts = path.split("/");
       const targetId = parts[parts.length - 1];
       if (typeof window !== "undefined") {
@@ -1884,9 +1940,15 @@ export class ApiServices implements Services {
           "gemini-2.5-flash",
         );
         if (geminiRes && geminiRes.trim()) {
-          let cleaned = geminiRes.trim().replace(/^["']|["']$/g, "").trim();
+          let cleaned = geminiRes
+            .trim()
+            .replace(/^["']|["']$/g, "")
+            .trim();
           if (customInstruction) {
-            cleaned = cleaned.replace(new RegExp(`^${customInstruction}:?\\s*`, "i"), "");
+            cleaned = cleaned.replace(
+              new RegExp(`^${customInstruction}:?\\s*`, "i"),
+              "",
+            );
           }
           return {
             polished_text: cleaned,
@@ -1895,59 +1957,11 @@ export class ApiServices implements Services {
         }
       }
 
-      const typoMap: Record<string, string> = {
-        everythi: "everything",
-        somethin: "something",
-        nothin: "nothing",
-        pls: "please",
-        plz: "please",
-        thx: "thanks",
-        u: "you",
-        ur: "your",
-        r: "are",
-        im: "I'm",
-        dont: "don't",
-        cant: "can't",
-        wont: "won't",
-      };
-      const words = draft.split(/\s+/);
-      const correctedWords = words.map((w: string) => {
-        let core = w.replace(/[.,!?;:]+$/, "");
-        const punct = w.slice(core.length);
-        const lower = core.toLowerCase();
-        if (typoMap[lower]) {
-          core = typoMap[lower];
-        }
-        return core + punct;
-      });
-      let localRefined = correctedWords.join(" ").trim();
-      if (localRefined) {
-        localRefined = localRefined[0].toUpperCase() + localRefined.slice(1);
-        if (!/[.!?]$/.test(localRefined)) localRefined += ".";
-      }
-
-      if (mode === "custom" && customInstruction) {
-        const cLow = customInstruction.toLowerCase();
-        if (cLow.includes("love") && cLow.includes("friend")) {
-          localRefined =
-            "Hey! Just wanted to take a moment to say how much I truly appreciate our friendship. You mean the world to me!";
-        } else if (!localRefined) {
-          localRefined = `Hi! Reaching out regarding: ${customInstruction}.`;
-        }
-      } else if (mode === "friendly") {
-        if (!/^hi\b|^hello\b|^hey\b/i.test(localRefined)) {
-          localRefined = `Hi! ${localRefined}`;
-        }
-      } else if (mode === "professional") {
-        localRefined = localRefined.replace(/\bhey\b/gi, "Hello");
-      } else if (mode === "action" || mode === "cta") {
-        if (!/please let me know|looking forward/i.test(localRefined)) {
-          localRefined = `${localRefined} Please let me know your thoughts when convenient.`;
-        }
-      }
+      const localRefined = polishMessageLocally(draft, mode, customInstruction);
 
       return {
-        polished_text: localRefined || "Hi there, hope everything is going well.",
+        polished_text:
+          localRefined || "Hi there, hope everything is going well.",
         provider: "Syora Neural Engine",
       } as T;
     }

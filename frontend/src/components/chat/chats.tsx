@@ -239,12 +239,12 @@ export function Chats() {
       </div>
       <h2 className="welcome-panel__clean-title">Welcome to Syora</h2>
       <p className="welcome-panel__clean-subtitle">
-       Select a conversation from the sidebar or start a new message.
+       Select a conversation to start messaging privately.
       </p>
       <div className="welcome-panel__clean-actions">
        <Link href="/contacts" className="button primary welcome-panel__clean-btn">
         <Users size={16} />
-        <span>New Message</span>
+        <span>Start a chat</span>
        </Link>
        <Link href="/ai" className="button secondary welcome-panel__clean-btn">
         <Sparkles size={16} />

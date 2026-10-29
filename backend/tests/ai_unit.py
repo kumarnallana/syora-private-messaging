@@ -128,7 +128,7 @@ class TestAIAssistant(unittest.TestCase):
         polished, provider = asyncio.run(polish_message_with_ai(draft, "polish", None, settings))
         self.assertIn("everything", polished)
         self.assertNotIn("everythi ", polished)
-        self.assertTrue(polished.endswith("."))
+        self.assertTrue(polished.endswith(".") or polished.endswith("?"))
 
     def test_polish_message_custom_never_prepends_instruction(self):
         import asyncio
@@ -148,6 +148,64 @@ class TestAIAssistant(unittest.TestCase):
         self.assertFalse(polished.startswith("i just want to share my love thought best friend:"))
         self.assertNotIn("i just want to share my love thought best friend:", polished)
         self.assertTrue(len(polished) > 5)
+
+    def test_spell_check_trie_and_lru_cache(self):
+        from app.services.ai_assistant import SpellCheckTrie, LRUCache
+        trie = SpellCheckTrie()
+        trie.insert("everything", "everything")
+        trie.insert("everyhing", "everything")
+        self.assertEqual(trie.search("everyhing"), "everything")
+        self.assertEqual(trie.get_closest_match("everyhting", max_dist=2), "everything")
+
+        cache = LRUCache(capacity=2)
+        cache.put("k1", "v1")
+        cache.put("k2", "v2")
+        self.assertEqual(cache.get("k1"), "v1")
+        cache.put("k3", "v3") # should evict k2 since k1 was accessed
+        self.assertIsNone(cache.get("k2"))
+        self.assertEqual(cache.get("k1"), "v1")
+        self.assertEqual(cache.get("k3"), "v3")
+
+    def test_conversational_flow_exact_target(self):
+        from app.services.ai_assistant import offline_fallback_polish
+        raw = "hi how are you what are you doing is everyhing going well. Please let me know your thoughts when convenient."
+        polished = offline_fallback_polish(raw, "polish", None)
+        expected = "Hi, how are you? What are you doing? Is everything going well? Please let me know your thoughts when convenient."
+        self.assertEqual(polished, expected)
+
+    def test_custom_convert_with_draft_and_empty(self):
+        from app.services.ai_assistant import offline_fallback_polish
+        # Case 1: Draft exists + custom instruction
+        draft = "Hi how are you what are you doing is everyhing going well."
+        instruction = "Turn this into a warm, loving message for my best friend."
+        res1 = offline_fallback_polish(draft, "custom", instruction)
+        self.assertFalse(res1.startswith(instruction))
+        self.assertNotIn(instruction, res1)
+        self.assertIn("friendship", res1.lower())
+
+        # Case 2: Empty draft + custom instruction
+        res2 = offline_fallback_polish("", "custom", "Draft a status update for manager")
+        self.assertFalse(res2.startswith("Draft a status update"))
+        self.assertTrue(len(res2) > 10)
+
+    def test_all_tone_presets(self):
+        from app.services.ai_assistant import offline_fallback_polish
+        draft = "hi please review the file"
+        # 1. Polish
+        p = offline_fallback_polish(draft, "polish")
+        self.assertTrue(p.startswith("Hi,"))
+        # 2. Professional
+        prof = offline_fallback_polish(draft, "professional")
+        self.assertTrue("Hello" in prof or "Dear" in prof or "Please review" in prof)
+        # 3. Concise
+        concise = offline_fallback_polish("hi how are you please review the file", "concise")
+        self.assertNotIn("how are you", concise.lower())
+        # 4. Friendly
+        friendly = offline_fallback_polish("please review the file", "friendly")
+        self.assertTrue(friendly.startswith("Hi!"))
+        # 5. Action
+        action = offline_fallback_polish("here is the update", "action")
+        self.assertIn("Please let me know your thoughts when convenient.", action)
 
 
 if __name__ == "__main__":

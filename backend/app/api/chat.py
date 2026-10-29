@@ -112,6 +112,7 @@ async def clear_conversation(conversation_id: uuid.UUID, user: User = Depends(cu
     await require_participant(conversation_id, user, db)
     cleared = await hide_conversation_messages(db, conversation_id, user.id)
     await db.commit()
+    await emit_user(user.id, "conversation:cleared", {"conversationId": str(conversation_id)})
     return {"cleared": cleared}
 
 
@@ -123,6 +124,7 @@ async def delete_conversation(conversation_id: uuid.UUID, user: User = Depends(c
     participant.pinned = False
     participant.muted = False
     await db.commit()
+    await emit_user(user.id, "conversation:deleted", {"conversationId": str(conversation_id)})
     return {"deleted": True, "cleared": cleared}
 
 

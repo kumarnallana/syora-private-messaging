@@ -130,7 +130,11 @@
   }
   .welcome-panel__clean-icon {
     @apply grid size-[68px] place-items-center rounded-2xl border border-accent/25 bg-surface text-accent shadow-[0_8px_24px_rgba(170,150,242,0.14)];
-    background: linear-gradient(135deg, rgba(170, 150, 242, 0.14), rgba(80, 60, 160, 0.05));
+    background: linear-gradient(
+      135deg,
+      rgba(170, 150, 242, 0.14),
+      rgba(80, 60, 160, 0.05)
+    );
   }
   .welcome-panel__clean-icon .logo-mark {
     @apply scale-125;

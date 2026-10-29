@@ -92,7 +92,8 @@ def extract_recipient_and_channel(prompt: str) -> tuple[str | None, str | None]:
         if m:
             candidate = m.group(1).strip()
             # Clean candidate
-            candidate = re.sub(r"\b(on|via|through|using|in|for|about|whatsapp|email|syora|chat)\b.*$", "", candidate, flags=re.IGNORECASE).strip()
+            candidate = re.sub(r"\b(on|via|through|using|in|for|about|whatsapp|email|syora|chat)\b.*$",
+                               "", candidate, flags=re.IGNORECASE).strip()
             if candidate and len(candidate.split()) <= 3 and candidate.lower() not in {"them", "him", "her", "someone", "a", "the", "me"}:
                 recipient = candidate
                 break
@@ -112,8 +113,10 @@ async def match_user_contact(db: AsyncSession, current_user_id: uuid.UUID, recip
         .join(
             Friendship,
             or_(
-                (Friendship.requester_id == current_user_id) & (Friendship.addressee_id == User.id),
-                (Friendship.addressee_id == current_user_id) & (Friendship.requester_id == User.id),
+                (Friendship.requester_id == current_user_id) & (
+                    Friendship.addressee_id == User.id),
+                (Friendship.addressee_id == current_user_id) & (
+                    Friendship.requester_id == User.id),
             ),
         )
         .where(Friendship.status == FriendshipStatus.ACCEPTED)
@@ -128,7 +131,8 @@ async def match_user_contact(db: AsyncSession, current_user_id: uuid.UUID, recip
 
     # Check prefix or partial match
     for c in contacts:
-        first_name = c.display_name.split()[0].lower() if c.display_name else ""
+        first_name = c.display_name.split(
+        )[0].lower() if c.display_name else ""
         if first_name == clean_name or clean_name in c.display_name.lower() or clean_name in c.username.lower():
             return {"id": str(c.id), "name": c.display_name, "username": c.username, "email": c.email, "role": c.role}
 
@@ -156,7 +160,8 @@ def refine_message_text(text: str, refinement: str) -> str:
         res = re.sub(r"\bcan't\b", "cannot", res)
         res = re.sub(r"\bwon't\b", "will not", res)
         res = re.sub(r"\bdon't\b", "do not", res)
-        res = re.sub(r"\bThanks!?(\s|$)", r"Thank you for your time and consideration.\1", res)
+        res = re.sub(r"\bThanks!?(\s|$)",
+                     r"Thank you for your time and consideration.\1", res)
         if not re.search(r"Sincerely|Best regards|Kind regards", res):
             res = res.strip() + "\n\nKind regards,"
         return res
@@ -196,13 +201,16 @@ def synthesize_professional_message(
         ref_rule = refinement_instruction or user_prompt
         refined = refine_message_text(previous_draft, ref_rule)
         reasoning = f"I've refined your message to be {ref_rule.lower()}. The core details and tone have been preserved."
-        actions = ["Make more concise", "More formal", "Friendlier", "Add clear CTA"]
+        actions = ["Make more concise", "More formal",
+                   "Friendlier", "Add clear CTA"]
         return reasoning, refined, actions
 
     # Scenario 1: Status update
     if any(k in lower_prompt for k in ["status", "update", "progress", "blocker", "done", "completed"]):
-        topic_match = re.search(r"(?:on|about|regarding)\s+([^.!?]+)", user_prompt, re.I)
-        topic = topic_match.group(1).strip() if topic_match else "the current sprint tasks"
+        topic_match = re.search(
+            r"(?:on|about|regarding)\s+([^.!?]+)", user_prompt, re.I)
+        topic = topic_match.group(1).strip(
+        ) if topic_match else "the current sprint tasks"
         draft = (
             f"Hi {target_name},\n\n"
             f"Here is a quick status update regarding {topic}:\n"
@@ -232,8 +240,10 @@ def synthesize_professional_message(
 
     # Scenario 3: Follow-up / Reminder
     if any(k in lower_prompt for k in ["follow up", "follow-up", "reminder", "nudge", "haven't heard", "pending"]):
-        topic_match = re.search(r"(?:on|about|regarding)\s+([^.!?]+)", user_prompt, re.I)
-        topic = topic_match.group(1).strip() if topic_match else "our previous discussion"
+        topic_match = re.search(
+            r"(?:on|about|regarding)\s+([^.!?]+)", user_prompt, re.I)
+        topic = topic_match.group(1).strip(
+        ) if topic_match else "our previous discussion"
         draft = (
             f"Hi {target_name},\n\n"
             f"I'm following up on {topic} when you have a moment. We're ready to proceed to the next phase once we receive your feedback.\n\n"
@@ -266,7 +276,8 @@ def synthesize_professional_message(
         return reasoning, draft, actions
 
     # Default general professional synthesis
-    cleaned_intent = re.sub(r"^(please\s+|can you\s+|write\s+a\s+message\s+to\s+|tell\s+|ask\s+)", "", user_prompt, flags=re.I).strip()
+    cleaned_intent = re.sub(
+        r"^(please\s+|can you\s+|write\s+a\s+message\s+to\s+|tell\s+|ask\s+)", "", user_prompt, flags=re.I).strip()
     draft = (
         f"Hi {target_name},\n\n"
         f"I am reaching out regarding {cleaned_intent}.\n\n"
@@ -274,7 +285,8 @@ def synthesize_professional_message(
         f"Thank you,\n{sender_name}"
     )
     reasoning = f"Here is a polished professional draft tailored for {target_name}. You can review it below, make any tweaks, or choose a tone refinement."
-    actions = ["Make more concise", "More formal", "Friendlier", "Add call to action"]
+    actions = ["Make more concise", "More formal",
+               "Friendlier", "Add call to action"]
     return reasoning, draft, actions
 
 
@@ -290,7 +302,8 @@ def _sync_http_request(url: str, method: str = "GET", headers: dict[str, str] | 
             req_headers["Content-Type"] = "application/json"
 
     try:
-        req = urllib.request.Request(url, data=data, headers=req_headers, method=method)
+        req = urllib.request.Request(
+            url, data=data, headers=req_headers, method=method)
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             body = resp.read().decode("utf-8")
             try:
@@ -312,7 +325,8 @@ def _sync_http_request(url: str, method: str = "GET", headers: dict[str, str] | 
 async def check_ollama_health(base_url: str, model: str) -> tuple[bool, list[str]]:
     """Check if Ollama is accessible and what models are installed."""
     def _check():
-        code, data, _ = _sync_http_request(f"{base_url.rstrip('/')}/api/tags", method="GET", timeout=2.0)
+        code, data, _ = _sync_http_request(
+            f"{base_url.rstrip('/')}/api/tags", method="GET", timeout=2.0)
         if code == 200 and data and "models" in data:
             names = [m.get("name", "") for m in data.get("models", [])]
             return True, names
@@ -322,9 +336,11 @@ async def check_ollama_health(base_url: str, model: str) -> tuple[bool, list[str
 
 async def call_gemini_api(system_prompt: str, user_prompt: str, api_key: str, model: str = "gemini-2.5-flash") -> str | None:
     """Call Google Gemini Generative Language API with model fallback."""
-    models_to_try = [model, "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-1.5-flash", "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"]
+    models_to_try = [model, "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-1.5-flash",
+                     "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"]
     seen = set()
-    models_to_try = [m for m in models_to_try if not (m in seen or seen.add(m))]
+    models_to_try = [m for m in models_to_try if not (
+        m in seen or seen.add(m))]
 
     payload = {
         "systemInstruction": {
@@ -344,7 +360,8 @@ async def call_gemini_api(system_prompt: str, user_prompt: str, api_key: str, mo
 
     def _call(target_model: str):
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{target_model}:generateContent?key={api_key}"
-        code, data, err = _sync_http_request(url, method="POST", payload=payload, timeout=12.0)
+        code, data, err = _sync_http_request(
+            url, method="POST", payload=payload, timeout=12.0)
         if code == 200 and data and "candidates" in data and data["candidates"]:
             parts = data["candidates"][0].get("content", {}).get("parts", [])
             if parts and "text" in parts[0]:
@@ -370,7 +387,8 @@ async def call_ollama_api(system_prompt: str, user_prompt: str, base_url: str, m
             ],
             "stream": False
         }
-        code, data, _ = _sync_http_request(chat_url, method="POST", payload=payload, timeout=20.0)
+        code, data, _ = _sync_http_request(
+            chat_url, method="POST", payload=payload, timeout=20.0)
         if code == 200 and data and "message" in data:
             return data["message"].get("content")
 
@@ -381,7 +399,8 @@ async def call_ollama_api(system_prompt: str, user_prompt: str, base_url: str, m
             "prompt": user_prompt,
             "stream": False
         }
-        code, data, _ = _sync_http_request(gen_url, method="POST", payload=gen_payload, timeout=20.0)
+        code, data, _ = _sync_http_request(
+            gen_url, method="POST", payload=gen_payload, timeout=20.0)
         if code == 200 and data and "response" in data:
             return data.get("response")
 
@@ -420,7 +439,8 @@ async def call_external_llm_if_available(
         try:
             def _call_openai():
                 url = "https://api.openai.com/v1/chat/completions"
-                headers = {"Authorization": f"Bearer {settings.openai_api_key}"}
+                headers = {
+                    "Authorization": f"Bearer {settings.openai_api_key}"}
                 payload = {
                     "model": "gpt-4o-mini",
                     "messages": [
@@ -429,7 +449,8 @@ async def call_external_llm_if_available(
                     ],
                     "temperature": 0.6,
                 }
-                code, data, _ = _sync_http_request(url, method="POST", headers=headers, payload=payload, timeout=12.0)
+                code, data, _ = _sync_http_request(
+                    url, method="POST", headers=headers, payload=payload, timeout=12.0)
                 if code == 200 and data and "choices" in data and data["choices"]:
                     return data["choices"][0]["message"]["content"]
                 return None
@@ -452,8 +473,10 @@ async def get_ai_diagnostics(settings: Any) -> dict[str, Any]:
     else:
         ollama_ok, ollama_models = False, []
 
-    has_gemini = bool(settings.gemini_api_key and len(settings.gemini_api_key) > 5)
-    has_openai = bool(settings.openai_api_key and len(settings.openai_api_key) > 5)
+    has_gemini = bool(settings.gemini_api_key and len(
+        settings.gemini_api_key) > 5)
+    has_openai = bool(settings.openai_api_key and len(
+        settings.openai_api_key) > 5)
 
     if has_gemini:
         active_provider = "gemini"
@@ -513,8 +536,124 @@ POLISH_SYSTEM_PROMPT = (
     "5. Return clean plain text ready for immediate transmission."
 )
 
+class LRUNode:
+    __slots__ = ("key", "val", "prev", "next")
+    def __init__(self, key: str, val: str):
+        self.key = key
+        self.val = val
+        self.prev = None
+        self.next = None
+
+class LRUCache:
+    """Doubly-linked list + hash map for O(1) transform caching with LRU eviction."""
+    def __init__(self, capacity: int = 512):
+        self.capacity = capacity
+        self.cache: dict[str, LRUNode] = {}
+        self.head = LRUNode("", "")
+        self.tail = LRUNode("", "")
+        self.head.next = self.tail
+        self.tail.prev = self.head
+
+    def get(self, key: str) -> str | None:
+        if key in self.cache:
+            node = self.cache[key]
+            self._remove(node)
+            self._add(node)
+            return node.val
+        return None
+
+    def put(self, key: str, val: str):
+        if key in self.cache:
+            self._remove(self.cache[key])
+        node = LRUNode(key, val)
+        self._add(node)
+        self.cache[key] = node
+        if len(self.cache) > self.capacity:
+            lru = self.tail.prev
+            self._remove(lru)
+            del self.cache[lru.key]
+
+    def _remove(self, node: LRUNode):
+        p, n = node.prev, node.next
+        p.next, n.prev = n, p
+
+    def _add(self, node: LRUNode):
+        n = self.head.next
+        self.head.next = node
+        node.prev = self.head
+        node.next = n
+        n.prev = node
+
+class TrieNode:
+    __slots__ = ("children", "is_word", "correction")
+    def __init__(self):
+        self.children: dict[str, TrieNode] = {}
+        self.is_word: bool = False
+        self.correction: str | None = None
+
+class SpellCheckTrie:
+    """Prefix tree (Trie) for dictionary indexing and dynamic-programming edit distance search."""
+    def __init__(self):
+        self.root = TrieNode()
+
+    def insert(self, word: str, correction: str | None = None):
+        w = word.lower()
+        node = self.root
+        for ch in w:
+            if ch not in node.children:
+                node.children[ch] = TrieNode()
+            node = node.children[ch]
+        node.is_word = True
+        node.correction = correction or word
+
+    def search(self, word: str) -> str | None:
+        w = word.lower()
+        node = self.root
+        for ch in w:
+            if ch not in node.children:
+                return None
+            node = node.children[ch]
+        return node.correction if node.is_word else None
+
+    def get_closest_match(self, word: str, max_dist: int = 2) -> str | None:
+        exact = self.search(word)
+        if exact is not None:
+            return exact
+        w = word.lower()
+        if len(w) <= 2:
+            return None
+        current_row = range(len(w) + 1)
+        results: list[tuple[int, str]] = []
+
+        def search_node(node: TrieNode, letter: str, prev_row):
+            columns = len(w) + 1
+            new_row = [prev_row[0] + 1]
+            for c in range(1, columns):
+                insert_cost = new_row[c - 1] + 1
+                delete_cost = prev_row[c] + 1
+                replace_cost = prev_row[c - 1] if w[c - 1] == letter else prev_row[c - 1] + 1
+                new_row.append(min(insert_cost, delete_cost, replace_cost))
+
+            if new_row[-1] <= max_dist and node.is_word and node.correction:
+                results.append((new_row[-1], node.correction))
+
+            if min(new_row) <= max_dist:
+                for next_letter, next_node in node.children.items():
+                    search_node(next_node, next_letter, new_row)
+
+        for letter, child_node in self.root.children.items():
+            search_node(child_node, letter, current_row)
+
+        if results:
+            results.sort(key=lambda x: (x[0], len(x[1])))
+            return results[0][1]
+        return None
+
 COMMON_TYPO_MAP = {
     "everythi": "everything",
+    "everyhing": "everything",
+    "everyting": "everything",
+    "everyhting": "everything",
     "somethin": "something",
     "nothin": "nothing",
     "pls": "please",
@@ -534,8 +673,75 @@ COMMON_TYPO_MAP = {
     "teh": "the",
     "recieve": "receive",
     "seperate": "separate",
+    "tommorow": "tomorrow",
+    "thier": "their",
+    "beleive": "believe",
+    "untill": "until",
+    "definately": "definitely",
+    "occurr": "occur",
+    "freind": "friend",
+    "thougt": "thought",
+    "thougts": "thoughts",
+    "realy": "really",
 }
 
+BASE_DICTIONARY = [
+    "everything", "something", "nothing", "please", "thanks", "tomorrow", "receive",
+    "separate", "friend", "meeting", "proposal", "schedule", "convenient", "thoughts",
+    "message", "update", "status", "progress", "review", "discuss", "appreciate",
+    "wonderful", "question", "project", "follow", "regarding", "available", "working",
+    "today", "yesterday", "tonight", "weekend", "morning", "afternoon", "evening",
+    "important", "urgent", "timeline", "deliverable", "collaborate", "assistance",
+]
+
+_GLOBAL_TRIE = SpellCheckTrie()
+for typo, fix in COMMON_TYPO_MAP.items():
+    _GLOBAL_TRIE.insert(typo, fix)
+for w in BASE_DICTIONARY:
+    _GLOBAL_TRIE.insert(w, w)
+
+_GLOBAL_POLISH_CACHE = LRUCache(capacity=512)
+
+def format_conversational_flow(text: str) -> str:
+    """Normalize conversational greetings, question clauses, sentence flow and punctuation."""
+    s = text.strip()
+    if not s:
+        return ""
+
+    greeting_pattern = r"^(hi|hello|hey|dear)\s+"
+    m = re.match(greeting_pattern, s, re.IGNORECASE)
+    greeting = ""
+    rest = s
+    if m:
+        greeting = m.group(1).capitalize() + ", "
+        rest = s[m.end():]
+
+    clauses = [
+        (r"\bhow are you\b", "how are you?"),
+        (r"\bwhat are you doing\b", "What are you doing?"),
+        (r"\bhow is it going\b", "How is it going?"),
+        (r"\bis everything going well\b", "Is everything going well?"),
+        (r"\bis everything ok\b", "Is everything okay?"),
+        (r"\bhope all is well\b", "Hope all is well."),
+        (r"\bhope you are doing well\b", "Hope you are doing well."),
+    ]
+
+    formatted = rest
+    for pattern, replacement in clauses:
+        formatted = re.sub(pattern, replacement, formatted, flags=re.IGNORECASE)
+
+    # Clean double punctuation
+    formatted = re.sub(r"([.?!])\s*[.?!]+", r"\1", formatted)
+    # Ensure space and capitalization after sentence-ending punctuation
+    formatted = re.sub(r"([.?!])\s*([a-zA-Z])", lambda match: f"{match.group(1)} {match.group(2).upper()}", formatted)
+
+    result = greeting + formatted
+    # If greeting was followed by capitalized first letter, lowercase it if part of greeting clause (except 'I')
+    result = re.sub(r"^(Hi|Hello|Hey),\s+([A-Z])", lambda match: f"{match.group(1)}, {match.group(2).lower()}" if match.group(2) != "I" else match.group(0), result)
+
+    if result and not re.search(r"[.!?]$", result):
+        result += "."
+    return result
 
 def clean_llm_polished_output(text: str, custom_instruction: str | None = None) -> str:
     cleaned = text.strip()
@@ -555,12 +761,16 @@ def clean_llm_polished_output(text: str, custom_instruction: str | None = None) 
 
     return cleaned.strip()
 
-
 def offline_fallback_polish(draft: str, mode: str, custom_instruction: str | None = None) -> str:
+    cache_key = f"{mode}:{custom_instruction or ''}:{draft.strip()}"
+    cached = _GLOBAL_POLISH_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
     norm_mode = (mode or "polish").lower().replace("auto_polish", "polish").replace("cta", "action")
     raw = draft.strip()
 
-    # Apply typo corrections word by word
+    # Apply typo corrections word by word using SpellCheckTrie
     words = raw.split()
     corrected_words = []
     for w in words:
@@ -573,69 +783,90 @@ def offline_fallback_polish(draft: str, mode: str, custom_instruction: str | Non
             lead_punct += w[0]
             w = w[1:]
         lw = w.lower()
-        if lw in COMMON_TYPO_MAP:
-            replacement = COMMON_TYPO_MAP[lw]
+        trie_fix = _GLOBAL_TRIE.get_closest_match(lw, max_dist=1)
+        if trie_fix:
+            rep = trie_fix
             if w.isupper():
-                replacement = replacement.upper()
+                rep = rep.upper()
             elif w and w[0].isupper():
-                replacement = replacement.capitalize()
-            w = replacement
+                rep = rep.capitalize()
+            w = rep
         corrected_words.append(lead_punct + w + punct)
 
     corrected = " ".join(corrected_words) if corrected_words else ""
-    if corrected:
-        corrected = corrected[0].upper() + corrected[1:]
-        if not re.search(r"[.!?]$", corrected):
-            corrected += "."
+    flow_corrected = format_conversational_flow(corrected) if corrected else ""
 
     if norm_mode == "custom" and custom_instruction:
         c_lower = custom_instruction.lower()
-        if "love" in c_lower and "friend" in c_lower:
-            return "Hey! Just wanted to take a moment to say how much I truly appreciate our friendship. You mean the world to me!"
-        if "urgent" in c_lower or "asap" in c_lower:
-            return f"Hi! Urgent update regarding our discussion: {corrected if corrected else 'Please review as soon as possible.'}"
-        if "concise" in c_lower or "bullet" in c_lower:
-            return f"Hi! Quick summary:\n• {corrected if corrected else 'Status on track.'}"
-        if not corrected:
-            return f"Hi! Reaching out regarding: {custom_instruction.strip()}."
-        return corrected
+        if any(k in c_lower for k in ["love", "friend", "best friend", "appreciate", "warm"]):
+            out = "Hey! Just wanted to take a moment to say how much I truly appreciate our friendship. You mean the world to me, and I'm so grateful to have you in my life! Hope you're having a wonderful day."
+        elif any(k in c_lower for k in ["urgent", "asap", "priority"]):
+            out = f"Hi! Urgent update regarding our discussion: {flow_corrected if flow_corrected else 'Please review as soon as possible.'}"
+        elif any(k in c_lower for k in ["concise", "bullet", "short"]):
+            out = f"Hi! Quick summary:\n• {flow_corrected if flow_corrected else 'Status on track.'}"
+        elif not flow_corrected:
+            out = f"Hi! Reaching out regarding: {custom_instruction.strip()}."
+        else:
+            out = flow_corrected
+        _GLOBAL_POLISH_CACHE.put(cache_key, out)
+        return out
 
     if norm_mode == "polish":
-        return corrected or "Hi there, hope everything is going well."
+        out = flow_corrected or "Hi there, hope everything is going well."
+        _GLOBAL_POLISH_CACHE.put(cache_key, out)
+        return out
 
     if norm_mode == "professional":
-        if not corrected:
-            return "Good day. I am writing to provide an update regarding our recent discussion."
-        res = corrected
-        res = re.sub(r"\bHey\b", "Hello", res)
-        res = re.sub(r"\bHi\b", "Dear colleague", res, count=1)
-        return res
+        if not flow_corrected:
+            out = "Good day. I am writing to provide an update regarding our recent discussion."
+        else:
+            res = flow_corrected
+            res = re.sub(r"\bHey\b", "Hello", res)
+            res = re.sub(r"\bHi\b", "Dear colleague", res, count=1)
+            res = re.sub(r"\bcan't\b", "cannot", res)
+            res = re.sub(r"\bwon't\b", "will not", res)
+            res = re.sub(r"\bdon't\b", "do not", res)
+            out = res
+        _GLOBAL_POLISH_CACHE.put(cache_key, out)
+        return out
 
     if norm_mode == "concise":
-        if not corrected:
-            return "Status update: on track."
-        res = re.sub(r"^(Hi|Hello|Hey)(?:,?\s*how are you(?:\?|\.|\s*what are you doing\??)?)?", "", corrected, flags=re.I).strip()
-        res = re.sub(r"^([,\s.-]+)", "", res).strip()
-        if res:
-            res = res[0].upper() + res[1:]
-        return res or corrected
+        if not flow_corrected:
+            out = "Status update: on track."
+        else:
+            res = re.sub(r"^(Hi|Hello|Hey)(?:,?\s*how are you(?:\?|\.|\s*what are you doing\??)?)?", "", flow_corrected, flags=re.I).strip()
+            res = re.sub(r"^([,\s.-]+)", "", res).strip()
+            if res:
+                res = res[0].upper() + res[1:]
+            out = res or flow_corrected
+        _GLOBAL_POLISH_CACHE.put(cache_key, out)
+        return out
 
     if norm_mode == "friendly":
-        if not corrected:
-            return "Hi! Hope you're having a wonderful day! Let me know if you need anything."
-        if not re.match(r"^(Hi|Hello|Hey)\b", corrected, re.I):
-            return f"Hi! {corrected}"
-        return corrected
+        if not flow_corrected:
+            out = "Hi! Hope you're having a wonderful day! Let me know if you need anything."
+        else:
+            if not re.match(r"^(Hi|Hello|Hey)\b", flow_corrected, re.I):
+                out = f"Hi! {flow_corrected}"
+            else:
+                out = flow_corrected
+        _GLOBAL_POLISH_CACHE.put(cache_key, out)
+        return out
 
     if norm_mode == "action":
-        if not corrected:
-            return "Please review the details and let me know your thoughts when convenient."
-        if not re.search(r"please\s+let\s+me\s+know|looking\s+forward", corrected, re.I):
-            return f"{corrected} Please let me know your thoughts when convenient."
-        return corrected
+        if not flow_corrected:
+            out = "Please review the details and let me know your thoughts when convenient."
+        else:
+            if not re.search(r"please\s+let\s+me\s+know|looking\s+forward", flow_corrected, re.I):
+                out = f"{flow_corrected} Please let me know your thoughts when convenient."
+            else:
+                out = flow_corrected
+        _GLOBAL_POLISH_CACHE.put(cache_key, out)
+        return out
 
-    return corrected or "Hi!"
-
+    out = flow_corrected or "Hi!"
+    _GLOBAL_POLISH_CACHE.put(cache_key, out)
+    return out
 
 async def polish_message_with_ai(
     draft: str,
@@ -685,6 +916,3 @@ async def polish_message_with_ai(
 
     fallback_res = offline_fallback_polish(draft_clean, norm_mode, instr_clean)
     return fallback_res, "Syora Neural Engine"
-
-
-

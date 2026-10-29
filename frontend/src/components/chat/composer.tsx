@@ -370,11 +370,18 @@ export function Composer({
                 onClick={() => void handleAITransform("polish")}
               >
                 {aiBusy && aiAction === "polish" ? (
-                  <LoaderCircle size={13} className="animate-spin text-accent" />
+                  <LoaderCircle
+                    size={13}
+                    className="animate-spin text-accent"
+                  />
                 ) : (
                   <Sparkles size={13} />
                 )}
-                <span>{aiBusy && aiAction === "polish" ? "Polishing…" : "Auto-Polish"}</span>
+                <span>
+                  {aiBusy && aiAction === "polish"
+                    ? "Polishing…"
+                    : "Auto-Polish"}
+                </span>
               </button>
               <button
                 type="button"
@@ -383,11 +390,18 @@ export function Composer({
                 onClick={() => void handleAITransform("professional")}
               >
                 {aiBusy && aiAction === "professional" ? (
-                  <LoaderCircle size={13} className="animate-spin text-accent" />
+                  <LoaderCircle
+                    size={13}
+                    className="animate-spin text-accent"
+                  />
                 ) : (
                   <Wand2 size={13} />
                 )}
-                <span>{aiBusy && aiAction === "professional" ? "Rewriting…" : "Professional"}</span>
+                <span>
+                  {aiBusy && aiAction === "professional"
+                    ? "Rewriting…"
+                    : "Professional"}
+                </span>
               </button>
               <button
                 type="button"
@@ -396,11 +410,18 @@ export function Composer({
                 onClick={() => void handleAITransform("concise")}
               >
                 {aiBusy && aiAction === "concise" ? (
-                  <LoaderCircle size={13} className="animate-spin text-accent" />
+                  <LoaderCircle
+                    size={13}
+                    className="animate-spin text-accent"
+                  />
                 ) : (
                   <Zap size={13} />
                 )}
-                <span>{aiBusy && aiAction === "concise" ? "Shortening…" : "Make Concise"}</span>
+                <span>
+                  {aiBusy && aiAction === "concise"
+                    ? "Shortening…"
+                    : "Make Concise"}
+                </span>
               </button>
               <button
                 type="button"
@@ -409,11 +430,16 @@ export function Composer({
                 onClick={() => void handleAITransform("friendly")}
               >
                 {aiBusy && aiAction === "friendly" ? (
-                  <LoaderCircle size={13} className="animate-spin text-accent" />
+                  <LoaderCircle
+                    size={13}
+                    className="animate-spin text-accent"
+                  />
                 ) : (
                   <Smile size={13} />
                 )}
-                <span>{aiBusy && aiAction === "friendly" ? "Warming…" : "Friendly"}</span>
+                <span>
+                  {aiBusy && aiAction === "friendly" ? "Warming…" : "Friendly"}
+                </span>
               </button>
               <button
                 type="button"
@@ -422,11 +448,18 @@ export function Composer({
                 onClick={() => void handleAITransform("action")}
               >
                 {aiBusy && aiAction === "action" ? (
-                  <LoaderCircle size={13} className="animate-spin text-accent" />
+                  <LoaderCircle
+                    size={13}
+                    className="animate-spin text-accent"
+                  />
                 ) : (
                   <ArrowRight size={13} />
                 )}
-                <span>{aiBusy && aiAction === "action" ? "Adding CTA…" : "Action / CTA"}</span>
+                <span>
+                  {aiBusy && aiAction === "action"
+                    ? "Adding CTA…"
+                    : "Action / CTA"}
+                </span>
               </button>
               <button
                 type="button"
@@ -489,6 +522,10 @@ export function Composer({
             readOnly={busy}
             disabled={blocked}
             maxLength={10000}
+            spellCheck={true}
+            lang="en"
+            autoCorrect="on"
+            autoCapitalize="sentences"
             onChange={(e) => {
               setText(e.target.value);
               services.typing(conversationId, true);

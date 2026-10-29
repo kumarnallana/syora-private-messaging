@@ -1,4 +1,4 @@
-import { callGeminiAPI } from "@/services/ai-engine";
+import { callGeminiAPI, polishMessageLocally } from "@/services/ai-engine";
 import { NextResponse } from "next/server";
 
 const POLISH_SYSTEM_PROMPT =
@@ -11,29 +11,6 @@ const POLISH_SYSTEM_PROMPT =
   "3. NEVER wrap the entire message in quotation marks.\n" +
   "4. NEVER include preambles, explanations, or conversational filler.\n" +
   "5. Return clean plain text ready for immediate transmission.";
-
-const COMMON_TYPOS: Record<string, string> = {
-  everythi: "everything",
-  somethin: "something",
-  nothin: "nothing",
-  pls: "please",
-  plz: "please",
-  thx: "thanks",
-  u: "you",
-  ur: "your",
-  r: "are",
-  im: "I'm",
-  dont: "don't",
-  cant: "can't",
-  wont: "won't",
-  idk: "I don't know",
-  gonna: "going to",
-  wanna: "want to",
-  gotta: "got to",
-  teh: "the",
-  recieve: "receive",
-  seperate: "separate",
-};
 
 export async function POST(request: Request) {
   let body: any = {};
@@ -107,42 +84,8 @@ export async function POST(request: Request) {
     }
   }
 
-  // Built-in intelligent fallback
-  const words = draft.split(/\s+/);
-  const correctedWords = words.map((w: string) => {
-    let core = w.replace(/[.,!?;:]+$/, "");
-    const punct = w.slice(core.length);
-    const lower = core.toLowerCase();
-    if (COMMON_TYPOS[lower]) {
-      core = COMMON_TYPOS[lower];
-    }
-    return core + punct;
-  });
-  let localRefined = correctedWords.join(" ").trim();
-  if (localRefined) {
-    localRefined = localRefined[0].toUpperCase() + localRefined.slice(1);
-    if (!/[.!?]$/.test(localRefined)) localRefined += ".";
-  }
-
-  if (mode === "custom" && customInstruction) {
-    const cLow = customInstruction.toLowerCase();
-    if (cLow.includes("love") && cLow.includes("friend")) {
-      localRefined =
-        "Hey! Just wanted to take a moment to say how much I truly appreciate our friendship. You mean the world to me!";
-    } else if (!localRefined) {
-      localRefined = `Hi! Reaching out regarding: ${customInstruction}.`;
-    }
-  } else if (mode === "friendly") {
-    if (!/^hi\b|^hello\b|^hey\b/i.test(localRefined)) {
-      localRefined = `Hi! ${localRefined}`;
-    }
-  } else if (mode === "professional") {
-    localRefined = localRefined.replace(/\bhey\b/gi, "Hello");
-  } else if (mode === "action") {
-    if (!/please let me know|looking forward/i.test(localRefined)) {
-      localRefined = `${localRefined} Please let me know your thoughts when convenient.`;
-    }
-  }
+  // Built-in intelligent fallback backed by SpellCheckTrie & LRUCache
+  const localRefined = polishMessageLocally(draft, mode, customInstruction);
 
   return NextResponse.json({
     polished_text: localRefined || "Hi there, hope everything is going well.",

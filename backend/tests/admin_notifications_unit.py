@@ -1,13 +1,19 @@
+import os
 import unittest
 import uuid
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from fastapi import HTTPException
 
-from app.api import admin as admin_api
-from app.models import Message, MessageType, User, UserPreference, now
-from app.schemas.inputs import PushSubscriptionIn
+os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://user:pass@localhost:5432/test")
+os.environ.setdefault("JWT_ACCESS_SECRET", "12345678901234567890123456789012")
+os.environ.setdefault("JWT_REFRESH_SECRET", "12345678901234567890123456789012")
+os.environ.setdefault("CLIENT_ORIGINS", '["http://localhost:3000"]')
+
 from app.services import admin_notifications
+from app.schemas.inputs import PushSubscriptionIn
+from app.models import Message, MessageType, User, UserPreference, now
+from app.api import admin as admin_api
 
 
 class ScalarRows:
@@ -30,8 +36,10 @@ def user(role="user", name="Member", username="member"):
 class AdminNotificationTests(unittest.IsolatedAsyncioTestCase):
     async def test_member_cannot_register_admin_push_subscription(self):
         member = user()
-        auth = SimpleNamespace(user=member, session=SimpleNamespace(id=uuid.uuid4()))
-        body = PushSubscriptionIn(endpoint="https://push.example/subscription", keys={"p256dh": "key", "auth": "auth"})
+        auth = SimpleNamespace(
+            user=member, session=SimpleNamespace(id=uuid.uuid4()))
+        body = PushSubscriptionIn(
+            endpoint="https://push.example/subscription", keys={"p256dh": "key", "auth": "auth"})
         with self.assertRaises(HTTPException) as raised:
             await admin_api.save_push_subscription(body, auth, AsyncMock())
         self.assertEqual(raised.exception.status_code, 403)
@@ -39,12 +47,14 @@ class AdminNotificationTests(unittest.IsolatedAsyncioTestCase):
     async def test_member_login_notifies_admin_once(self):
         member, admin = user(), user("admin", "Admin", "admin")
         pref = UserPreference(user_id=admin.id, admin_login_notifications=True)
-        db = FakeSession({(User, member.id): member, (UserPreference, admin.id): pref}, [admin])
+        db = FakeSession({(User, member.id): member,
+                         (UserPreference, admin.id): pref}, [admin])
         deliver = AsyncMock()
         with patch.object(admin_notifications, "SessionLocal", return_value=db), patch.object(admin_notifications, "_deliver", deliver):
             await admin_notifications.notify_admins_of_login(member.id)
         deliver.assert_awaited_once()
-        self.assertEqual(deliver.await_args.args[2]["type"], "ADMIN_USER_LOGIN")
+        self.assertEqual(
+            deliver.await_args.args[2]["type"], "ADMIN_USER_LOGIN")
 
     async def test_admin_login_does_not_notify_admin(self):
         admin = user("admin", "Admin", "admin")
@@ -57,7 +67,8 @@ class AdminNotificationTests(unittest.IsolatedAsyncioTestCase):
     async def test_failed_member_login_notifies_admin_without_password_data(self):
         member, admin = user(), user("admin", "Admin", "admin")
         pref = UserPreference(user_id=admin.id, admin_login_notifications=True)
-        db = FakeSession({(User, member.id): member, (UserPreference, admin.id): pref}, [admin])
+        db = FakeSession({(User, member.id): member,
+                         (UserPreference, admin.id): pref}, [admin])
         deliver = AsyncMock()
         with patch.object(admin_notifications, "SessionLocal", return_value=db), patch.object(admin_notifications, "_deliver", deliver):
             await admin_notifications.notify_admins_of_failed_login(member.email, member.id)
@@ -68,9 +79,12 @@ class AdminNotificationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_direct_admin_message_respects_preview_setting(self):
         sender, admin = user(), user("admin", "Admin", "admin")
-        message = Message(id=uuid.uuid4(), conversation_id=uuid.uuid4(), sender_id=sender.id, text="private preview", type=MessageType.TEXT, created_at=now())
-        pref = UserPreference(user_id=admin.id, admin_message_notifications=True, admin_message_preview=False)
-        db = FakeSession({(Message, message.id): message, (User, sender.id): sender, (UserPreference, admin.id): pref}, [admin])
+        message = Message(id=uuid.uuid4(), conversation_id=uuid.uuid4(
+        ), sender_id=sender.id, text="private preview", type=MessageType.TEXT, created_at=now())
+        pref = UserPreference(
+            user_id=admin.id, admin_message_notifications=True, admin_message_preview=False)
+        db = FakeSession({(Message, message.id): message, (User, sender.id)
+                         : sender, (UserPreference, admin.id): pref}, [admin])
         deliver = AsyncMock()
         with patch.object(admin_notifications, "SessionLocal", return_value=db), patch.object(admin_notifications, "_deliver", deliver):
             await admin_notifications.notify_admin_recipient(message.id)
@@ -80,8 +94,10 @@ class AdminNotificationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_member_to_member_message_creates_no_admin_event(self):
         sender = user()
-        message = Message(id=uuid.uuid4(), conversation_id=uuid.uuid4(), sender_id=sender.id, text="members only", type=MessageType.TEXT, created_at=now())
-        db = FakeSession({(Message, message.id): message, (User, sender.id): sender}, [])
+        message = Message(id=uuid.uuid4(), conversation_id=uuid.uuid4(
+        ), sender_id=sender.id, text="members only", type=MessageType.TEXT, created_at=now())
+        db = FakeSession({(Message, message.id): message,
+                         (User, sender.id): sender}, [])
         deliver = AsyncMock()
         with patch.object(admin_notifications, "SessionLocal", return_value=db), patch.object(admin_notifications, "_deliver", deliver):
             await admin_notifications.notify_admin_recipient(message.id)
@@ -99,21 +115,24 @@ class AdminNotificationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_member_cannot_trigger_test_notification(self):
         member = user()
-        auth = SimpleNamespace(user=member, session=SimpleNamespace(id=uuid.uuid4()))
+        auth = SimpleNamespace(
+            user=member, session=SimpleNamespace(id=uuid.uuid4()))
         with self.assertRaises(HTTPException) as raised:
             await admin_api.trigger_test_notification(None, auth, AsyncMock())
         self.assertEqual(raised.exception.status_code, 403)
 
     async def test_admin_notification_history_endpoints_forbid_member(self):
         member = user()
-        auth = SimpleNamespace(user=member, session=SimpleNamespace(id=uuid.uuid4()))
+        auth = SimpleNamespace(
+            user=member, session=SimpleNamespace(id=uuid.uuid4()))
         with self.assertRaises(HTTPException) as raised:
             await admin_api.get_admin_notification_history(auth, AsyncMock())
         self.assertEqual(raised.exception.status_code, 403)
 
     async def test_admin_notification_history_returns_list_for_admin(self):
         admin = user("admin", "Admin", "admin")
-        auth = SimpleNamespace(user=admin, session=SimpleNamespace(id=uuid.uuid4()))
+        auth = SimpleNamespace(
+            user=admin, session=SimpleNamespace(id=uuid.uuid4()))
         db = FakeSession({}, [])
         res = await admin_api.get_admin_notification_history(auth, db)
         self.assertIn("items", res)
@@ -122,4 +141,3 @@ class AdminNotificationTests(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

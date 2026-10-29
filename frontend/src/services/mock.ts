@@ -14,6 +14,7 @@ import type {
   User,
 } from "@/types";
 import { normalizeUsername } from "@/utils/presentation";
+import { polishMessageLocally } from "./ai-engine";
 import type { Services } from "./contracts";
 const pause = () => new Promise<void>((resolve) => setTimeout(resolve, 350));
 export class MockServices implements Services {
@@ -724,11 +725,16 @@ export class MockServices implements Services {
     }
     return notification;
   }
-  async getAdminNotificationHistory(): Promise<{ items: AdminNotificationEvent[]; unreadCount: number }> {
+  async getAdminNotificationHistory(): Promise<{
+    items: AdminNotificationEvent[];
+    unreadCount: number;
+  }> {
     if (typeof window === "undefined") return { items: [], unreadCount: 0 };
     try {
-      const stored: AdminNotificationEvent[] = JSON.parse(localStorage.getItem("syora:admin-notifications-history") || "[]");
-      const unreadCount = stored.filter(i => !i.read).length;
+      const stored: AdminNotificationEvent[] = JSON.parse(
+        localStorage.getItem("syora:admin-notifications-history") || "[]",
+      );
+      const unreadCount = stored.filter((i) => !i.read).length;
       return { items: stored, unreadCount };
     } catch {
       return { items: [], unreadCount: 0 };
@@ -737,8 +743,13 @@ export class MockServices implements Services {
   async markAdminNotificationsRead(): Promise<void> {
     if (typeof window === "undefined") return;
     try {
-      const stored: AdminNotificationEvent[] = JSON.parse(localStorage.getItem("syora:admin-notifications-history") || "[]");
-      localStorage.setItem("syora:admin-notifications-history", JSON.stringify(stored.map(i => ({ ...i, read: true }))));
+      const stored: AdminNotificationEvent[] = JSON.parse(
+        localStorage.getItem("syora:admin-notifications-history") || "[]",
+      );
+      localStorage.setItem(
+        "syora:admin-notifications-history",
+        JSON.stringify(stored.map((i) => ({ ...i, read: true }))),
+      );
       window.dispatchEvent(new CustomEvent("syora:admin-history-updated"));
     } catch {}
   }
@@ -760,24 +771,30 @@ export class MockServices implements Services {
       id: "status-update",
       category: "Updates",
       title: "Project Status Update",
-      description: "Share progress, milestones achieved, and current blockers clearly.",
-      template: "Hi {name},\n\nHere is a quick update on the project:\n- Completed: Core modules and review\n- Next steps: Testing and deployment by end of week.\n- Blockers: None at this time.\n\nLet me know your thoughts!",
+      description:
+        "Share progress, milestones achieved, and current blockers clearly.",
+      template:
+        "Hi {name},\n\nHere is a quick update on the project:\n- Completed: Core modules and review\n- Next steps: Testing and deployment by end of week.\n- Blockers: None at this time.\n\nLet me know your thoughts!",
       prompt_starter: "Give my manager a concise status update on our project",
     },
     {
       id: "meeting-reschedule",
       category: "Meetings",
       title: "Reschedule Meeting",
-      description: "Politely propose a new time slot without inconveniencing the attendee.",
-      template: "Hi {name},\n\nDue to an unexpected conflict, I will need to reschedule our upcoming meeting. Would tomorrow afternoon work instead? Apologies for the inconvenience!",
-      prompt_starter: "Ask to reschedule our meeting to tomorrow afternoon politely",
+      description:
+        "Politely propose a new time slot without inconveniencing the attendee.",
+      template:
+        "Hi {name},\n\nDue to an unexpected conflict, I will need to reschedule our upcoming meeting. Would tomorrow afternoon work instead? Apologies for the inconvenience!",
+      prompt_starter:
+        "Ask to reschedule our meeting to tomorrow afternoon politely",
     },
     {
       id: "gentle-followup",
       category: "Follow-ups",
       title: "Gentle Follow-up",
       description: "Polite reminder on a pending review or unanswered message.",
-      template: "Hi {name},\n\nJust following up on my previous note. When you have a moment, please let me know your thoughts. Thanks!",
+      template:
+        "Hi {name},\n\nJust following up on my previous note. When you have a moment, please let me know your thoughts. Thanks!",
       prompt_starter: "Follow up gently on the proposal I sent last week",
     },
   ];
@@ -791,10 +808,15 @@ export class MockServices implements Services {
       provider_name: "Mock / Syora Built-in Engine",
       is_external_configured: false,
       gemini: { configured: false, model: "gemini-1.5-flash" },
-      ollama: { configured: false, base_url: "http://localhost:11434", model: "llama3.2" },
+      ollama: {
+        configured: false,
+        base_url: "http://localhost:11434",
+        model: "llama3.2",
+      },
       openai: { configured: false, model: "gpt-4o-mini" },
       preferred_provider: "auto",
-      notes: "Mock mode is active. In live mode, Gemini or local Ollama can be used.",
+      notes:
+        "Mock mode is active. In live mode, Gemini or local Ollama can be used.",
     };
   }
   async getAITemplates(): Promise<{ templates: AITemplate[] }> {
@@ -803,7 +825,11 @@ export class MockServices implements Services {
   }
   async getAIContacts(): Promise<{ contacts: User[] }> {
     await pause();
-    return { contacts: this.state.users.filter(u => u.id !== this.state.currentUserId) };
+    return {
+      contacts: this.state.users.filter(
+        (u) => u.id !== this.state.currentUserId,
+      ),
+    };
   }
   async getAIConversations(): Promise<AIConversationSummary[]> {
     await pause();
@@ -822,9 +848,12 @@ export class MockServices implements Services {
     this.mockAIMessages.set(id, []);
     return item;
   }
-  async renameAIConversation(id: string, title: string): Promise<AIConversationSummary> {
+  async renameAIConversation(
+    id: string,
+    title: string,
+  ): Promise<AIConversationSummary> {
     await pause();
-    const conv = this.mockAIConversations.find(c => c.id === id);
+    const conv = this.mockAIConversations.find((c) => c.id === id);
     if (conv) {
       conv.title = title;
       conv.updated_at = new Date().toISOString();
@@ -837,19 +866,27 @@ export class MockServices implements Services {
       updated_at: new Date().toISOString(),
     };
   }
-  async getAIConversation(id: string): Promise<{ id: string; title: string; messages: AIMessage[] }> {
+  async getAIConversation(
+    id: string,
+  ): Promise<{ id: string; title: string; messages: AIMessage[] }> {
     await pause();
-    const conv = this.mockAIConversations.find(c => c.id === id) || {
+    const conv = this.mockAIConversations.find((c) => c.id === id) || {
       id,
       title: "Assistant Chat",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    return { id, title: conv.title, messages: this.mockAIMessages.get(id) || [] };
+    return {
+      id,
+      title: conv.title,
+      messages: this.mockAIMessages.get(id) || [],
+    };
   }
   async deleteAIConversation(id: string): Promise<void> {
     await pause();
-    this.mockAIConversations = this.mockAIConversations.filter(c => c.id !== id);
+    this.mockAIConversations = this.mockAIConversations.filter(
+      (c) => c.id !== id,
+    );
     this.mockAIMessages.delete(id);
   }
   async clearAllAIConversations(): Promise<void> {
@@ -859,35 +896,31 @@ export class MockServices implements Services {
   }
   async polishMessage(
     draft: string,
-    mode: "polish" | "professional" | "concise" | "friendly" | "action" | "custom",
+    mode:
+      | "polish"
+      | "professional"
+      | "concise"
+      | "friendly"
+      | "action"
+      | "custom",
     customInstruction?: string,
   ): Promise<{ polished_text: string; provider?: string }> {
     await pause();
-    let text = draft.trim();
-    if (mode === "polish") {
-      text = text ? text[0].toUpperCase() + text.slice(1) : "Hello, hope everything is going well.";
-      if (!/[.!?]$/.test(text)) text += ".";
-    } else if (mode === "professional") {
-      text = text ? `Good day. ${text}` : "Good day. I am writing to provide an update regarding our discussion.";
-      if (!/[.!?]$/.test(text)) text += ".";
-    } else if (mode === "friendly") {
-      text = `Hi! ${text || "Hope you're having a wonderful day!"}`;
-      if (!/[.!?]$/.test(text)) text += ".";
-    } else if (mode === "custom" && customInstruction) {
-      if (customInstruction.toLowerCase().includes("love") && customInstruction.toLowerCase().includes("friend")) {
-        text = "Hey! Just wanted to take a moment to say how much I truly appreciate our friendship. You mean the world to me!";
-      } else {
-        text = text ? `${text} Please let me know your thoughts regarding ${customInstruction}.` : `Hi! Reaching out regarding: ${customInstruction}.`;
-      }
-    }
+    const result = polishMessageLocally(draft, mode, customInstruction);
     return {
-      polished_text: text || "Hi there!",
+      polished_text: result || "Hi there!",
       provider: "Mock Neural Engine",
     };
   }
   async sendAIChat(
     conversationId: string,
-    payload: { prompt: string; previous_draft?: string; refinement?: string; recipient_name?: string; channel?: string },
+    payload: {
+      prompt: string;
+      previous_draft?: string;
+      refinement?: string;
+      recipient_name?: string;
+      channel?: string;
+    },
   ): Promise<any> {
     await pause();
     const targetName = payload.recipient_name || "there";
@@ -918,11 +951,18 @@ export class MockServices implements Services {
       role: "assistant",
       content: asstMessage.content,
       draft_message: draft,
-      recipient: payload.recipient_name ? { name: payload.recipient_name } : null,
+      recipient: payload.recipient_name
+        ? { name: payload.recipient_name }
+        : null,
       channel: payload.channel || "syora",
       is_send_command: false,
       requires_authorization: false,
-      suggested_actions: ["Make more concise", "More formal", "Friendlier", "Add clear CTA"],
+      suggested_actions: [
+        "Make more concise",
+        "More formal",
+        "Friendlier",
+        "Add clear CTA",
+      ],
     };
   }
   async sendAIAuthorizedMessage(payload: {
