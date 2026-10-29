@@ -105,16 +105,10 @@ export class ApiServices implements Services {
       try {
         const AudioContextClass =
           window.AudioContext ||
-          (
-            window as typeof window & {
-              webkitAudioContext?: typeof AudioContext;
-            }
-          ).webkitAudioContext;
+          (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+            .webkitAudioContext;
         if (AudioContextClass) {
-          if (
-            !this.sharedAudioContext ||
-            this.sharedAudioContext.state === "closed"
-          ) {
+          if (!this.sharedAudioContext || this.sharedAudioContext.state === "closed") {
             this.sharedAudioContext = new AudioContextClass();
           }
           if (this.sharedAudioContext.state === "suspended") {
@@ -129,23 +123,11 @@ export class ApiServices implements Services {
       window.removeEventListener("click", unlock, true);
       window.removeEventListener("keydown", unlock, true);
     };
-    window.addEventListener("touchstart", unlock, {
-      capture: true,
-      passive: true,
-    });
-    window.addEventListener("touchend", unlock, {
-      capture: true,
-      passive: true,
-    });
-    window.addEventListener("pointerdown", unlock, {
-      capture: true,
-      passive: true,
-    });
+    window.addEventListener("touchstart", unlock, { capture: true, passive: true });
+    window.addEventListener("touchend", unlock, { capture: true, passive: true });
+    window.addEventListener("pointerdown", unlock, { capture: true, passive: true });
     window.addEventListener("click", unlock, { capture: true, passive: true });
-    window.addEventListener("keydown", unlock, {
-      capture: true,
-      passive: true,
-    });
+    window.addEventListener("keydown", unlock, { capture: true, passive: true });
   }
 
   private getAudioContext(): AudioContext | undefined {
@@ -156,10 +138,7 @@ export class ApiServices implements Services {
         (window as typeof window & { webkitAudioContext?: typeof AudioContext })
           .webkitAudioContext;
       if (!AudioContextClass) return undefined;
-      if (
-        !this.sharedAudioContext ||
-        this.sharedAudioContext.state === "closed"
-      ) {
+      if (!this.sharedAudioContext || this.sharedAudioContext.state === "closed") {
         this.sharedAudioContext = new AudioContextClass();
       }
       if (this.sharedAudioContext.state === "suspended") {
@@ -1759,26 +1738,17 @@ export class ApiServices implements Services {
   }
   async polishMessage(
     draft: string,
-    mode:
-      | "polish"
-      | "professional"
-      | "concise"
-      | "friendly"
-      | "action"
-      | "custom",
+    mode: "polish" | "professional" | "concise" | "friendly" | "action" | "custom",
     customInstruction?: string,
   ): Promise<{ polished_text: string; provider?: string }> {
-    return this.fetch<{ polished_text: string; provider?: string }>(
-      "/api/ai/polish",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          draft,
-          mode,
-          custom_instruction: customInstruction,
-        }),
-      },
-    );
+    return this.fetch<{ polished_text: string; provider?: string }>("/api/ai/polish", {
+      method: "POST",
+      body: JSON.stringify({
+        draft,
+        mode,
+        custom_instruction: customInstruction,
+      }),
+    });
   }
   async sendAIChat(
     conversationId: string,
@@ -1877,7 +1847,10 @@ export class ApiServices implements Services {
       return { cleared: true, count: 0 } as T;
     }
 
-    if (path.startsWith("/api/ai/conversations/") && init.method === "DELETE") {
+    if (
+      path.startsWith("/api/ai/conversations/") &&
+      init.method === "DELETE"
+    ) {
       const parts = path.split("/");
       const targetId = parts[parts.length - 1];
       if (typeof window !== "undefined") {
@@ -1940,15 +1913,9 @@ export class ApiServices implements Services {
           "gemini-2.5-flash",
         );
         if (geminiRes && geminiRes.trim()) {
-          let cleaned = geminiRes
-            .trim()
-            .replace(/^["']|["']$/g, "")
-            .trim();
+          let cleaned = geminiRes.trim().replace(/^["']|["']$/g, "").trim();
           if (customInstruction) {
-            cleaned = cleaned.replace(
-              new RegExp(`^${customInstruction}:?\\s*`, "i"),
-              "",
-            );
+            cleaned = cleaned.replace(new RegExp(`^${customInstruction}:?\\s*`, "i"), "");
           }
           return {
             polished_text: cleaned,
@@ -1960,8 +1927,7 @@ export class ApiServices implements Services {
       const localRefined = polishMessageLocally(draft, mode, customInstruction);
 
       return {
-        polished_text:
-          localRefined || "Hi there, hope everything is going well.",
+        polished_text: localRefined || "Hi there, hope everything is going well.",
         provider: "Syora Neural Engine",
       } as T;
     }

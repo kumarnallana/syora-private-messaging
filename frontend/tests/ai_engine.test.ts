@@ -84,3 +84,4 @@ test("polishMessageLocally supports all tone presets", () => {
   const action = polishMessageLocally("here is the update", "action");
   assert.ok(action.includes("Please let me know your thoughts when convenient."));
 });
+
