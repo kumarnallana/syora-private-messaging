@@ -409,7 +409,8 @@ async def call_external_llm_if_available(
     # 2. Ollama (Local)
     ollama_url = getattr(settings, "ollama_base_url", "http://localhost:11434")
     ollama_model = getattr(settings, "ollama_model", "llama3.2")
-    if pref == "ollama" or pref == "auto":
+    ollama_enabled = getattr(settings, "ollama_enabled", True)
+    if ollama_enabled and (pref == "ollama" or pref == "auto"):
         res = await call_ollama_api(system_prompt, user_prompt, ollama_url, ollama_model)
         if res:
             return res, f"Ollama ({ollama_model})"
@@ -445,7 +446,11 @@ async def get_ai_diagnostics(settings: Any) -> dict[str, Any]:
     """Return complete status and diagnostic info about connected AI engines."""
     ollama_url = getattr(settings, "ollama_base_url", "http://localhost:11434")
     ollama_model = getattr(settings, "ollama_model", "llama3.2")
-    ollama_ok, ollama_models = await check_ollama_health(ollama_url, ollama_model)
+    ollama_enabled = getattr(settings, "ollama_enabled", True)
+    if ollama_enabled:
+        ollama_ok, ollama_models = await check_ollama_health(ollama_url, ollama_model)
+    else:
+        ollama_ok, ollama_models = False, []
 
     has_gemini = bool(settings.gemini_api_key and len(settings.gemini_api_key) > 5)
     has_openai = bool(settings.openai_api_key and len(settings.openai_api_key) > 5)

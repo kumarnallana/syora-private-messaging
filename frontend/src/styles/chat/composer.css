@@ -60,24 +60,64 @@
     @apply h-[42px] rounded-[8px] text-[21px] transition-colors hover:bg-surface;
   }
 
-  /* Syora AI Composer Quick-Polish Popover */
-  .composer-ai-popover {
-    @apply absolute bottom-[calc(100%+8px)] right-[64px] z-[12] w-[290px] rounded-[14px] border border-accent/30 bg-elevated p-[12px] shadow-[0_20px_50px_#0008] backdrop-blur-md;
+  /* Syora Fast AI Composer Tray */
+  .composer-ai-tray {
+    @apply mb-[8px] flex flex-col gap-[7px] rounded-[13px] border border-accent/30 p-[10px] shadow-[0_8px_32px_rgba(0,0,0,0.36)] backdrop-blur-md;
+    background: var(--elevated);
+    animation: traySlideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .composer-ai-popover header {
-    @apply mb-[10px] flex items-center justify-between text-[12px] font-semibold text-accent;
+  @keyframes traySlideDown {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
-  .composer-ai-actions {
-    @apply flex flex-col gap-[4px];
+  .composer-ai-tray__header {
+    @apply flex items-center justify-between text-[11px] font-semibold text-accent;
   }
-  .composer-ai-item {
-    @apply flex w-full items-center gap-[9px] rounded-[8px] px-[10px] py-[8px] text-left text-[12px] font-medium text-text-primary transition-colors hover:bg-surface hover:text-accent disabled:opacity-50;
+  .composer-ai-tray__badge {
+    @apply flex items-center gap-[6px] uppercase tracking-[0.06em];
   }
-  .composer-ai-item svg {
-    @apply shrink-0 text-accent;
+  .composer-ai-status {
+    @apply rounded-full bg-accent/20 px-[7px] py-[1px] text-[10px] text-accent animate-pulse;
   }
-  .composer-ai-hint {
-    @apply mt-[8px] border-t border-border/60 pt-[8px] text-[11px] leading-[1.4] text-muted;
+  .composer-ai-tray__actions {
+    @apply flex items-center gap-[6px];
+  }
+  .composer-ai-undo-btn {
+    @apply inline-flex items-center gap-[4px] rounded-full border border-border bg-surface px-[8px] py-[2px] text-[11px] font-medium text-text-primary transition-colors hover:border-accent hover:text-accent;
+  }
+  .composer-ai-chips {
+    @apply flex items-center gap-[7px] overflow-x-auto py-[2px];
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .composer-ai-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .composer-ai-chip {
+    @apply inline-flex shrink-0 items-center gap-[5px] rounded-full border border-border bg-surface px-[11px] py-[6px] text-[12px] font-medium text-text-primary transition-all duration-150 hover:border-accent/50 hover:bg-surface/80 hover:text-accent disabled:opacity-50;
+  }
+  .composer-ai-chip svg {
+    @apply text-accent;
+  }
+  .composer-ai-chip.is-loading {
+    @apply border-accent text-accent;
+    background: var(--accent-soft);
+  }
+  .composer-ai-chip--custom {
+    @apply border-accent/40 text-accent font-semibold;
+    background: var(--accent-soft);
+  }
+  .composer-ai-custom-form {
+    @apply flex items-center gap-[8px];
+  }
+  .composer-ai-custom-input {
+    @apply min-w-0 flex-1 rounded-[9px] border border-border bg-surface px-[10px] py-[7px] text-[13px] text-text-primary outline-none transition-colors focus:border-accent;
   }
 
   /* Atmospheric Cryptographic Welcome Showcase */
@@ -230,9 +270,6 @@
       @apply size-11;
     }
     .emoji-picker {
-      @apply right-[8px] w-[calc(100vw-16px)];
-    }
-    .composer-ai-popover {
       @apply right-[8px] w-[calc(100vw-16px)];
     }
   }

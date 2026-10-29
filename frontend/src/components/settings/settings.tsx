@@ -430,10 +430,23 @@ export function Settings() {
                   </small>
                 </span>
               </div>
-              <span className="admin-live-chip">
-                <span className="admin-drawer-pulse" />
-                Live monitoring active
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="button secondary small"
+                  onClick={() =>
+                    window.dispatchEvent(
+                      new CustomEvent("syora:open-admin-drawer"),
+                    )
+                  }
+                >
+                  <Bell size={14} /> Open Alert Center
+                </button>
+                <span className="admin-live-chip">
+                  <span className="admin-drawer-pulse" />
+                  Live monitoring active
+                </span>
+              </div>
             </div>
           </header>
           {adminNotifications ? (
