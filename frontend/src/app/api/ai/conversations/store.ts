@@ -22,3 +22,4 @@ export function clearAllConversationsFromStore() {
   inMemoryConversations = [];
   inMemoryMessages.clear();
 }
+
