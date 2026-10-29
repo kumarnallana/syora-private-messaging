@@ -1,29 +1,8 @@
 import { NextResponse } from "next/server";
-
-// In-memory session store for serverless instances
-let inMemoryConversations: Array<{
-  id: string;
-  title: string;
-  created_at: string;
-  updated_at: string;
-  message_count?: number;
-  last_message?: string;
-  last_draft?: string;
-  last_recipient?: string;
-  last_channel?: string;
-}> = [
-  {
-    id: "conv-initial",
-    title: "Professional Messaging",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    message_count: 0,
-    last_message: "",
-    last_draft: "",
-    last_recipient: "",
-    last_channel: "",
-  },
-];
+import {
+  clearAllConversationsFromStore,
+  inMemoryConversations,
+} from "./store";
 
 export async function GET() {
   return NextResponse.json(inMemoryConversations);
@@ -50,4 +29,9 @@ export async function POST(request: Request) {
 
   inMemoryConversations.unshift(newItem);
   return NextResponse.json(newItem, { status: 201 });
+}
+
+export async function DELETE() {
+  clearAllConversationsFromStore();
+  return NextResponse.json({ cleared: true, count: 0 });
 }

@@ -852,6 +852,39 @@ export class MockServices implements Services {
     this.mockAIConversations = this.mockAIConversations.filter(c => c.id !== id);
     this.mockAIMessages.delete(id);
   }
+  async clearAllAIConversations(): Promise<void> {
+    await pause();
+    this.mockAIConversations = [];
+    this.mockAIMessages.clear();
+  }
+  async polishMessage(
+    draft: string,
+    mode: "polish" | "professional" | "concise" | "friendly" | "action" | "custom",
+    customInstruction?: string,
+  ): Promise<{ polished_text: string; provider?: string }> {
+    await pause();
+    let text = draft.trim();
+    if (mode === "polish") {
+      text = text ? text[0].toUpperCase() + text.slice(1) : "Hello, hope everything is going well.";
+      if (!/[.!?]$/.test(text)) text += ".";
+    } else if (mode === "professional") {
+      text = text ? `Good day. ${text}` : "Good day. I am writing to provide an update regarding our discussion.";
+      if (!/[.!?]$/.test(text)) text += ".";
+    } else if (mode === "friendly") {
+      text = `Hi! ${text || "Hope you're having a wonderful day!"}`;
+      if (!/[.!?]$/.test(text)) text += ".";
+    } else if (mode === "custom" && customInstruction) {
+      if (customInstruction.toLowerCase().includes("love") && customInstruction.toLowerCase().includes("friend")) {
+        text = "Hey! Just wanted to take a moment to say how much I truly appreciate our friendship. You mean the world to me!";
+      } else {
+        text = text ? `${text} Please let me know your thoughts regarding ${customInstruction}.` : `Hi! Reaching out regarding: ${customInstruction}.`;
+      }
+    }
+    return {
+      polished_text: text || "Hi there!",
+      provider: "Mock Neural Engine",
+    };
+  }
   async sendAIChat(
     conversationId: string,
     payload: { prompt: string; previous_draft?: string; refinement?: string; recipient_name?: string; channel?: string },

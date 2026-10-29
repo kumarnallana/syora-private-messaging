@@ -3,7 +3,7 @@ import re
 import urllib.parse
 import uuid
 from typing import Any
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,6 +31,7 @@ from app.services.ai_assistant import (
     extract_recipient_and_channel,
     get_ai_diagnostics,
     match_user_contact,
+    polish_message_with_ai,
     refine_message_text,
     synthesize_professional_message,
 )
@@ -63,6 +64,12 @@ class CreateConversationIn(BaseModel):
 
 class UpdateConversationIn(BaseModel):
     title: str = Field(min_length=1, max_length=120)
+
+
+class PolishRequestIn(BaseModel):
+    draft: str = Field(default="")
+    mode: str = Field(default="polish", pattern="^(auto_polish|polish|professional|concise|friendly|action|cta|custom)$")
+    custom_instruction: str | None = None
 
 
 @router.get("/diagnostics")
@@ -201,6 +208,37 @@ async def update_ai_conversation(
     conv.updated_at = now()
     await db.commit()
     return {"id": str(conv.id), "title": conv.title, "updated_at": conv.updated_at.isoformat()}
+
+
+@router.post("/polish")
+async def polish_inline_message(
+    body: PolishRequestIn,
+    request: Request,
+    user: User = Depends(current_user),
+):
+    key_override = request.headers.get("x-gemini-key")
+    polished_text, provider = await polish_message_with_ai(
+        draft=body.draft,
+        mode=body.mode,
+        custom_instruction=body.custom_instruction,
+        settings=get_settings(),
+        api_key_override=key_override,
+    )
+    return {"polished_text": polished_text, "provider": provider}
+
+
+@router.delete("/conversations")
+async def clear_all_ai_conversations(
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(AIConversation).where(AIConversation.user_id == user.id)
+    convs = (await db.scalars(stmt)).all()
+    count = len(convs)
+    for conv in convs:
+        await db.delete(conv)
+    await db.commit()
+    return {"cleared": True, "count": count}
 
 
 @router.delete("/conversations/{conversation_id}")

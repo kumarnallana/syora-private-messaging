@@ -259,12 +259,12 @@ export async function callGeminiAPI(
   systemInstruction: string,
   userPrompt: string,
   apiKey?: string,
-  modelName = "gemini-3.8-flash"
+  modelName = "gemini-2.5-flash"
 ): Promise<string | null> {
   const cleanKey = (apiKey || process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "").trim();
   if (!cleanKey || cleanKey.length < 8) return null;
 
-  const modelsToTry = [modelName, "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest", "gemini-2.5-flash", "gemini-1.5-flash"];
+  const modelsToTry = [modelName, "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-1.5-flash", "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"];
   const uniqueModels = Array.from(new Set(modelsToTry));
 
   const combinedPrompt = systemInstruction

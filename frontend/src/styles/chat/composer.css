@@ -120,132 +120,32 @@
     @apply min-w-0 flex-1 rounded-[9px] border border-border bg-surface px-[10px] py-[7px] text-[13px] text-text-primary outline-none transition-colors focus:border-accent;
   }
 
-  /* Atmospheric Cryptographic Welcome Showcase */
+  /* Clean Minimal Welcome State */
   .welcome-panel {
-    @apply relative flex flex-col items-center justify-center overflow-y-auto overflow-x-hidden p-[clamp(20px,4vw,40px)] text-center;
+    @apply relative flex flex-col items-center justify-center p-[clamp(24px,5vw,48px)] text-center;
     min-height: 100%;
   }
-  .welcome-panel__ambient-glow {
-    position: absolute;
-    top: 32%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: min(640px, 92vw);
-    height: min(420px, 60vh);
-    background: radial-gradient(circle, rgba(170, 150, 242, 0.12) 0%, rgba(120, 100, 220, 0.04) 50%, transparent 72%);
-    filter: blur(48px);
-    pointer-events: none;
-    z-index: 0;
+  .welcome-panel__clean-content {
+    @apply flex flex-col items-center justify-center max-w-[440px] mx-auto gap-[16px];
   }
-  .welcome-panel__container {
-    @apply relative z-[1] mx-auto flex w-full max-w-[760px] flex-col items-center gap-[20px];
+  .welcome-panel__clean-icon {
+    @apply grid size-[68px] place-items-center rounded-2xl border border-accent/25 bg-surface text-accent shadow-[0_8px_24px_rgba(170,150,242,0.14)];
+    background: linear-gradient(135deg, rgba(170, 150, 242, 0.14), rgba(80, 60, 160, 0.05));
   }
-  .welcome-panel__badge {
-    @apply inline-flex items-center gap-[8px] rounded-full border border-accent/25 px-[13px] py-[5px] text-[11px] font-semibold uppercase tracking-[0.08em] text-accent backdrop-blur-md;
-    background: var(--accent-soft);
+  .welcome-panel__clean-icon .logo-mark {
+    @apply scale-125;
   }
-  .welcome-panel__badge-dot {
-    @apply size-2 rounded-full bg-accent;
-    box-shadow: 0 0 8px var(--accent);
+  .welcome-panel__clean-title {
+    @apply text-[24px] font-bold tracking-tight text-text-primary;
   }
-  .welcome-panel__emblem-wrap {
-    @apply relative my-[4px] grid size-[78px] place-items-center;
+  .welcome-panel__clean-subtitle {
+    @apply text-[14px] leading-relaxed text-muted;
   }
-  .welcome-panel__emblem-ring {
-    position: absolute;
-    inset: -6px;
-    border-radius: 9999px;
-    border: 1px dashed rgba(170, 150, 242, 0.35);
-    animation: spin 32s linear infinite;
+  .welcome-panel__clean-actions {
+    @apply mt-[6px] flex items-center justify-center gap-[12px] flex-wrap;
   }
-  .welcome-panel__emblem-core {
-    @apply grid size-[78px] place-items-center rounded-2xl border border-accent/30 bg-surface shadow-[0_8px_32px_rgba(170,150,242,0.18)];
-    background: linear-gradient(135deg, rgba(170, 150, 242, 0.16), rgba(80, 60, 160, 0.08));
-  }
-  .welcome-panel__emblem-icon {
-    @apply text-accent;
-    filter: drop-shadow(0 0 10px rgba(170, 150, 242, 0.5));
-  }
-  .welcome-panel__emblem-sparkle {
-    @apply absolute -top-1 -right-1 text-accent animate-pulse;
-  }
-  .welcome-panel__title {
-    @apply text-[clamp(22px,3.2vw,30px)] font-bold tracking-[-0.5px] text-text-primary;
-    line-height: 1.25;
-  }
-  .welcome-panel__subtitle {
-    @apply max-w-[560px] text-[14px] leading-[1.65] text-muted;
-  }
-  .welcome-panel__grid {
-    @apply mt-[6px] grid w-full grid-cols-1 gap-[14px] text-left sm:grid-cols-3;
-  }
-  .welcome-card {
-    @apply flex flex-col gap-[9px] rounded-xl border border-border/80 bg-surface/70 p-[18px] backdrop-blur-md transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-[0_8px_24px_rgba(0,0,0,0.25)];
-  }
-  .welcome-card__header {
-    @apply flex items-center gap-[10px];
-  }
-  .welcome-card__icon-box {
-    @apply grid size-8 shrink-0 place-items-center rounded-lg border border-accent/20 text-accent;
-    background: var(--accent-soft);
-  }
-  .welcome-card h3 {
-    @apply text-[14px] font-semibold text-text-primary;
-  }
-  .welcome-card p {
-    @apply text-[12px] leading-[1.55] text-muted;
-  }
-  .welcome-panel__actions {
-    @apply mt-[8px] flex flex-wrap items-center justify-center gap-[12px];
-  }
-  .welcome-panel__btn {
-    @apply inline-flex items-center gap-[8px] px-[18px] py-[9px] text-[13px] font-medium;
-  }
-  .welcome-panel__telemetry {
-    @apply mt-[10px] flex flex-wrap items-center justify-center gap-[12px] rounded-full border border-border/60 bg-surface/40 px-[16px] py-[6px] text-[11px] font-mono text-muted;
-  }
-  .welcome-telemetry__item {
-    @apply flex items-center gap-[6px];
-  }
-  .telemetry-dot {
-    @apply size-2 rounded-full bg-emerald-500;
-    box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
-  }
-  .telemetry-separator {
-    @apply text-muted/40;
-  }
-
-  /* Security Protocol Dialog Styling */
-  .security-audit-dialog {
-    max-width: 520px;
-  }
-  .security-audit-content {
-    @apply flex flex-col gap-[16px] py-[6px];
-  }
-  .security-audit-banner {
-    @apply flex items-center gap-[14px] rounded-xl border border-accent/25 p-[14px];
-    background: var(--accent-soft);
-  }
-  .security-audit-banner h3 {
-    @apply text-[15px] font-semibold text-text-primary;
-  }
-  .security-audit-banner p {
-    @apply text-[12px] text-muted;
-  }
-  .security-audit-specs {
-    @apply flex flex-col divide-y divide-border/60 rounded-xl border border-border/80 bg-surface/60;
-  }
-  .security-spec-item {
-    @apply flex items-center justify-between px-[14px] py-[10px] text-[13px];
-  }
-  .security-spec-label {
-    @apply font-medium text-muted;
-  }
-  .security-spec-val {
-    @apply font-mono text-[12px] text-accent;
-  }
-  .security-audit-note {
-    @apply text-[12px] leading-[1.6] text-muted;
+  .welcome-panel__clean-btn {
+    @apply inline-flex items-center gap-[8px] px-[20px] py-[10px] text-[13px] font-medium;
   }
 
   @media (max-width: 1100px) {

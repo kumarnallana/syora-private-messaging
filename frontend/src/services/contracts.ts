@@ -100,6 +100,12 @@ export interface Services
   renameAIConversation(id: string, title: string): Promise<AIConversationSummary>;
   getAIConversation(id: string): Promise<{ id: string; title: string; messages: AIMessage[] }>;
   deleteAIConversation(id: string): Promise<void>;
+  clearAllAIConversations(): Promise<void>;
+  polishMessage(
+    draft: string,
+    mode: "polish" | "professional" | "concise" | "friendly" | "action" | "custom",
+    customInstruction?: string,
+  ): Promise<{ polished_text: string; provider?: string }>;
   sendAIChat(
     conversationId: string,
     payload: { prompt: string; previous_draft?: string; refinement?: string; recipient_name?: string; channel?: string },

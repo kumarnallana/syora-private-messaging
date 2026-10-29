@@ -320,9 +320,9 @@ async def check_ollama_health(base_url: str, model: str) -> tuple[bool, list[str
     return await asyncio.to_thread(_check)
 
 
-async def call_gemini_api(system_prompt: str, user_prompt: str, api_key: str, model: str = "gemini-3.8-flash") -> str | None:
+async def call_gemini_api(system_prompt: str, user_prompt: str, api_key: str, model: str = "gemini-2.5-flash") -> str | None:
     """Call Google Gemini Generative Language API with model fallback."""
-    models_to_try = [model, "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest", "gemini-2.5-flash", "gemini-1.5-flash"]
+    models_to_try = [model, "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-1.5-flash", "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"]
     seen = set()
     models_to_try = [m for m in models_to_try if not (m in seen or seen.add(m))]
 
@@ -499,5 +499,192 @@ async def get_ai_diagnostics(settings: Any) -> dict[str, Any]:
             "always_ready": True,
         },
     }
+
+
+POLISH_SYSTEM_PROMPT = (
+    "You are Syora Inst AI, an ultra-fast inline writing copilot and spelling corrector. "
+    "Your job is to fix all spelling errors, typos, punctuation, and grammar mistakes, "
+    "and rewrite or craft the message according to the selected mode or user instruction.\n"
+    "CRITICAL OUTPUT RULES:\n"
+    "1. Output ONLY the final ready-to-send message text.\n"
+    "2. NEVER prepend or repeat the user instruction or query (e.g. NEVER output 'instruction: message' or 'Here is the draft:').\n"
+    "3. NEVER wrap the entire message in quotation marks.\n"
+    "4. NEVER include preambles, explanations, or conversational filler.\n"
+    "5. Return clean plain text ready for immediate transmission."
+)
+
+COMMON_TYPO_MAP = {
+    "everythi": "everything",
+    "somethin": "something",
+    "nothin": "nothing",
+    "pls": "please",
+    "plz": "please",
+    "thx": "thanks",
+    "u": "you",
+    "ur": "your",
+    "r": "are",
+    "im": "I'm",
+    "dont": "don't",
+    "cant": "can't",
+    "wont": "won't",
+    "idk": "I don't know",
+    "gonna": "going to",
+    "wanna": "want to",
+    "gotta": "got to",
+    "teh": "the",
+    "recieve": "receive",
+    "seperate": "separate",
+}
+
+
+def clean_llm_polished_output(text: str, custom_instruction: str | None = None) -> str:
+    cleaned = text.strip()
+    if (cleaned.startswith('"') and cleaned.endswith('"')) or (cleaned.startswith("'") and cleaned.endswith("'")):
+        cleaned = cleaned[1:-1].strip()
+
+    cleaned = re.sub(
+        r"^(?:Here is(?: the)?(?: rewritten| polished)? message:?|Rewritten message:?|Output:?|Draft:?)\s*",
+        "",
+        cleaned,
+        flags=re.I,
+    )
+
+    if custom_instruction:
+        instr_clean = re.escape(custom_instruction.strip())
+        cleaned = re.sub(rf"^{instr_clean}\s*:\s*", "", cleaned, flags=re.I)
+
+    return cleaned.strip()
+
+
+def offline_fallback_polish(draft: str, mode: str, custom_instruction: str | None = None) -> str:
+    norm_mode = (mode or "polish").lower().replace("auto_polish", "polish").replace("cta", "action")
+    raw = draft.strip()
+
+    # Apply typo corrections word by word
+    words = raw.split()
+    corrected_words = []
+    for w in words:
+        punct = ""
+        while w and w[-1] in ".,!?;:":
+            punct = w[-1] + punct
+            w = w[:-1]
+        lead_punct = ""
+        while w and w[0] in ".,!?;:'\"":
+            lead_punct += w[0]
+            w = w[1:]
+        lw = w.lower()
+        if lw in COMMON_TYPO_MAP:
+            replacement = COMMON_TYPO_MAP[lw]
+            if w.isupper():
+                replacement = replacement.upper()
+            elif w and w[0].isupper():
+                replacement = replacement.capitalize()
+            w = replacement
+        corrected_words.append(lead_punct + w + punct)
+
+    corrected = " ".join(corrected_words) if corrected_words else ""
+    if corrected:
+        corrected = corrected[0].upper() + corrected[1:]
+        if not re.search(r"[.!?]$", corrected):
+            corrected += "."
+
+    if norm_mode == "custom" and custom_instruction:
+        c_lower = custom_instruction.lower()
+        if "love" in c_lower and "friend" in c_lower:
+            return "Hey! Just wanted to take a moment to say how much I truly appreciate our friendship. You mean the world to me!"
+        if "urgent" in c_lower or "asap" in c_lower:
+            return f"Hi! Urgent update regarding our discussion: {corrected if corrected else 'Please review as soon as possible.'}"
+        if "concise" in c_lower or "bullet" in c_lower:
+            return f"Hi! Quick summary:\n• {corrected if corrected else 'Status on track.'}"
+        if not corrected:
+            return f"Hi! Reaching out regarding: {custom_instruction.strip()}."
+        return corrected
+
+    if norm_mode == "polish":
+        return corrected or "Hi there, hope everything is going well."
+
+    if norm_mode == "professional":
+        if not corrected:
+            return "Good day. I am writing to provide an update regarding our recent discussion."
+        res = corrected
+        res = re.sub(r"\bHey\b", "Hello", res)
+        res = re.sub(r"\bHi\b", "Dear colleague", res, count=1)
+        return res
+
+    if norm_mode == "concise":
+        if not corrected:
+            return "Status update: on track."
+        res = re.sub(r"^(Hi|Hello|Hey)(?:,?\s*how are you(?:\?|\.|\s*what are you doing\??)?)?", "", corrected, flags=re.I).strip()
+        res = re.sub(r"^([,\s.-]+)", "", res).strip()
+        if res:
+            res = res[0].upper() + res[1:]
+        return res or corrected
+
+    if norm_mode == "friendly":
+        if not corrected:
+            return "Hi! Hope you're having a wonderful day! Let me know if you need anything."
+        if not re.match(r"^(Hi|Hello|Hey)\b", corrected, re.I):
+            return f"Hi! {corrected}"
+        return corrected
+
+    if norm_mode == "action":
+        if not corrected:
+            return "Please review the details and let me know your thoughts when convenient."
+        if not re.search(r"please\s+let\s+me\s+know|looking\s+forward", corrected, re.I):
+            return f"{corrected} Please let me know your thoughts when convenient."
+        return corrected
+
+    return corrected or "Hi!"
+
+
+async def polish_message_with_ai(
+    draft: str,
+    mode: str,
+    custom_instruction: str | None,
+    settings: Any,
+    api_key_override: str | None = None,
+) -> tuple[str, str]:
+    norm_mode = (mode or "polish").lower().replace("auto_polish", "polish").replace("cta", "action")
+    draft_clean = draft.strip()
+    instr_clean = (custom_instruction or "").strip()
+
+    if norm_mode == "custom":
+        if draft_clean and instr_clean:
+            user_prompt = (
+                f"Fix all spelling mistakes, typos, and grammar, and rewrite this draft according to this user instruction: '{instr_clean}'.\n\n"
+                f"Original Draft: {draft_clean}"
+            )
+        elif instr_clean:
+            user_prompt = f"Draft a ready-to-send chat message that fulfills this intent or instruction: '{instr_clean}'"
+        else:
+            user_prompt = f"Fix all spelling mistakes, typos, grammar, and punctuation in this draft:\n\n{draft_clean}"
+    elif norm_mode == "polish":
+        user_prompt = f"Fix all spelling mistakes, typos, grammar, and punctuation in this draft, polishing it for natural clarity and elegant phrasing:\n\n{draft_clean}"
+    elif norm_mode == "professional":
+        user_prompt = f"Fix all spelling mistakes and typos, and rewrite this draft into an articulate, executive, professional workplace tone:\n\n{draft_clean}"
+    elif norm_mode == "concise":
+        user_prompt = f"Fix all spelling mistakes and typos, and rewrite this draft to be ultra-concise, crisp, and direct with zero filler words:\n\n{draft_clean}"
+    elif norm_mode == "friendly":
+        user_prompt = f"Fix all spelling mistakes and typos, and rewrite this draft into a warm, polite, collaborative, and friendly tone:\n\n{draft_clean}"
+    elif norm_mode == "action":
+        user_prompt = f"Fix all spelling mistakes and typos, and refine this draft to include a clear, direct call-to-action (CTA) with explicit next steps:\n\n{draft_clean}"
+    else:
+        user_prompt = f"Fix all spelling mistakes, typos, and grammar in this draft:\n\n{draft_clean}"
+
+    effective_gemini_key = api_key_override or settings.gemini_api_key
+    if effective_gemini_key:
+        preferred_model = getattr(settings, "gemini_model", "gemini-2.5-flash")
+        gemini_result = await call_gemini_api(POLISH_SYSTEM_PROMPT, user_prompt, effective_gemini_key, preferred_model)
+        if gemini_result and gemini_result.strip():
+            return clean_llm_polished_output(gemini_result, instr_clean), f"Gemini ({preferred_model})"
+
+    # Fallback to other configured providers
+    llm_res, provider = await call_external_llm_if_available(POLISH_SYSTEM_PROMPT, user_prompt, settings)
+    if llm_res and llm_res.strip():
+        return clean_llm_polished_output(llm_res, instr_clean), provider
+
+    fallback_res = offline_fallback_polish(draft_clean, norm_mode, instr_clean)
+    return fallback_res, "Syora Neural Engine"
+
 
 

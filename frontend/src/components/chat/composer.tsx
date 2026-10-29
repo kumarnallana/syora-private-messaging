@@ -5,6 +5,7 @@ import { useApp } from "@/stores/use-app";
 import type { Attachment, Message } from "@/types";
 import {
   ArrowRight,
+  LoaderCircle,
   Reply,
   RotateCcw,
   Send,
@@ -175,67 +176,23 @@ export function Composer({
     if (aiBusy) return;
     setAiBusy(true);
     setAiAction(tone);
+    setError("");
     const original = text;
     setUndoText(original);
 
     try {
-      const { callGeminiAPI } = await import("@/services/ai-engine");
-      let prompt = "";
-      if (tone === "custom" && customQuery?.trim()) {
-        prompt = original.trim()
-          ? `Transform the following message according to this instruction: "${customQuery.trim()}". Original message: "${original.trim()}". Return ONLY the converted message.`
-          : `Draft a ready-to-send message based on this prompt: "${customQuery.trim()}". Return ONLY the message text.`;
-      } else {
-        const promptMap: Record<string, string> = {
-          polish: `Polish this draft for maximum clarity, natural flow, perfect grammar, and elegant phrasing: "${original}"`,
-          professional: `Rewrite this message in an articulate, highly professional, respectful executive workplace tone: "${original}"`,
-          concise: `Make this message ultra-concise, crisp, and direct with zero filler words so it can be read in seconds: "${original}"`,
-          friendly: `Rewrite this message in a warm, friendly, collaborative, polite tone: "${original}"`,
-          action: `Refine this message to have a clear, direct call-to-action with explicit next steps: "${original}"`,
-        };
-        prompt = promptMap[tone] || `Polish this draft: "${original}"`;
-      }
-
-      const system =
-        "You are the Syora Confidential AI fast writing copilot. Return ONLY the rewritten message text. Do NOT include conversational preamble, explanations, quotation marks, or markdown wrappers.";
-      const refined = await callGeminiAPI(system, prompt);
-      if (refined && refined.trim()) {
-        setText(refined.trim());
-        setCustomMode(false);
-        setCustomInstruction("");
-      } else {
-        // High quality deterministic instant local fallback
-        let localRefined = original.trim();
-        if (tone === "concise") {
-          localRefined = localRefined.replace(
-            /^(I was just wondering if maybe|Could you possibly please|Just wanted to reach out and say|Hope you are doing well\.?)\s+/i,
-            "",
-          );
-          if (localRefined.length > 120 && localRefined.includes(".")) {
-            localRefined = localRefined.split(".")[0] + ".";
-          }
-        } else if (tone === "professional") {
-          localRefined = localRefined[0].toUpperCase() + localRefined.slice(1);
-          if (!/[.!?]$/.test(localRefined)) localRefined += ".";
-        } else if (tone === "friendly") {
-          if (!/^hi\b|^hello\b|^hey\b/i.test(localRefined)) {
-            localRefined = `Hi! ${localRefined}`;
-          }
-        } else if (tone === "action") {
-          if (
-            !/please\s+let\s+me\s+know|looking\s+forward/i.test(localRefined)
-          ) {
-            localRefined = `${localRefined} Please let me know your thoughts when convenient.`;
-          }
-        } else if (tone === "custom" && customQuery) {
-          localRefined = `${customQuery}: ${localRefined}`;
-        }
-        setText(localRefined);
+      const res = await services.polishMessage(original, tone, customQuery);
+      if (res && res.polished_text && res.polished_text.trim()) {
+        setText(res.polished_text.trim());
         setCustomMode(false);
         setCustomInstruction("");
       }
-    } catch {
-      // Keep original on error
+    } catch (err: any) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "SYORA INST AI could not transform this draft. Please try again.",
+      );
     } finally {
       setAiBusy(false);
       setAiAction("");
@@ -322,14 +279,17 @@ export function Composer({
         <div
           className="composer-ai-tray"
           role="group"
-          aria-label="Syora Fast AI Assistant"
+          aria-label="SYORA INST AI Writing Copilot"
         >
           <div className="composer-ai-tray__header">
             <div className="composer-ai-tray__badge">
               <Sparkles size={14} className="text-accent" />
-              <span>Syora Fast AI</span>
+              <span>SYORA INST AI</span>
               {aiBusy && (
-                <span className="composer-ai-status">Converting…</span>
+                <span className="composer-ai-status">
+                  <LoaderCircle size={11} className="animate-spin" />
+                  <span>Processing…</span>
+                </span>
               )}
             </div>
             <div className="composer-ai-tray__actions">
@@ -371,7 +331,7 @@ export function Composer({
                 className="composer-ai-custom-input"
                 placeholder={
                   text.trim()
-                    ? "Convert this message… (e.g. into 3 bullet points, translate, urgent)"
+                    ? "Convert this message… (e.g. into 3 bullet points, translate, affectionate)"
                     : "What message should I draft? (e.g. tell boss I finished report)..."
                 }
                 value={customInstruction}
@@ -383,7 +343,14 @@ export function Composer({
                 className="button primary small"
                 disabled={aiBusy || !customInstruction.trim()}
               >
-                {aiBusy ? "Converting…" : "Apply"}
+                {aiBusy && aiAction === "custom" ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <LoaderCircle size={12} className="animate-spin" />
+                    Converting…
+                  </span>
+                ) : (
+                  "Apply"
+                )}
               </button>
               <button
                 type="button"
@@ -402,8 +369,12 @@ export function Composer({
                 disabled={aiBusy}
                 onClick={() => void handleAITransform("polish")}
               >
-                <Sparkles size={13} />
-                <span>Auto-Polish</span>
+                {aiBusy && aiAction === "polish" ? (
+                  <LoaderCircle size={13} className="animate-spin text-accent" />
+                ) : (
+                  <Sparkles size={13} />
+                )}
+                <span>{aiBusy && aiAction === "polish" ? "Polishing…" : "Auto-Polish"}</span>
               </button>
               <button
                 type="button"
@@ -411,8 +382,12 @@ export function Composer({
                 disabled={aiBusy}
                 onClick={() => void handleAITransform("professional")}
               >
-                <Wand2 size={13} />
-                <span>Professional</span>
+                {aiBusy && aiAction === "professional" ? (
+                  <LoaderCircle size={13} className="animate-spin text-accent" />
+                ) : (
+                  <Wand2 size={13} />
+                )}
+                <span>{aiBusy && aiAction === "professional" ? "Rewriting…" : "Professional"}</span>
               </button>
               <button
                 type="button"
@@ -420,8 +395,12 @@ export function Composer({
                 disabled={aiBusy}
                 onClick={() => void handleAITransform("concise")}
               >
-                <Zap size={13} />
-                <span>Make Concise</span>
+                {aiBusy && aiAction === "concise" ? (
+                  <LoaderCircle size={13} className="animate-spin text-accent" />
+                ) : (
+                  <Zap size={13} />
+                )}
+                <span>{aiBusy && aiAction === "concise" ? "Shortening…" : "Make Concise"}</span>
               </button>
               <button
                 type="button"
@@ -429,8 +408,12 @@ export function Composer({
                 disabled={aiBusy}
                 onClick={() => void handleAITransform("friendly")}
               >
-                <Smile size={13} />
-                <span>Friendly</span>
+                {aiBusy && aiAction === "friendly" ? (
+                  <LoaderCircle size={13} className="animate-spin text-accent" />
+                ) : (
+                  <Smile size={13} />
+                )}
+                <span>{aiBusy && aiAction === "friendly" ? "Warming…" : "Friendly"}</span>
               </button>
               <button
                 type="button"
@@ -438,8 +421,12 @@ export function Composer({
                 disabled={aiBusy}
                 onClick={() => void handleAITransform("action")}
               >
-                <ArrowRight size={13} />
-                <span>Action / CTA</span>
+                {aiBusy && aiAction === "action" ? (
+                  <LoaderCircle size={13} className="animate-spin text-accent" />
+                ) : (
+                  <ArrowRight size={13} />
+                )}
+                <span>{aiBusy && aiAction === "action" ? "Adding CTA…" : "Action / CTA"}</span>
               </button>
               <button
                 type="button"

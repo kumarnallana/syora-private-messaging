@@ -137,10 +137,8 @@ export function AIAssistant() {
       if (convs && convs.length > 0) {
         setActiveConversationId(convs[0].id);
       } else {
-        // Create initial conversation
-        const created = await services.createAIConversation("Professional Messaging");
-        setConversations([created]);
-        setActiveConversationId(created.id);
+        setActiveConversationId(null);
+        setMessages([]);
       }
     } catch (err: any) {
       console.error("Failed to load AI initial data", err);
@@ -310,19 +308,38 @@ export function AIAssistant() {
   // Delete Chat
   const handleDeleteChat = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    const remaining = conversations.filter((c) => c.id !== id);
+    setConversations(remaining);
+    if (activeConversationId === id) {
+      if (remaining.length > 0) {
+        setActiveConversationId(remaining[0].id);
+      } else {
+        setActiveConversationId(null);
+        setMessages([]);
+      }
+    }
     try {
       await services.deleteAIConversation(id);
-      const remaining = conversations.filter((c) => c.id !== id);
-      setConversations(remaining);
-      if (activeConversationId === id) {
-        if (remaining.length > 0) {
-          setActiveConversationId(remaining[0].id);
-        } else {
-          void handleNewChat();
-        }
-      }
     } catch (err: any) {
       console.error("Failed to delete AI conversation", err);
+    }
+  };
+
+  // Clear All History
+  const handleClearAllHistory = async () => {
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm(
+        "Are you sure you want to permanently clear all AI chat history? This cannot be undone.",
+      );
+      if (!confirmed) return;
+    }
+    setConversations([]);
+    setActiveConversationId(null);
+    setMessages([]);
+    try {
+      await services.clearAllAIConversations();
+    } catch (err: any) {
+      console.error("Failed to clear all AI conversations", err);
     }
   };
 
@@ -373,9 +390,18 @@ export function AIAssistant() {
     const text = promptToSend || inputPrompt;
     if (!text.trim() || isGenerating) return;
 
-    if (!activeConversationId) {
-      await handleNewChat();
-      return;
+    let targetConvId = activeConversationId;
+    if (!targetConvId) {
+      try {
+        const title = text.slice(0, 36) + (text.length > 36 ? "…" : "");
+        const created = await services.createAIConversation(title || "New Assistant Chat");
+        setConversations((prev) => [created, ...prev]);
+        setActiveConversationId(created.id);
+        targetConvId = created.id;
+      } catch (err: any) {
+        setErrorNotice("Could not start chat session. Please try again.");
+        return;
+      }
     }
 
     const previousDraft = targetDraftId ? activeDrafts[targetDraftId] : undefined;
@@ -393,7 +419,7 @@ export function AIAssistant() {
     setErrorNotice(null);
 
     try {
-      const res = await services.sendAIChat(activeConversationId, {
+      const res = await services.sendAIChat(targetConvId, {
         prompt: text,
         previous_draft: previousDraft,
         refinement: refinementRule,
@@ -651,7 +677,7 @@ export function AIAssistant() {
           )}
         </div>
 
-        <div className="p-[12px] border-t border-border/80">
+        <div className="p-[12px] border-t border-border/80 flex flex-col gap-2">
           <button
             type="button"
             className="button secondary small w-full justify-center"
@@ -659,6 +685,16 @@ export function AIAssistant() {
           >
             <LayoutGrid size={14} /> Scenario Templates
           </button>
+          {conversations.length > 0 && (
+            <button
+              type="button"
+              className="button secondary small w-full justify-center text-danger/80 hover:text-danger hover:border-danger/30"
+              onClick={() => void handleClearAllHistory()}
+              title="Permanently delete all AI chat history"
+            >
+              <Trash2 size={13} /> Clear All History
+            </button>
+          )}
         </div>
       </aside>
 
@@ -1620,7 +1656,7 @@ export function AIAssistant() {
               {filteredConversations.map((c) => renderSessionItem(c, true))}
             </div>
 
-            <div className="p-[12px] border-t border-border">
+            <div className="p-[12px] border-t border-border flex flex-col gap-2">
               <button
                 type="button"
                 className="button primary small w-full justify-center"
@@ -1631,6 +1667,18 @@ export function AIAssistant() {
               >
                 <Plus size={14} /> New Chat
               </button>
+              {conversations.length > 0 && (
+                <button
+                  type="button"
+                  className="button secondary small w-full justify-center text-danger/80 hover:text-danger"
+                  onClick={() => {
+                    setShowHistorySidebar(false);
+                    void handleClearAllHistory();
+                  }}
+                >
+                  <Trash2 size={13} /> Clear All History
+                </button>
+              )}
             </div>
           </div>
         </>

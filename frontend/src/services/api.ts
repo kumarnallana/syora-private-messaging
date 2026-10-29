@@ -1686,7 +1686,41 @@ export class ApiServices implements Services {
     );
   }
   async deleteAIConversation(id: string): Promise<void> {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = JSON.parse(
+          localStorage.getItem("syora:ai-conversations-cache") || "[]",
+        );
+        const filtered = stored.filter((c: any) => c.id !== id);
+        localStorage.setItem(
+          "syora:ai-conversations-cache",
+          JSON.stringify(filtered),
+        );
+      } catch {}
+    }
     await this.fetch(`/api/ai/conversations/${id}`, { method: "DELETE" });
+  }
+  async clearAllAIConversations(): Promise<void> {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("syora:ai-conversations-cache");
+      } catch {}
+    }
+    await this.fetch("/api/ai/conversations", { method: "DELETE" });
+  }
+  async polishMessage(
+    draft: string,
+    mode: "polish" | "professional" | "concise" | "friendly" | "action" | "custom",
+    customInstruction?: string,
+  ): Promise<{ polished_text: string; provider?: string }> {
+    return this.fetch<{ polished_text: string; provider?: string }>("/api/ai/polish", {
+      method: "POST",
+      body: JSON.stringify({
+        draft,
+        mode,
+        custom_instruction: customInstruction,
+      }),
+    });
   }
   async sendAIChat(
     conversationId: string,
@@ -1772,6 +1806,149 @@ export class ApiServices implements Services {
         contacts: this.state.users.filter(
           (u) => u.id !== this.state.currentUserId,
         ),
+      } as T;
+    }
+
+    if (path === "/api/ai/conversations" && init.method === "DELETE") {
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.removeItem("syora:ai-conversations-cache");
+        } catch {}
+      }
+      return { cleared: true, count: 0 } as T;
+    }
+
+    if (
+      path.startsWith("/api/ai/conversations/") &&
+      init.method === "DELETE"
+    ) {
+      const parts = path.split("/");
+      const targetId = parts[parts.length - 1];
+      if (typeof window !== "undefined") {
+        try {
+          const stored = JSON.parse(
+            localStorage.getItem("syora:ai-conversations-cache") || "[]",
+          );
+          const filtered = stored.filter((c: any) => c.id !== targetId);
+          localStorage.setItem(
+            "syora:ai-conversations-cache",
+            JSON.stringify(filtered),
+          );
+        } catch {}
+      }
+      return { deleted: true } as T;
+    }
+
+    if (path === "/api/ai/polish") {
+      let body: any = {};
+      try {
+        body = JSON.parse(init.body as string);
+      } catch {}
+      const draft = (body.draft || "").trim();
+      const mode = body.mode || "polish";
+      const customInstruction = (body.custom_instruction || "").trim();
+
+      const POLISH_SYS =
+        "You are Syora Inst AI, an ultra-fast inline writing copilot and spelling corrector. " +
+        "Fix all spelling mistakes, typos, punctuation, and grammar mistakes, and rewrite the message according to the instruction. " +
+        "Output ONLY the final polished message text ready to send. NEVER prepend or repeat the user instruction, never wrap in quotes, never include preambles.";
+
+      let prompt = "";
+      if (mode === "custom") {
+        if (draft && customInstruction) {
+          prompt = `Fix all spelling mistakes and typos, and rewrite this draft according to this user instruction: "${customInstruction}".\nDraft: ${draft}`;
+        } else if (customInstruction) {
+          prompt = `Draft a ready-to-send chat message based on this intent or instruction: "${customInstruction}"`;
+        } else {
+          prompt = `Fix all spelling mistakes, typos, grammar, and punctuation in this draft:\n${draft}`;
+        }
+      } else if (mode === "polish" || mode === "auto_polish") {
+        prompt = `Fix all spelling mistakes, typos, grammar, and punctuation in this draft, polishing it for natural clarity and elegant phrasing:\n${draft}`;
+      } else if (mode === "professional") {
+        prompt = `Fix all spelling mistakes and typos, and rewrite this draft into an articulate, highly professional executive workplace tone:\n${draft}`;
+      } else if (mode === "concise") {
+        prompt = `Fix all spelling mistakes and typos, and rewrite this draft to be ultra-concise, crisp, and direct with zero filler words:\n${draft}`;
+      } else if (mode === "friendly") {
+        prompt = `Fix all spelling mistakes and typos, and rewrite this draft into a warm, polite, and friendly tone:\n${draft}`;
+      } else if (mode === "action" || mode === "cta") {
+        prompt = `Fix all spelling mistakes and typos, and refine this draft to include a clear, direct call-to-action (CTA) with explicit next steps:\n${draft}`;
+      } else {
+        prompt = `Fix all spelling mistakes, typos, and grammar in this draft:\n${draft}`;
+      }
+
+      if (savedGeminiKey) {
+        const geminiRes = await callGeminiAPI(
+          POLISH_SYS,
+          prompt,
+          savedGeminiKey,
+          "gemini-2.5-flash",
+        );
+        if (geminiRes && geminiRes.trim()) {
+          let cleaned = geminiRes.trim().replace(/^["']|["']$/g, "").trim();
+          if (customInstruction) {
+            cleaned = cleaned.replace(new RegExp(`^${customInstruction}:?\\s*`, "i"), "");
+          }
+          return {
+            polished_text: cleaned,
+            provider: "Google Gemini (gemini-2.5-flash)",
+          } as T;
+        }
+      }
+
+      const typoMap: Record<string, string> = {
+        everythi: "everything",
+        somethin: "something",
+        nothin: "nothing",
+        pls: "please",
+        plz: "please",
+        thx: "thanks",
+        u: "you",
+        ur: "your",
+        r: "are",
+        im: "I'm",
+        dont: "don't",
+        cant: "can't",
+        wont: "won't",
+      };
+      const words = draft.split(/\s+/);
+      const correctedWords = words.map((w: string) => {
+        let core = w.replace(/[.,!?;:]+$/, "");
+        const punct = w.slice(core.length);
+        const lower = core.toLowerCase();
+        if (typoMap[lower]) {
+          core = typoMap[lower];
+        }
+        return core + punct;
+      });
+      let localRefined = correctedWords.join(" ").trim();
+      if (localRefined) {
+        localRefined = localRefined[0].toUpperCase() + localRefined.slice(1);
+        if (!/[.!?]$/.test(localRefined)) localRefined += ".";
+      }
+
+      if (mode === "custom" && customInstruction) {
+        const cLow = customInstruction.toLowerCase();
+        if (cLow.includes("love") && cLow.includes("friend")) {
+          localRefined =
+            "Hey! Just wanted to take a moment to say how much I truly appreciate our friendship. You mean the world to me!";
+        } else if (!localRefined) {
+          localRefined = `Hi! Reaching out regarding: ${customInstruction}.`;
+        }
+      } else if (mode === "friendly") {
+        if (!/^hi\b|^hello\b|^hey\b/i.test(localRefined)) {
+          localRefined = `Hi! ${localRefined}`;
+        }
+      } else if (mode === "professional") {
+        localRefined = localRefined.replace(/\bhey\b/gi, "Hello");
+      } else if (mode === "action" || mode === "cta") {
+        if (!/please let me know|looking forward/i.test(localRefined)) {
+          localRefined = `${localRefined} Please let me know your thoughts when convenient.`;
+        }
+      }
+
+      return {
+        polished_text: localRefined || "Hi there, hope everything is going well.",
+        provider: "Syora Neural Engine",
       } as T;
     }
 

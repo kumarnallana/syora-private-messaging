@@ -112,6 +112,43 @@ class TestAIAssistant(unittest.TestCase):
         self.assertIsNone(text)
         self.assertEqual(label, "Built-in Neural Engine")
 
+    def test_polish_message_typo_correction(self):
+        import asyncio
+        from app.config.settings import Settings
+        from app.services.ai_assistant import polish_message_with_ai
+        settings = Settings(
+            DATABASE_URL="postgresql+asyncpg://user:pass@localhost:5432/test",
+            JWT_ACCESS_SECRET="12345678901234567890123456789012",
+            JWT_REFRESH_SECRET="12345678901234567890123456789012",
+            CLIENT_ORIGINS=["http://localhost:3000"],
+            GEMINI_API_KEY="",
+            OLLAMA_ENABLED=False,
+        )
+        draft = "hi how are you is everythi going well"
+        polished, provider = asyncio.run(polish_message_with_ai(draft, "polish", None, settings))
+        self.assertIn("everything", polished)
+        self.assertNotIn("everythi ", polished)
+        self.assertTrue(polished.endswith("."))
+
+    def test_polish_message_custom_never_prepends_instruction(self):
+        import asyncio
+        from app.config.settings import Settings
+        from app.services.ai_assistant import polish_message_with_ai
+        settings = Settings(
+            DATABASE_URL="postgresql+asyncpg://user:pass@localhost:5432/test",
+            JWT_ACCESS_SECRET="12345678901234567890123456789012",
+            JWT_REFRESH_SECRET="12345678901234567890123456789012",
+            CLIENT_ORIGINS=["http://localhost:3000"],
+            GEMINI_API_KEY="",
+            OLLAMA_ENABLED=False,
+        )
+        instruction = "i just want to share my love thought best friend"
+        draft = "hi how are you"
+        polished, provider = asyncio.run(polish_message_with_ai(draft, "custom", instruction, settings))
+        self.assertFalse(polished.startswith("i just want to share my love thought best friend:"))
+        self.assertNotIn("i just want to share my love thought best friend:", polished)
+        self.assertTrue(len(polished) > 5)
+
 
 if __name__ == "__main__":
     unittest.main()
