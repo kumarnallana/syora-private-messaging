@@ -1,6 +1,6 @@
 @layer components {
   .status-page {
-    @apply max-w-[1100px];
+    @apply mx-auto max-w-[840px];
   }
   .status-page > section {
     @apply border-b border-border/70 pb-[14px];
@@ -10,9 +10,6 @@
   }
   .status-page .empty-state__icon {
     @apply size-[36px] rounded-[9px] shrink-0;
-  }
-  .status-page .empty-state__text {
-    @apply flex flex-col min-w-0;
   }
   .status-page .empty-state h2 {
     @apply text-[13px] font-medium;

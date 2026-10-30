@@ -163,10 +163,8 @@ export function Empty({
       <span className="empty-state__icon">
         <Sparkles size={28} />
       </span>
-      <div className="empty-state__text">
-        <h2>{title}</h2>
-        <p>{description}</p>
-      </div>
+      <h2>{title}</h2>
+      <p>{description}</p>
       {children}
     </div>
   );

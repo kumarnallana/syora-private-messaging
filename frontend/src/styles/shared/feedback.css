@@ -257,9 +257,6 @@
     @apply grid size-[58px] place-items-center rounded-[15px] text-accent;
     background: var(--accent-soft);
   }
-  .empty-state__text {
-    @apply flex flex-col items-center gap-[6px];
-  }
   .empty-state h2 {
     @apply text-[19px] font-medium;
   }
