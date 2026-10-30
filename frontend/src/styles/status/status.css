@@ -1,36 +1,45 @@
 @layer components {
   .status-page {
-    @apply mx-auto max-w-[1480px];
+    @apply mx-auto max-w-[840px];
   }
   .status-page > section {
-    @apply border-b border-border/70 pb-[18px];
+    @apply border-b border-border/70 pb-[14px];
   }
-  .status-page > section > .empty-state {
-    @apply py-[30px];
+  .status-page .empty-state {
+    @apply flex-row items-center gap-[12px] p-[12px_14px] text-left rounded-[9px] border border-border/60 bg-surface/50 mt-[8px];
+  }
+  .status-page .empty-state__icon {
+    @apply size-[36px] rounded-[9px] shrink-0;
+  }
+  .status-page .empty-state h2 {
+    @apply text-[13px] font-medium;
+  }
+  .status-page .empty-state p {
+    @apply text-[12px] leading-[1.4] text-muted max-w-none mt-[2px];
   }
   .status-grid {
     @apply grid grid-cols-1 gap-[4px];
   }
   .status-card {
-    @apply flex items-center rounded-[9px] bg-panel p-[12px];
+    @apply flex items-center rounded-[9px] bg-panel p-[10px_12px];
   }
   .status-open {
-    @apply flex min-w-0 flex-1 items-center gap-[13px] text-left;
+    @apply flex min-w-0 flex-1 items-center gap-[11px] text-left;
   }
   .status-ring {
-    @apply grid place-items-center rounded-full border-[2px] border-accent p-[3px];
+    @apply grid place-items-center rounded-full border-[2px] border-accent p-[2px];
   }
   .status-open > span:last-child {
     @apply min-w-0;
   }
   .status-open strong {
-    @apply block text-[14px] font-medium;
+    @apply block text-[13px] font-medium;
   }
   .status-open small {
-    @apply mt-[4px] block text-[12px] text-muted;
+    @apply mt-[2px] block text-[11px] text-muted;
   }
   .status-open p {
-    @apply mt-[6px] overflow-hidden text-ellipsis whitespace-nowrap text-[13px] text-muted;
+    @apply mt-[4px] overflow-hidden text-ellipsis whitespace-nowrap text-[12px] text-muted;
   }
 
   .status-compose,
@@ -104,7 +113,7 @@
   }
   @media (min-width: 900px) {
     .status-page {
-      @apply grid content-start items-start gap-x-[24px] gap-y-[20px];
+      @apply grid content-start items-start gap-x-[18px] gap-y-[16px];
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .status-page > .page-header,
@@ -116,10 +125,10 @@
       @apply mb-0;
     }
     .status-page > section {
-      @apply rounded-[12px] border border-border bg-panel px-[18px] pb-[18px];
+      @apply rounded-[10px] border border-border bg-panel px-[14px] pb-[14px];
     }
     .status-page > section > .section-heading {
-      @apply mt-[18px];
+      @apply mt-[14px] text-[13px];
     }
   }
   @media (max-width: 899px) {

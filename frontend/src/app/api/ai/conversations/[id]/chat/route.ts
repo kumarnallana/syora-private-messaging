@@ -4,6 +4,11 @@ import {
   extractRecipientAndChannel,
   synthesizeProfessionalMessage,
 } from "@/services/ai-engine";
+import {
+  addMessageToStore,
+  inMemoryConversations,
+  updateConversationInStore,
+} from "../../store";
 
 export async function POST(
   request: Request,
@@ -67,8 +72,19 @@ export async function POST(
     }
   }
 
+  // Save user message
+  const userMsgRecord = {
+    id: "user-" + Date.now(),
+    role: "user",
+    content: prompt,
+    created_at: new Date().toISOString(),
+  };
+  addMessageToStore(conversationId, userMsgRecord);
+
+  let responsePayload: any;
+
   if (llmDraft) {
-    return NextResponse.json({
+    responsePayload = {
       message_id: "msg-" + Date.now(),
       role: "assistant",
       content: `I've tailored a professional draft for ${targetRecipient || "your recipient"} using ${providerLabel}. You can review, edit, or approve it below.`,
@@ -79,27 +95,52 @@ export async function POST(
       is_send_command: false,
       requires_authorization: false,
       suggested_actions: ["Make more concise", "More formal", "Friendlier", "Add clear CTA"],
-    });
+    };
+  } else {
+    // Fallback: Syora Neural Engine
+    const synthesis = synthesizeProfessionalMessage(
+      prompt,
+      targetRecipient || undefined,
+      body.previous_draft,
+      body.refinement
+    );
+
+    responsePayload = {
+      message_id: "msg-" + Date.now(),
+      role: "assistant",
+      content: synthesis.reasoning,
+      draft_message: synthesis.draft,
+      provider: synthesis.provider,
+      recipient: targetRecipient ? { name: targetRecipient } : null,
+      channel: targetChannel,
+      is_send_command: false,
+      requires_authorization: false,
+      suggested_actions: synthesis.suggested_actions,
+    };
   }
 
-  // Fallback: Syora Neural Engine
-  const synthesis = synthesizeProfessionalMessage(
-    prompt,
-    targetRecipient || undefined,
-    body.previous_draft,
-    body.refinement
-  );
-
-  return NextResponse.json({
-    message_id: "msg-" + Date.now(),
+  // Save assistant message and update conversation summary
+  const asstMsgRecord = {
+    id: responsePayload.message_id,
     role: "assistant",
-    content: synthesis.reasoning,
-    draft_message: synthesis.draft,
-    provider: synthesis.provider,
-    recipient: targetRecipient ? { name: targetRecipient } : null,
+    content: responsePayload.content,
+    draft_message: responsePayload.draft_message,
+    recipient_name: targetRecipient,
     channel: targetChannel,
-    is_send_command: false,
-    requires_authorization: false,
-    suggested_actions: synthesis.suggested_actions,
+    created_at: new Date().toISOString(),
+  };
+  addMessageToStore(conversationId, asstMsgRecord);
+
+  const existingConv = inMemoryConversations.find((c) => c.id === conversationId);
+  const promptTitle = prompt.slice(0, 36) + (prompt.length > 36 ? "…" : "");
+  updateConversationInStore(conversationId, {
+    title: existingConv?.title === "New Assistant Chat" ? promptTitle : (existingConv?.title || promptTitle),
+    last_message: prompt.slice(0, 90),
+    last_draft: responsePayload.draft_message?.slice(0, 90) || "",
+    last_recipient: targetRecipient || "",
+    last_channel: targetChannel || "",
+    message_count: ((existingConv?.message_count || 0) + 2),
   });
+
+  return NextResponse.json(responsePayload);
 }

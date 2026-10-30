@@ -105,10 +105,16 @@ export class ApiServices implements Services {
       try {
         const AudioContextClass =
           window.AudioContext ||
-          (window as typeof window & { webkitAudioContext?: typeof AudioContext })
-            .webkitAudioContext;
+          (
+            window as typeof window & {
+              webkitAudioContext?: typeof AudioContext;
+            }
+          ).webkitAudioContext;
         if (AudioContextClass) {
-          if (!this.sharedAudioContext || this.sharedAudioContext.state === "closed") {
+          if (
+            !this.sharedAudioContext ||
+            this.sharedAudioContext.state === "closed"
+          ) {
             this.sharedAudioContext = new AudioContextClass();
           }
           if (this.sharedAudioContext.state === "suspended") {
@@ -123,11 +129,23 @@ export class ApiServices implements Services {
       window.removeEventListener("click", unlock, true);
       window.removeEventListener("keydown", unlock, true);
     };
-    window.addEventListener("touchstart", unlock, { capture: true, passive: true });
-    window.addEventListener("touchend", unlock, { capture: true, passive: true });
-    window.addEventListener("pointerdown", unlock, { capture: true, passive: true });
+    window.addEventListener("touchstart", unlock, {
+      capture: true,
+      passive: true,
+    });
+    window.addEventListener("touchend", unlock, {
+      capture: true,
+      passive: true,
+    });
+    window.addEventListener("pointerdown", unlock, {
+      capture: true,
+      passive: true,
+    });
     window.addEventListener("click", unlock, { capture: true, passive: true });
-    window.addEventListener("keydown", unlock, { capture: true, passive: true });
+    window.addEventListener("keydown", unlock, {
+      capture: true,
+      passive: true,
+    });
   }
 
   private getAudioContext(): AudioContext | undefined {
@@ -138,7 +156,10 @@ export class ApiServices implements Services {
         (window as typeof window & { webkitAudioContext?: typeof AudioContext })
           .webkitAudioContext;
       if (!AudioContextClass) return undefined;
-      if (!this.sharedAudioContext || this.sharedAudioContext.state === "closed") {
+      if (
+        !this.sharedAudioContext ||
+        this.sharedAudioContext.state === "closed"
+      ) {
         this.sharedAudioContext = new AudioContextClass();
       }
       if (this.sharedAudioContext.state === "suspended") {
@@ -1738,17 +1759,26 @@ export class ApiServices implements Services {
   }
   async polishMessage(
     draft: string,
-    mode: "polish" | "professional" | "concise" | "friendly" | "action" | "custom",
+    mode:
+      | "polish"
+      | "professional"
+      | "concise"
+      | "friendly"
+      | "action"
+      | "custom",
     customInstruction?: string,
   ): Promise<{ polished_text: string; provider?: string }> {
-    return this.fetch<{ polished_text: string; provider?: string }>("/api/ai/polish", {
-      method: "POST",
-      body: JSON.stringify({
-        draft,
-        mode,
-        custom_instruction: customInstruction,
-      }),
-    });
+    return this.fetch<{ polished_text: string; provider?: string }>(
+      "/api/ai/polish",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          draft,
+          mode,
+          custom_instruction: customInstruction,
+        }),
+      },
+    );
   }
   async sendAIChat(
     conversationId: string,
@@ -1847,10 +1877,7 @@ export class ApiServices implements Services {
       return { cleared: true, count: 0 } as T;
     }
 
-    if (
-      path.startsWith("/api/ai/conversations/") &&
-      init.method === "DELETE"
-    ) {
+    if (path.startsWith("/api/ai/conversations/") && init.method === "DELETE") {
       const parts = path.split("/");
       const targetId = parts[parts.length - 1];
       if (typeof window !== "undefined") {
@@ -1863,9 +1890,38 @@ export class ApiServices implements Services {
             "syora:ai-conversations-cache",
             JSON.stringify(filtered),
           );
+          localStorage.removeItem(`syora:ai-messages:${targetId}`);
         } catch {}
       }
       return { deleted: true } as T;
+    }
+
+    if (
+      path.startsWith("/api/ai/conversations/") &&
+      (!init.method || init.method === "GET")
+    ) {
+      const parts = path.split("/");
+      const targetId = parts[parts.length - 1];
+      let storedConvs: any[] = [];
+      let storedMessages: any[] = [];
+      if (typeof window !== "undefined") {
+        try {
+          storedConvs = JSON.parse(
+            localStorage.getItem("syora:ai-conversations-cache") || "[]",
+          );
+          storedMessages = JSON.parse(
+            localStorage.getItem(`syora:ai-messages:${targetId}`) || "[]",
+          );
+        } catch {}
+      }
+      const conv = storedConvs.find((c: any) => c.id === targetId);
+      return {
+        id: targetId,
+        title: conv?.title || "Assistant Chat",
+        created_at: conv?.created_at || new Date().toISOString(),
+        updated_at: conv?.updated_at || new Date().toISOString(),
+        messages: storedMessages,
+      } as T;
     }
 
     if (path === "/api/ai/polish") {
@@ -1913,9 +1969,15 @@ export class ApiServices implements Services {
           "gemini-2.5-flash",
         );
         if (geminiRes && geminiRes.trim()) {
-          let cleaned = geminiRes.trim().replace(/^["']|["']$/g, "").trim();
+          let cleaned = geminiRes
+            .trim()
+            .replace(/^["']|["']$/g, "")
+            .trim();
           if (customInstruction) {
-            cleaned = cleaned.replace(new RegExp(`^${customInstruction}:?\\s*`, "i"), "");
+            cleaned = cleaned.replace(
+              new RegExp(`^${customInstruction}:?\\s*`, "i"),
+              "",
+            );
           }
           return {
             polished_text: cleaned,
@@ -1927,7 +1989,8 @@ export class ApiServices implements Services {
       const localRefined = polishMessageLocally(draft, mode, customInstruction);
 
       return {
-        polished_text: localRefined || "Hi there, hope everything is going well.",
+        polished_text:
+          localRefined || "Hi there, hope everything is going well.",
         provider: "Syora Neural Engine",
       } as T;
     }
@@ -1961,10 +2024,11 @@ export class ApiServices implements Services {
         const stored = JSON.parse(
           localStorage.getItem("syora:ai-conversations-cache") || "[]",
         );
-        stored.unshift(item);
+        const filtered = stored.filter((c: any) => c.id !== item.id);
+        filtered.unshift(item);
         localStorage.setItem(
           "syora:ai-conversations-cache",
-          JSON.stringify(stored),
+          JSON.stringify(filtered),
         );
       }
       return item as T;
@@ -2006,8 +2070,65 @@ export class ApiServices implements Services {
         provider = synth.provider;
       }
 
+      const match = path.match(/\/conversations\/([^/]+)\/chat/);
+      const convId = match ? match[1] : undefined;
+      const asstMsgId = "asst-" + Date.now();
+
+      if (convId && typeof window !== "undefined") {
+        try {
+          const userMsg = {
+            id: "user-" + Date.now(),
+            role: "user",
+            content: prompt,
+            created_at: new Date().toISOString(),
+          };
+          const asstMsg = {
+            id: asstMsgId,
+            role: "assistant",
+            content: `I've prepared a professional message for ${targetRecipient || "your recipient"} using ${provider}. You can review, refine, or approve it below.`,
+            draft_message: draft,
+            provider,
+            recipient_name: targetRecipient,
+            channel: body.channel || channel || "syora",
+            created_at: new Date().toISOString(),
+          };
+          const existingMsgs = JSON.parse(
+            localStorage.getItem(`syora:ai-messages:${convId}`) || "[]",
+          );
+          existingMsgs.push(userMsg, asstMsg);
+          localStorage.setItem(
+            `syora:ai-messages:${convId}`,
+            JSON.stringify(existingMsgs),
+          );
+
+          const storedConvs = JSON.parse(
+            localStorage.getItem("syora:ai-conversations-cache") || "[]",
+          );
+          const convIndex = storedConvs.findIndex((c: any) => c.id === convId);
+          if (convIndex >= 0) {
+            const promptTitle =
+              prompt.slice(0, 36) + (prompt.length > 36 ? "…" : "");
+            if (storedConvs[convIndex].title === "New Assistant Chat") {
+              storedConvs[convIndex].title = promptTitle;
+            }
+            storedConvs[convIndex].last_message = prompt.slice(0, 90);
+            storedConvs[convIndex].last_draft = draft.slice(0, 90);
+            storedConvs[convIndex].last_recipient = targetRecipient || "";
+            storedConvs[convIndex].last_channel =
+              body.channel || channel || "syora";
+            storedConvs[convIndex].updated_at = new Date().toISOString();
+            storedConvs[convIndex].message_count =
+              (storedConvs[convIndex].message_count || 0) + 2;
+            localStorage.setItem(
+              "syora:ai-conversations-cache",
+              JSON.stringify(storedConvs),
+            );
+          }
+        } catch {}
+      }
+
       return {
-        message_id: "asst-" + Date.now(),
+        message_id: asstMsgId,
         role: "assistant",
         content: `I've prepared a professional message for ${targetRecipient || "your recipient"} using ${provider}. You can review, refine, or approve it below.`,
         draft_message: draft,

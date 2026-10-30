@@ -285,12 +285,6 @@ export function Composer({
             <div className="composer-ai-tray__badge">
               <Sparkles size={14} className="text-accent" />
               <span>SYORA INST AI</span>
-              {aiBusy && (
-                <span className="composer-ai-status">
-                  <LoaderCircle size={11} className="animate-spin" />
-                  <span>Processing…</span>
-                </span>
-              )}
             </div>
             <div className="composer-ai-tray__actions">
               {undoText !== null && (

@@ -66,6 +66,17 @@ function formatRelativeTime(isoString?: string): string {
   }
 }
 
+function dedupeConvs(list: AIConversationSummary[]): AIConversationSummary[] {
+  const seen = new Set<string>();
+  const result: AIConversationSummary[] = [];
+  for (const c of list) {
+    if (!c?.id || seen.has(c.id)) continue;
+    seen.add(c.id);
+    result.push(c);
+  }
+  return result;
+}
+
 export function AIAssistant() {
   const { me, services, users } = useApp();
   const router = useRouter();
@@ -119,6 +130,7 @@ export function AIAssistant() {
   const recognitionRef = useRef<any>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const isSubmittingPromptRef = useRef(false);
 
   // Load Initial Data
   const loadInitialData = useCallback(async () => {
@@ -131,18 +143,17 @@ export function AIAssistant() {
       ]);
       setTemplates(tplRes.templates || []);
       setContacts(contRes.contacts || []);
-      setConversations(convs || []);
+      const dedupedConvs = dedupeConvs(convs || []);
+      setConversations(dedupedConvs);
       if (diag) setDiagnostics(diag);
 
-      if (convs && convs.length > 0) {
-        setActiveConversationId(convs[0].id);
+      if (dedupedConvs && dedupedConvs.length > 0) {
+        setActiveConversationId((prev) => (prev && dedupedConvs.some((c) => c.id === prev) ? prev : dedupedConvs[0].id));
       } else {
         setActiveConversationId(null);
         setMessages([]);
       }
-    } catch (err: any) {
-      console.error("Failed to load AI initial data", err);
-    }
+    } catch {}
   }, [services]);
 
   const handleRefreshDiagnostics = async () => {
@@ -150,8 +161,7 @@ export function AIAssistant() {
     try {
       const diag = await services.getAIDiagnostics();
       setDiagnostics(diag);
-    } catch (err) {
-      console.warn("Diagnostics refresh failed", err);
+    } catch {
     } finally {
       setIsCheckingDiagnostics(false);
     }
@@ -266,7 +276,6 @@ export function AIAssistant() {
       };
 
       recognition.onerror = (event: any) => {
-        console.warn("Speech recognition error", event.error);
         setIsRecording(false);
         if (event.error === "not-allowed") {
           setVoiceNotice("Microphone permission was denied. Please allow microphone access.");
@@ -285,24 +294,18 @@ export function AIAssistant() {
 
       recognitionRef.current = recognition;
       recognition.start();
-    } catch (err) {
-      console.error(err);
+    } catch {
       setIsRecording(false);
     }
   };
 
-  // Create New Chat
-  const handleNewChat = async () => {
-    try {
-      const created = await services.createAIConversation("New Assistant Chat");
-      setConversations((prev) => [created, ...prev]);
-      setActiveConversationId(created.id);
-      setMessages([]);
-      setInputPrompt("");
-      setAuthorizingMsgId(null);
-    } catch (err: any) {
-      setErrorNotice("Could not start a new chat. Please try again.");
-    }
+  // Create New Chat (Reset to clean draft session without creating ghost duplicate DB records)
+  const handleNewChat = () => {
+    setActiveConversationId(null);
+    setMessages([]);
+    setInputPrompt("");
+    setAuthorizingMsgId(null);
+    setErrorNotice(null);
   };
 
   // Delete Chat
@@ -320,9 +323,7 @@ export function AIAssistant() {
     }
     try {
       await services.deleteAIConversation(id);
-    } catch (err: any) {
-      console.error("Failed to delete AI conversation", err);
-    }
+    } catch {}
   };
 
   // Clear All History
@@ -338,9 +339,7 @@ export function AIAssistant() {
     setMessages([]);
     try {
       await services.clearAllAIConversations();
-    } catch (err: any) {
-      console.error("Failed to clear all AI conversations", err);
-    }
+    } catch {}
   };
 
   // Rename Chat
@@ -362,9 +361,7 @@ export function AIAssistant() {
       setConversations((prev) =>
         prev.map((c) => (c.id === convId ? { ...c, title: trimmed } : c))
       );
-    } catch (err: any) {
-      console.error("Failed to rename conversation", err);
-    } finally {
+    } catch {} finally {
       setEditingConvId(null);
     }
   };
@@ -387,19 +384,24 @@ export function AIAssistant() {
     refinementRule?: string,
     targetDraftId?: string
   ) => {
-    const text = promptToSend || inputPrompt;
-    if (!text.trim() || isGenerating) return;
+    const text = (promptToSend || inputPrompt).trim();
+    if (!text || isGenerating || isSubmittingPromptRef.current) return;
+    isSubmittingPromptRef.current = true;
+    setIsGenerating(true);
+    setErrorNotice(null);
 
     let targetConvId = activeConversationId;
     if (!targetConvId) {
       try {
         const title = text.slice(0, 36) + (text.length > 36 ? "…" : "");
         const created = await services.createAIConversation(title || "New Assistant Chat");
-        setConversations((prev) => [created, ...prev]);
-        setActiveConversationId(created.id);
         targetConvId = created.id;
+        setActiveConversationId(created.id);
+        setConversations((prev) => dedupeConvs([created, ...prev]));
       } catch (err: any) {
         setErrorNotice("Could not start chat session. Please try again.");
+        isSubmittingPromptRef.current = false;
+        setIsGenerating(false);
         return;
       }
     }
@@ -415,8 +417,6 @@ export function AIAssistant() {
     };
     setMessages((prev) => [...prev, tempUserMsg]);
     setInputPrompt("");
-    setIsGenerating(true);
-    setErrorNotice(null);
 
     try {
       const res = await services.sendAIChat(targetConvId, {
@@ -461,10 +461,11 @@ export function AIAssistant() {
 
       // Refresh conversations list for title and snippet update
       const updatedConvs = await services.getAIConversations();
-      setConversations(updatedConvs);
+      setConversations(dedupeConvs(updatedConvs));
     } catch (err: any) {
       setErrorNotice(err.message || "Failed to generate AI response. Please try again.");
     } finally {
+      isSubmittingPromptRef.current = false;
       setIsGenerating(false);
     }
   };

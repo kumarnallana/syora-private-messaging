@@ -23,3 +23,20 @@ export function clearAllConversationsFromStore() {
   inMemoryMessages.clear();
 }
 
+export function addMessageToStore(conversationId: string, message: any) {
+  const existing = inMemoryMessages.get(conversationId) || [];
+  existing.push(message);
+  inMemoryMessages.set(conversationId, existing);
+}
+
+export function updateConversationInStore(
+  conversationId: string,
+  updates: Partial<AIConversationRecord>
+) {
+  const conv = inMemoryConversations.find((c) => c.id === conversationId);
+  if (conv) {
+    Object.assign(conv, updates);
+    conv.updated_at = new Date().toISOString();
+  }
+}
+
