@@ -1,10 +1,16 @@
 "use client";
 
 import { useApp } from "@/stores/use-app";
-import type { AIConversationSummary, AIDiagnostics, AIMessage, AISendResult, AITemplate, User } from "@/types";
+import type {
+  AIConversationSummary,
+  AIDiagnostics,
+  AIMessage,
+  AISendResult,
+  AITemplate,
+  User,
+} from "@/types";
 import { cn } from "@/utils/cn";
 import {
-  ArrowLeft,
   ArrowRight,
   Bot,
   Check,
@@ -16,7 +22,6 @@ import {
   History,
   LayoutGrid,
   LoaderCircle,
-  Mail,
   MessageCircle,
   MessageSquare,
   Mic,
@@ -26,13 +31,9 @@ import {
   RefreshCw,
   Search,
   Send,
-  Server,
-  Settings,
-  Shield,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
-  Terminal,
   Trash2,
   User as UserIcon,
   Volume2,
@@ -82,8 +83,12 @@ export function AIAssistant() {
   const router = useRouter();
 
   // State
-  const [conversations, setConversations] = useState<AIConversationSummary[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<AIConversationSummary[]>(
+    [],
+  );
+  const [activeConversationId, setActiveConversationId] = useState<
+    string | null
+  >(null);
   const [messages, setMessages] = useState<AIMessage[]>([]);
   const [templates, setTemplates] = useState<AITemplate[]>([]);
   const [contacts, setContacts] = useState<User[]>([]);
@@ -94,7 +99,9 @@ export function AIAssistant() {
   const [isCheckingDiagnostics, setIsCheckingDiagnostics] = useState(false);
   const [copiedSnippet, setCopiedSnippet] = useState<string | null>(null);
   const [geminiApiKeyInput, setGeminiApiKeyInput] = useState<string>("");
-  const [apiKeyStatus, setApiKeyStatus] = useState<"idle" | "testing" | "valid" | "invalid">("idle");
+  const [apiKeyStatus, setApiKeyStatus] = useState<
+    "idle" | "testing" | "valid" | "invalid"
+  >("idle");
 
   // Search & Rename for conversation history
   const [searchQuery, setSearchQuery] = useState("");
@@ -112,12 +119,16 @@ export function AIAssistant() {
 
   // Send Authorization Card State
   const [authorizingMsgId, setAuthorizingMsgId] = useState<string | null>(null);
-  const [selectedChannel, setSelectedChannel] = useState<"syora" | "whatsapp" | "email">("syora");
+  const [selectedChannel, setSelectedChannel] = useState<
+    "syora" | "whatsapp" | "email"
+  >("syora");
   const [targetRecipientId, setTargetRecipientId] = useState<string>("");
   const [targetRecipientName, setTargetRecipientName] = useState<string>("");
   const [targetPhoneOrEmail, setTargetPhoneOrEmail] = useState<string>("");
   const [isSending, setIsSending] = useState(false);
-  const [sendResult, setSendResult] = useState<Record<string, AISendResult>>({});
+  const [sendResult, setSendResult] = useState<Record<string, AISendResult>>(
+    {},
+  );
 
   // UI Panels
   const [showHistorySidebar, setShowHistorySidebar] = useState(false);
@@ -148,7 +159,11 @@ export function AIAssistant() {
       if (diag) setDiagnostics(diag);
 
       if (dedupedConvs && dedupedConvs.length > 0) {
-        setActiveConversationId((prev) => (prev && dedupedConvs.some((c) => c.id === prev) ? prev : dedupedConvs[0].id));
+        setActiveConversationId((prev) =>
+          prev && dedupedConvs.some((c) => c.id === prev)
+            ? prev
+            : dedupedConvs[0].id,
+        );
       } else {
         setActiveConversationId(null);
         setMessages([]);
@@ -193,7 +208,12 @@ export function AIAssistant() {
       }
       if (key) {
         const { callGeminiAPI } = await import("@/services/ai-engine");
-        const res = await callGeminiAPI("You are Syora AI.", "Say hello", key, "gemini-3.8-flash");
+        const res = await callGeminiAPI(
+          "You are Syora AI.",
+          "Say hello",
+          key,
+          "gemini-3.8-flash",
+        );
         if (res) {
           setApiKeyStatus("valid");
         } else {
@@ -213,20 +233,23 @@ export function AIAssistant() {
   }, [loadInitialData]);
 
   // Load Messages for Active Conversation
-  const loadMessages = useCallback(async (convId: string) => {
-    try {
-      const data = await services.getAIConversation(convId);
-      setMessages(data.messages || []);
-      // Initialize active drafts
-      const drafts: Record<string, string> = {};
-      data.messages.forEach((m) => {
-        if (m.draft_message) drafts[m.id] = m.draft_message;
-      });
-      setActiveDrafts(drafts);
-    } catch {
-      setMessages([]);
-    }
-  }, [services]);
+  const loadMessages = useCallback(
+    async (convId: string) => {
+      try {
+        const data = await services.getAIConversation(convId);
+        setMessages(data.messages || []);
+        // Initialize active drafts
+        const drafts: Record<string, string> = {};
+        data.messages.forEach((m) => {
+          if (m.draft_message) drafts[m.id] = m.draft_message;
+        });
+        setActiveDrafts(drafts);
+      } catch {
+        setMessages([]);
+      }
+    },
+    [services],
+  );
 
   useEffect(() => {
     if (activeConversationId) {
@@ -243,10 +266,13 @@ export function AIAssistant() {
     if (typeof window === "undefined") return;
 
     const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setVoiceNotice("Speech recognition is not supported in this browser. Please type your message.");
+      setVoiceNotice(
+        "Speech recognition is not supported in this browser. Please type your message.",
+      );
       setTimeout(() => setVoiceNotice(null), 4000);
       return;
     }
@@ -278,7 +304,9 @@ export function AIAssistant() {
       recognition.onerror = (event: any) => {
         setIsRecording(false);
         if (event.error === "not-allowed") {
-          setVoiceNotice("Microphone permission was denied. Please allow microphone access.");
+          setVoiceNotice(
+            "Microphone permission was denied. Please allow microphone access.",
+          );
         } else if (event.error === "no-speech") {
           setVoiceNotice("No speech detected. Please try speaking again.");
         } else {
@@ -343,13 +371,19 @@ export function AIAssistant() {
   };
 
   // Rename Chat
-  const handleStartRename = (conv: AIConversationSummary, e: React.MouseEvent) => {
+  const handleStartRename = (
+    conv: AIConversationSummary,
+    e: React.MouseEvent,
+  ) => {
     e.stopPropagation();
     setEditingConvId(conv.id);
     setEditingTitle(conv.title || "Untitled Session");
   };
 
-  const handleSaveRename = async (convId: string, e?: React.FormEvent | React.MouseEvent | React.KeyboardEvent) => {
+  const handleSaveRename = async (
+    convId: string,
+    e?: React.FormEvent | React.MouseEvent | React.KeyboardEvent,
+  ) => {
     if (e) e.stopPropagation();
     const trimmed = editingTitle.trim();
     if (!trimmed) {
@@ -359,9 +393,10 @@ export function AIAssistant() {
     try {
       await services.renameAIConversation(convId, trimmed);
       setConversations((prev) =>
-        prev.map((c) => (c.id === convId ? { ...c, title: trimmed } : c))
+        prev.map((c) => (c.id === convId ? { ...c, title: trimmed } : c)),
       );
-    } catch {} finally {
+    } catch {
+    } finally {
       setEditingConvId(null);
     }
   };
@@ -382,7 +417,7 @@ export function AIAssistant() {
   const handleSendPrompt = async (
     promptToSend?: string,
     refinementRule?: string,
-    targetDraftId?: string
+    targetDraftId?: string,
   ) => {
     const text = (promptToSend || inputPrompt).trim();
     if (!text || isGenerating || isSubmittingPromptRef.current) return;
@@ -394,7 +429,9 @@ export function AIAssistant() {
     if (!targetConvId) {
       try {
         const title = text.slice(0, 36) + (text.length > 36 ? "…" : "");
-        const created = await services.createAIConversation(title || "New Assistant Chat");
+        const created = await services.createAIConversation(
+          title || "New Assistant Chat",
+        );
         targetConvId = created.id;
         setActiveConversationId(created.id);
         setConversations((prev) => dedupeConvs([created, ...prev]));
@@ -406,7 +443,9 @@ export function AIAssistant() {
       }
     }
 
-    const previousDraft = targetDraftId ? activeDrafts[targetDraftId] : undefined;
+    const previousDraft = targetDraftId
+      ? activeDrafts[targetDraftId]
+      : undefined;
 
     // Optimistically add user message
     const tempUserMsg: AIMessage = {
@@ -446,7 +485,10 @@ export function AIAssistant() {
       setMessages((prev) => [...prev, asstMsg]);
 
       if (res.draft_message) {
-        setActiveDrafts((prev) => ({ ...prev, [asstMsg.id]: res.draft_message }));
+        setActiveDrafts((prev) => ({
+          ...prev,
+          [asstMsg.id]: res.draft_message,
+        }));
       }
 
       // If prompt was a direct send command or requires authorization
@@ -463,7 +505,9 @@ export function AIAssistant() {
       const updatedConvs = await services.getAIConversations();
       setConversations(dedupeConvs(updatedConvs));
     } catch (err: any) {
-      setErrorNotice(err.message || "Failed to generate AI response. Please try again.");
+      setErrorNotice(
+        err.message || "Failed to generate AI response. Please try again.",
+      );
     } finally {
       isSubmittingPromptRef.current = false;
       setIsGenerating(false);
@@ -523,14 +567,20 @@ export function AIAssistant() {
         window.open(result.external_url, "_blank", "noopener,noreferrer");
       }
     } catch (err: any) {
-      setErrorNotice(err.message || "Message delivery failed. Please check recipient and try again.");
+      setErrorNotice(
+        err.message ||
+          "Message delivery failed. Please check recipient and try again.",
+      );
     } finally {
       setIsSending(false);
     }
   };
 
   // Template categories
-  const categories = ["All", ...Array.from(new Set(templates.map((t) => t.category)))];
+  const categories = [
+    "All",
+    ...Array.from(new Set(templates.map((t) => t.category))),
+  ];
   const filteredTemplates =
     selectedCategory === "All"
       ? templates
@@ -554,7 +604,10 @@ export function AIAssistant() {
         <div className="ai-sidebar__item-header">
           <MessageSquare size={13} className="ai-sidebar__item-icon" />
           {isEditing ? (
-            <div className="flex items-center gap-[4px] flex-1" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="flex items-center gap-[4px] flex-1"
+              onClick={(e) => e.stopPropagation()}
+            >
               <input
                 type="text"
                 className="ai-sidebar__rename-input"
@@ -585,11 +638,16 @@ export function AIAssistant() {
             </div>
           ) : (
             <>
-              <span className="ai-sidebar__item-title">{c.title || "Untitled Session"}</span>
+              <span className="ai-sidebar__item-title">
+                {c.title || "Untitled Session"}
+              </span>
               <span className="ai-sidebar__item-time">
                 {formatRelativeTime(c.updated_at || c.created_at)}
               </span>
-              <div className="ai-sidebar__item-actions" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="ai-sidebar__item-actions"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button
                   type="button"
                   className="ai-sidebar__item-action-btn"
@@ -643,7 +701,10 @@ export function AIAssistant() {
         {/* Search Bar for Past Conversations */}
         <div className="ai-sidebar__search">
           <div className="relative flex items-center">
-            <Search size={13} className="absolute left-[9px] text-muted pointer-events-none" />
+            <Search
+              size={13}
+              className="absolute left-[9px] text-muted pointer-events-none"
+            />
             <input
               type="text"
               className="ai-sidebar__search-input pl-[28px]"
@@ -741,19 +802,25 @@ export function AIAssistant() {
                   "ai-provider-badge__dot",
                   diagnostics?.is_external_configured
                     ? "ai-provider-badge__dot--active"
-                    : "ai-provider-badge__dot--fallback"
+                    : "ai-provider-badge__dot--fallback",
                 )}
               />
               <span className="flex items-center gap-[4px] truncate max-w-[80px] xs:max-w-[120px] sm:max-w-none">
-                {diagnostics?.active_provider === "gemini" && <Zap size={13} className="text-amber-400 shrink-0" />}
-                {diagnostics?.active_provider === "ollama" && <Cpu size={13} className="text-emerald-400 shrink-0" />}
-                {diagnostics?.active_provider === "builtin" && <Sparkles size={13} className="text-accent shrink-0" />}
+                {diagnostics?.active_provider === "gemini" && (
+                  <Zap size={13} className="text-amber-400 shrink-0" />
+                )}
+                {diagnostics?.active_provider === "ollama" && (
+                  <Cpu size={13} className="text-emerald-400 shrink-0" />
+                )}
+                {diagnostics?.active_provider === "builtin" && (
+                  <Sparkles size={13} className="text-accent shrink-0" />
+                )}
                 <span className="truncate">
                   {diagnostics?.active_provider === "gemini"
                     ? "Gemini 3.8 Flash"
                     : diagnostics?.active_provider === "ollama"
-                    ? `Ollama (${diagnostics.ollama?.model || "llama3.2"})`
-                    : "Syora Engine"}
+                      ? `Ollama (${diagnostics.ollama?.model || "llama3.2"})`
+                      : "Syora Engine"}
                 </span>
               </span>
             </button>
@@ -788,20 +855,26 @@ export function AIAssistant() {
                 </span>
                 <h1>What do you need to communicate today?</h1>
                 <p>
-                  Explain your situation naturally through voice or text. Syora AI will craft a
-                  refined message, let you review and edit, and dispatch it upon your explicit authorization.
+                  Explain your situation naturally through voice or text. Syora
+                  AI will craft a refined message, let you review and edit, and
+                  dispatch it upon your explicit authorization.
                 </p>
 
                 <div className="ai-templates-grid">
                   {templates.slice(0, 6).map((tpl, idx) => (
                     <div
                       key={tpl.id}
-                      className={cn("ai-template-card", idx >= 3 && "hidden sm:flex")}
+                      className={cn(
+                        "ai-template-card",
+                        idx >= 3 && "hidden sm:flex",
+                      )}
                       onClick={() => void handleSendPrompt(tpl.prompt_starter)}
                     >
                       <div>
                         <div className="ai-template-card__header">
-                          <span className="ai-template-card__category">{tpl.category}</span>
+                          <span className="ai-template-card__category">
+                            {tpl.category}
+                          </span>
                           <ArrowRight size={14} className="text-muted" />
                         </div>
                         <strong>{tpl.title}</strong>
@@ -817,7 +890,8 @@ export function AIAssistant() {
                       className="button secondary small w-full justify-center text-[12px]"
                       onClick={() => setShowTemplatesModal(true)}
                     >
-                      <LayoutGrid size={13} /> View All {templates.length} Scenario Templates
+                      <LayoutGrid size={13} /> View All {templates.length}{" "}
+                      Scenario Templates
                     </button>
                   </div>
                 )}
@@ -834,7 +908,10 @@ export function AIAssistant() {
               return (
                 <div
                   key={msg.id}
-                  className={cn("ai-msg", isUser ? "ai-msg--user" : "ai-msg--assistant")}
+                  className={cn(
+                    "ai-msg",
+                    isUser ? "ai-msg--user" : "ai-msg--assistant",
+                  )}
                 >
                   {!isUser && (
                     <div className="ai-msg__avatar">
@@ -856,24 +933,30 @@ export function AIAssistant() {
                             <Sparkles size={12} className="text-accent" />
                             <span>Syora AI</span>
                             <span className="ai-msg__tag">
-                              {msg.metadata?.action === "send_authorization_prompt"
+                              {msg.metadata?.action ===
+                              "send_authorization_prompt"
                                 ? "Authorization Check"
                                 : diagnostics?.active_provider === "gemini"
-                                ? "Gemini 1.5 Flash"
-                                : diagnostics?.active_provider === "ollama"
-                                ? "Local Ollama"
-                                : "Syora Engine"}
+                                  ? "Gemini 1.5 Flash"
+                                  : diagnostics?.active_provider === "ollama"
+                                    ? "Local Ollama"
+                                    : "Syora Engine"}
                             </span>
                           </>
                         )}
                       </div>
                       <span className="text-[10px]">
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(msg.created_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </span>
                     </div>
 
                     {/* User Prompt / Assistant Explanation */}
-                    <div className={cn(!isUser && "ai-msg__reasoning")}>{msg.content}</div>
+                    <div className={cn(!isUser && "ai-msg__reasoning")}>
+                      {msg.content}
+                    </div>
 
                     {/* Generated Message Preview Card */}
                     {!isUser && currentDraft && (
@@ -884,7 +967,10 @@ export function AIAssistant() {
                             <span>Message Preview (Editable)</span>
                           </div>
                           <div className="ai-preview-card__meta">
-                            <span>{currentDraft.split(/\s+/).filter(Boolean).length} words</span>
+                            <span>
+                              {currentDraft.split(/\s+/).filter(Boolean).length}{" "}
+                              words
+                            </span>
                             <button
                               type="button"
                               className="button secondary small"
@@ -892,7 +978,8 @@ export function AIAssistant() {
                             >
                               {copiedId === msg.id ? (
                                 <>
-                                  <Check size={13} className="text-success" /> Copied!
+                                  <Check size={13} className="text-success" />{" "}
+                                  Copied!
                                 </>
                               ) : (
                                 <>
@@ -907,10 +994,16 @@ export function AIAssistant() {
                         <textarea
                           className="ai-preview-card__editor"
                           value={currentDraft}
-                          rows={Math.max(4, currentDraft.split("\n").length + 1)}
+                          rows={Math.max(
+                            4,
+                            currentDraft.split("\n").length + 1,
+                          )}
                           onChange={(e) => {
                             const val = e.target.value;
-                            setActiveDrafts((prev) => ({ ...prev, [msg.id]: val }));
+                            setActiveDrafts((prev) => ({
+                              ...prev,
+                              [msg.id]: val,
+                            }));
                           }}
                           placeholder="Refine message text directly..."
                         />
@@ -924,7 +1017,11 @@ export function AIAssistant() {
                             type="button"
                             className="ai-chip"
                             onClick={() =>
-                              void handleSendPrompt("Make it more concise and brief", "concise", msg.id)
+                              void handleSendPrompt(
+                                "Make it more concise and brief",
+                                "concise",
+                                msg.id,
+                              )
                             }
                           >
                             ⚡ Concise
@@ -933,7 +1030,11 @@ export function AIAssistant() {
                             type="button"
                             className="ai-chip"
                             onClick={() =>
-                              void handleSendPrompt("Make it formal and corporate", "formal", msg.id)
+                              void handleSendPrompt(
+                                "Make it formal and corporate",
+                                "formal",
+                                msg.id,
+                              )
                             }
                           >
                             👔 Formal
@@ -942,7 +1043,11 @@ export function AIAssistant() {
                             type="button"
                             className="ai-chip"
                             onClick={() =>
-                              void handleSendPrompt("Make it friendlier and warmer", "friendly", msg.id)
+                              void handleSendPrompt(
+                                "Make it friendlier and warmer",
+                                "friendly",
+                                msg.id,
+                              )
                             }
                           >
                             😊 Friendly
@@ -954,7 +1059,7 @@ export function AIAssistant() {
                               void handleSendPrompt(
                                 "Add a clear call to action and next steps",
                                 "cta",
-                                msg.id
+                                msg.id,
                               )
                             }
                           >
@@ -968,7 +1073,11 @@ export function AIAssistant() {
                             type="button"
                             className="button secondary small"
                             onClick={() =>
-                              void handleSendPrompt("Regenerate this message with an alternative wording", undefined, msg.id)
+                              void handleSendPrompt(
+                                "Regenerate this message with an alternative wording",
+                                undefined,
+                                msg.id,
+                              )
                             }
                           >
                             <RefreshCw size={13} /> Regenerate
@@ -993,9 +1102,12 @@ export function AIAssistant() {
                             <ShieldCheck size={18} />
                           </div>
                           <div className="ai-auth-card__title">
-                            <strong>Outbound Send Authorization Required</strong>
+                            <strong>
+                              Outbound Send Authorization Required
+                            </strong>
                             <small>
-                              Syora will transmit this message only after your explicit confirmation.
+                              Syora will transmit this message only after your
+                              explicit confirmation.
                             </small>
                           </div>
                         </div>
@@ -1008,7 +1120,7 @@ export function AIAssistant() {
                               type="button"
                               className={cn(
                                 "ai-channel-tab",
-                                selectedChannel === "syora" && "is-active"
+                                selectedChannel === "syora" && "is-active",
                               )}
                               onClick={() => setSelectedChannel("syora")}
                             >
@@ -1018,7 +1130,7 @@ export function AIAssistant() {
                               type="button"
                               className={cn(
                                 "ai-channel-tab",
-                                selectedChannel === "whatsapp" && "is-active"
+                                selectedChannel === "whatsapp" && "is-active",
                               )}
                               onClick={() => setSelectedChannel("whatsapp")}
                             >
@@ -1028,7 +1140,7 @@ export function AIAssistant() {
                               type="button"
                               className={cn(
                                 "ai-channel-tab",
-                                selectedChannel === "email" && "is-active"
+                                selectedChannel === "email" && "is-active",
                               )}
                               onClick={() => setSelectedChannel("email")}
                             >
@@ -1052,7 +1164,10 @@ export function AIAssistant() {
                                 if (found) setTargetRecipientName(found.name);
                               }}
                             >
-                              <option value="" className="bg-[#181424] text-[#f3effa]">
+                              <option
+                                value=""
+                                className="bg-[#181424] text-[#f3effa]"
+                              >
                                 Select a contact...
                               </option>
                               {contacts.map((c) => (
@@ -1075,7 +1190,9 @@ export function AIAssistant() {
                                   : "Recipient email address"
                               }
                               value={targetRecipientName}
-                              onChange={(e) => setTargetRecipientName(e.target.value)}
+                              onChange={(e) =>
+                                setTargetRecipientName(e.target.value)
+                              }
                             />
                           )}
                         </div>
@@ -1092,10 +1209,14 @@ export function AIAssistant() {
                               type="text"
                               className="input"
                               placeholder={
-                                selectedChannel === "whatsapp" ? "+1 555 123 4567" : "name@example.com"
+                                selectedChannel === "whatsapp"
+                                  ? "+1 555 123 4567"
+                                  : "name@example.com"
                               }
                               value={targetPhoneOrEmail}
-                              onChange={(e) => setTargetPhoneOrEmail(e.target.value)}
+                              onChange={(e) =>
+                                setTargetPhoneOrEmail(e.target.value)
+                              }
                             />
                           </div>
                         )}
@@ -1126,7 +1247,8 @@ export function AIAssistant() {
                           >
                             {isSending ? (
                               <>
-                                <LoaderCircle size={14} className="spin" /> Transmitting...
+                                <LoaderCircle size={14} className="spin" />{" "}
+                                Transmitting...
                               </>
                             ) : (
                               <>
@@ -1167,10 +1289,13 @@ export function AIAssistant() {
                               </a>
                             )}
                             <small className="text-muted">
-                              {new Date(result.timestamp).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                              {new Date(result.timestamp).toLocaleTimeString(
+                                [],
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                },
+                              )}
                             </small>
                           </div>
                         </div>
@@ -1205,14 +1330,30 @@ export function AIAssistant() {
               <div className="ai-voice-active__pulse">
                 <span className="ai-voice-dot" />
                 <div className="ai-voice-waves">
-                  <span className="ai-voice-bar" style={{ animationDelay: "0ms" }} />
-                  <span className="ai-voice-bar" style={{ animationDelay: "150ms" }} />
-                  <span className="ai-voice-bar" style={{ animationDelay: "300ms" }} />
-                  <span className="ai-voice-bar" style={{ animationDelay: "450ms" }} />
-                  <span className="ai-voice-bar" style={{ animationDelay: "600ms" }} />
+                  <span
+                    className="ai-voice-bar"
+                    style={{ animationDelay: "0ms" }}
+                  />
+                  <span
+                    className="ai-voice-bar"
+                    style={{ animationDelay: "150ms" }}
+                  />
+                  <span
+                    className="ai-voice-bar"
+                    style={{ animationDelay: "300ms" }}
+                  />
+                  <span
+                    className="ai-voice-bar"
+                    style={{ animationDelay: "450ms" }}
+                  />
+                  <span
+                    className="ai-voice-bar"
+                    style={{ animationDelay: "600ms" }}
+                  />
                 </div>
                 <span className="text-[13px] font-medium text-text-primary">
-                  Listening... speak naturally (e.g. &ldquo;Ask Rahul for status on project&rdquo;)
+                  Listening... speak naturally (e.g. &ldquo;Ask Rahul for status
+                  on project&rdquo;)
                 </span>
               </div>
               <button
@@ -1261,7 +1402,9 @@ export function AIAssistant() {
           <div className="ai-composer__inner">
             {/* Tone Selector Toolbar */}
             <div className="ai-tone-bar">
-              <span className="text-[11px] font-medium text-muted mr-[4px]">Tone:</span>
+              <span className="text-[11px] font-medium text-muted mr-[4px]">
+                Tone:
+              </span>
               {[
                 { label: "⚡ Concise", rule: "concise" },
                 { label: "👔 Formal", rule: "formal" },
@@ -1275,11 +1418,21 @@ export function AIAssistant() {
                   type="button"
                   className="ai-tone-pill"
                   onClick={() => {
-                    const latestDraftMsg = [...messages].reverse().find((m) => m.draft_message);
+                    const latestDraftMsg = [...messages]
+                      .reverse()
+                      .find((m) => m.draft_message);
                     if (latestDraftMsg) {
-                      void handleSendPrompt(`Make this message ${t.rule}`, t.rule, latestDraftMsg.id);
+                      void handleSendPrompt(
+                        `Make this message ${t.rule}`,
+                        t.rule,
+                        latestDraftMsg.id,
+                      );
                     } else {
-                      setInputPrompt((prev) => (prev ? `${prev} (in a ${t.rule} tone)` : `Draft a ${t.rule} message for `));
+                      setInputPrompt((prev) =>
+                        prev
+                          ? `${prev} (in a ${t.rule} tone)`
+                          : `Draft a ${t.rule} message for `,
+                      );
                     }
                   }}
                 >
@@ -1309,7 +1462,11 @@ export function AIAssistant() {
                   type="button"
                   className={cn("ai-mic-btn", isRecording && "is-recording")}
                   onClick={toggleSpeechRecognition}
-                  title={isRecording ? "Stop voice listening" : "Speak your message scenario"}
+                  title={
+                    isRecording
+                      ? "Stop voice listening"
+                      : "Speak your message scenario"
+                  }
                   aria-label="Voice input"
                 >
                   {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
@@ -1334,7 +1491,10 @@ export function AIAssistant() {
 
       {/* AI Provider & Diagnostics Modal */}
       {showDiagnosticsModal && (
-        <div className="modal-backdrop" onClick={() => setShowDiagnosticsModal(false)}>
+        <div
+          className="modal-backdrop"
+          onClick={() => setShowDiagnosticsModal(false)}
+        >
           <div
             className="modal-card max-w-[620px] w-full"
             onClick={(e) => e.stopPropagation()}
@@ -1342,7 +1502,9 @@ export function AIAssistant() {
             <div className="modal-header">
               <div className="flex items-center gap-[8px]">
                 <Cpu size={18} className="text-accent" />
-                <h3 className="text-[16px] font-semibold">AI Assistant Engine & Diagnostics</h3>
+                <h3 className="text-[16px] font-semibold">
+                  AI Assistant Engine & Diagnostics
+                </h3>
               </div>
               <button
                 type="button"
@@ -1361,12 +1523,22 @@ export function AIAssistant() {
                     Current Active Engine
                   </small>
                   <div className="text-[15px] font-semibold text-text-primary flex items-center gap-[6px] mt-[2px]">
-                    {diagnostics?.active_provider === "gemini" && <Zap size={16} className="text-amber-400" />}
-                    {diagnostics?.active_provider === "ollama" && <Cpu size={16} className="text-emerald-400" />}
-                    {diagnostics?.active_provider === "builtin" && <Sparkles size={16} className="text-accent" />}
-                    <span>{diagnostics?.provider_name || "Syora Built-in Engine"}</span>
+                    {diagnostics?.active_provider === "gemini" && (
+                      <Zap size={16} className="text-amber-400" />
+                    )}
+                    {diagnostics?.active_provider === "ollama" && (
+                      <Cpu size={16} className="text-emerald-400" />
+                    )}
+                    {diagnostics?.active_provider === "builtin" && (
+                      <Sparkles size={16} className="text-accent" />
+                    )}
+                    <span>
+                      {diagnostics?.provider_name || "Syora Built-in Engine"}
+                    </span>
                   </div>
-                  <p className="text-[11.5px] text-muted mt-[2px]">{diagnostics?.notes}</p>
+                  <p className="text-[11.5px] text-muted mt-[2px]">
+                    {diagnostics?.notes}
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -1390,21 +1562,38 @@ export function AIAssistant() {
               </div>
 
               {/* Option 1: Google Gemini */}
-              <div className={cn("ai-diag-card", diagnostics?.active_provider === "gemini" && "is-active")}>
+              <div
+                className={cn(
+                  "ai-diag-card",
+                  diagnostics?.active_provider === "gemini" && "is-active",
+                )}
+              >
                 <div className="flex items-center justify-between mb-[6px]">
                   <div className="flex items-center gap-[6px]">
                     <Zap size={15} className="text-amber-400" />
-                    <strong className="text-[13.5px] text-text-primary">Google Gemini</strong>
+                    <strong className="text-[13.5px] text-text-primary">
+                      Google Gemini
+                    </strong>
                     <span className="text-[10px] uppercase font-bold text-accent bg-accent/15 px-[6px] py-[1px] rounded">
                       Live Cloud AI
                     </span>
                   </div>
-                  <span className={cn("text-[11px] font-medium", diagnostics?.gemini.configured ? "text-success" : "text-muted")}>
-                    {diagnostics?.gemini.configured ? "Active & Ready" : "Not configured"}
+                  <span
+                    className={cn(
+                      "text-[11px] font-medium",
+                      diagnostics?.gemini.configured
+                        ? "text-success"
+                        : "text-muted",
+                    )}
+                  >
+                    {diagnostics?.gemini.configured
+                      ? "Active & Ready"
+                      : "Not configured"}
                   </span>
                 </div>
                 <p className="text-[12px] text-muted mb-[10px] leading-relaxed">
-                  Powered by <strong>Gemini 3.8 Flash</strong>. You can paste any Gemini API key below to activate instantly:
+                  Powered by <strong>Gemini 3.8 Flash</strong>. You can paste
+                  any Gemini API key below to activate instantly:
                 </p>
 
                 {/* API Key Input and Test Bar */}
@@ -1440,12 +1629,14 @@ export function AIAssistant() {
                     <div className="flex items-center gap-[5px]">
                       {apiKeyStatus === "valid" && (
                         <span className="text-success flex items-center gap-[4px] font-medium">
-                          <CheckCircle2 size={13} /> Gemini 3.8 Flash verified & active!
+                          <CheckCircle2 size={13} /> Gemini 3.8 Flash verified &
+                          active!
                         </span>
                       )}
                       {apiKeyStatus === "invalid" && (
                         <span className="text-danger flex items-center gap-[4px] font-medium">
-                          <ShieldAlert size={13} /> Key test failed. Fallback to built-in synthesizer.
+                          <ShieldAlert size={13} /> Key test failed. Fallback to
+                          built-in synthesizer.
                         </span>
                       )}
                       {apiKeyStatus === "idle" && (
@@ -1480,34 +1671,54 @@ export function AIAssistant() {
                     rel="noopener noreferrer"
                     className="text-[11px] text-accent hover:underline inline-flex items-center gap-[4px]"
                   >
-                    Get free Gemini API Key from Google AI Studio <ExternalLink size={11} />
+                    Get free Gemini API Key from Google AI Studio{" "}
+                    <ExternalLink size={11} />
                   </a>
                 </div>
               </div>
 
               {/* Option 2: Local Ollama */}
-              <div className={cn("ai-diag-card", diagnostics?.active_provider === "ollama" && "is-active")}>
+              <div
+                className={cn(
+                  "ai-diag-card",
+                  diagnostics?.active_provider === "ollama" && "is-active",
+                )}
+              >
                 <div className="flex items-center justify-between mb-[6px]">
                   <div className="flex items-center gap-[6px]">
                     <Cpu size={15} className="text-emerald-400" />
-                    <strong className="text-[13.5px] text-text-primary">Local Ollama</strong>
+                    <strong className="text-[13.5px] text-text-primary">
+                      Local Ollama
+                    </strong>
                     <span className="text-[10px] uppercase font-bold text-emerald-500 bg-emerald-500/15 px-[6px] py-[1px] rounded">
                       100% Free & Private
                     </span>
                   </div>
-                  <span className={cn("text-[11px] font-medium", diagnostics?.ollama.healthy ? "text-success" : "text-muted")}>
-                    {diagnostics?.ollama.healthy ? "Connected & Healthy" : "Offline / Not Running"}
+                  <span
+                    className={cn(
+                      "text-[11px] font-medium",
+                      diagnostics?.ollama.healthy
+                        ? "text-success"
+                        : "text-muted",
+                    )}
+                  >
+                    {diagnostics?.ollama.healthy
+                      ? "Connected & Healthy"
+                      : "Offline / Not Running"}
                   </span>
                 </div>
                 <p className="text-[12px] text-muted mb-[8px] leading-relaxed">
-                  Best for local developers or self-hosted servers. Runs directly on your device with zero API keys or external calls.
+                  Best for local developers or self-hosted servers. Runs
+                  directly on your device with zero API keys or external calls.
                 </p>
                 <div className="ai-diag-code mb-[6px]">
                   <code>ollama run llama3.2</code>
                   <button
                     type="button"
                     className="text-accent hover:underline text-[11px] shrink-0"
-                    onClick={() => handleCopySnippet("ollama run llama3.2", "ollama_cmd")}
+                    onClick={() =>
+                      handleCopySnippet("ollama run llama3.2", "ollama_cmd")
+                    }
                   >
                     {copiedSnippet === "ollama_cmd" ? "Copied" : "Copy"}
                   </button>
@@ -1517,7 +1728,9 @@ export function AIAssistant() {
                   <button
                     type="button"
                     className="text-accent hover:underline text-[11px] shrink-0"
-                    onClick={() => handleCopySnippet("OLLAMA_ENABLED=true", "ollama_env")}
+                    onClick={() =>
+                      handleCopySnippet("OLLAMA_ENABLED=true", "ollama_env")
+                    }
                   >
                     {copiedSnippet === "ollama_env" ? "Copied" : "Copy"}
                   </button>
@@ -1525,18 +1738,27 @@ export function AIAssistant() {
               </div>
 
               {/* Option 3: Built-in Offline Fallback */}
-              <div className={cn("ai-diag-card", diagnostics?.active_provider === "builtin" && "is-active")}>
+              <div
+                className={cn(
+                  "ai-diag-card",
+                  diagnostics?.active_provider === "builtin" && "is-active",
+                )}
+              >
                 <div className="flex items-center justify-between mb-[6px]">
                   <div className="flex items-center gap-[6px]">
                     <Sparkles size={15} className="text-accent" />
-                    <strong className="text-[13.5px] text-text-primary">Syora Neural Engine</strong>
+                    <strong className="text-[13.5px] text-text-primary">
+                      Syora Neural Engine
+                    </strong>
                   </div>
                   <span className="text-[11px] font-medium text-success">
                     Always Ready
                   </span>
                 </div>
                 <p className="text-[12px] text-muted leading-relaxed">
-                  Deterministic built-in message synthesizer. Ensures the assistant never throws errors or stops working even without internet or API keys.
+                  Deterministic built-in message synthesizer. Ensures the
+                  assistant never throws errors or stops working even without
+                  internet or API keys.
                 </p>
               </div>
             </div>
@@ -1556,7 +1778,10 @@ export function AIAssistant() {
 
       {/* Templates Modal */}
       {showTemplatesModal && (
-        <div className="modal-backdrop" onClick={() => setShowTemplatesModal(false)}>
+        <div
+          className="modal-backdrop"
+          onClick={() => setShowTemplatesModal(false)}
+        >
           <div
             className="modal-card max-w-[680px] w-full"
             onClick={(e) => e.stopPropagation()}
@@ -1564,7 +1789,9 @@ export function AIAssistant() {
             <div className="modal-header">
               <div className="flex items-center gap-[8px]">
                 <LayoutGrid size={18} className="text-accent" />
-                <h3 className="text-[16px] font-semibold">Scenario Templates</h3>
+                <h3 className="text-[16px] font-semibold">
+                  Scenario Templates
+                </h3>
               </div>
               <button
                 type="button"
@@ -1580,7 +1807,10 @@ export function AIAssistant() {
                 <button
                   key={cat}
                   type="button"
-                  className={cn("ai-chip", selectedCategory === cat && "border-accent text-accent")}
+                  className={cn(
+                    "ai-chip",
+                    selectedCategory === cat && "border-accent text-accent",
+                  )}
                   onClick={() => setSelectedCategory(cat)}
                 >
                   {cat}
@@ -1603,11 +1833,16 @@ export function AIAssistant() {
                       <span className="text-[10px] uppercase font-bold text-accent bg-accent/15 px-[6px] py-[1px] rounded">
                         {tpl.category}
                       </span>
-                      <strong className="text-[13.5px] text-text-primary">{tpl.title}</strong>
+                      <strong className="text-[13.5px] text-text-primary">
+                        {tpl.title}
+                      </strong>
                     </div>
                     <p className="text-[12px] text-muted">{tpl.description}</p>
                   </div>
-                  <button type="button" className="button secondary small shrink-0">
+                  <button
+                    type="button"
+                    className="button secondary small shrink-0"
+                  >
                     Use
                   </button>
                 </div>
@@ -1642,7 +1877,10 @@ export function AIAssistant() {
 
             <div className="ai-sidebar__search">
               <div className="relative flex items-center">
-                <Search size={13} className="absolute left-[9px] text-muted pointer-events-none" />
+                <Search
+                  size={13}
+                  className="absolute left-[9px] text-muted pointer-events-none"
+                />
                 <input
                   type="text"
                   className="ai-sidebar__search-input pl-[28px]"
