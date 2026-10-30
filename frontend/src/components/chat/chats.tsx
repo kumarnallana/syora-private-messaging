@@ -23,6 +23,7 @@ import {
   BellOff,
   Eraser,
   LoaderCircle,
+  MessageCircle,
   MoreHorizontal,
   Pin,
   Search,
@@ -491,6 +492,7 @@ export function Chats() {
           })}
           {!conversations.length ? (
             <Empty
+              icon={<MessageCircle size={28} />}
               title="Your inbox is quiet"
               description="Find someone in your circle and start a private conversation."
             >
@@ -513,6 +515,7 @@ export function Chats() {
               );
             }) && (
               <Empty
+                icon={<MessageCircle size={28} />}
                 title={
                   filter === "unread"
                     ? "You are all caught up"
@@ -704,6 +707,7 @@ export function Chats() {
               })}
               {messageState === "loaded" && !visibleMessages.length && (
                 <Empty
+                  icon={<MessageCircle size={28} />}
                   title={
                     messageQuery ? "No messages found" : "Start with a hello"
                   }

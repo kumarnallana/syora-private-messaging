@@ -2,7 +2,7 @@
 import type { Attachment, User } from "@/types";
 import { cn } from "@/utils/cn";
 import { motion, useReducedMotion } from "framer-motion";
-import { LoaderCircle, Sparkles, X } from "lucide-react";
+import { LoaderCircle, MessageCircle, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 export { Brand, LogoMark } from "./brand";
 export function Avatar({
@@ -152,16 +152,18 @@ export function Modal({
 export function Empty({
   title,
   description,
+  icon,
   children,
 }: {
   title: string;
   description: string;
+  icon?: ReactNode;
   children?: ReactNode;
 }) {
   return (
     <div className="empty-state">
       <span className="empty-state__icon">
-        <Sparkles size={28} />
+        {icon ?? <MessageCircle size={28} />}
       </span>
       <h2>{title}</h2>
       <p>{description}</p>
