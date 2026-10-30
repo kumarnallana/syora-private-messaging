@@ -539,11 +539,13 @@ export function MobileScreenHeader({
   backHref,
   onBack,
   action,
+  showAvatar = true,
 }: {
   title: string;
   backHref?: string;
   onBack?: () => void;
   action?: React.ReactNode;
+  showAvatar?: boolean;
 }) {
   const { me } = useApp();
   return (
@@ -560,11 +562,11 @@ export function MobileScreenHeader({
         >
           <ArrowLeft size={21} />
         </Link>
-      ) : (
+      ) : showAvatar ? (
         <Link href="/profile" aria-label="Open your profile">
           <Avatar user={me!} size="small" />
         </Link>
-      )}
+      ) : null}
       <h1 className="mobile-header__title">{title}</h1>
       <span className="mobile-header__action">{action}</span>
     </header>

@@ -53,6 +53,15 @@
     animation: presence-radar 2.4s cubic-bezier(0.24, 0, 0.38, 1) infinite;
     pointer-events: none;
   }
+  @media (max-width: 899px) {
+    .avatar__online-indicator {
+      box-shadow: none;
+    }
+    .avatar__online-indicator::after {
+      display: none;
+      animation: none;
+    }
+  }
   @keyframes presence-radar {
     0% {
       transform: scale(0.9);

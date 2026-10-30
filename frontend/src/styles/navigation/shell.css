@@ -13,7 +13,9 @@
   }
   .rail__brand {
     @apply hidden;
-    transition: filter 0.25s ease, transform 0.25s ease;
+    transition:
+      filter 0.25s ease,
+      transform 0.25s ease;
   }
   .rail__brand:hover {
     filter: drop-shadow(0 0 10px rgba(170, 150, 242, 0.7));
@@ -27,9 +29,15 @@
   }
   .rail-link.is-active {
     @apply text-accent;
-    background: linear-gradient(135deg, rgba(170, 150, 242, 0.16), rgba(120, 100, 220, 0.08));
+    background: linear-gradient(
+      135deg,
+      rgba(170, 150, 242, 0.16),
+      rgba(120, 100, 220, 0.08)
+    );
     border: 1px solid rgba(170, 150, 242, 0.3);
-    box-shadow: 0 0 16px rgba(170, 150, 242, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 0 16px rgba(170, 150, 242, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
   .rail-link.is-active::before {
     content: "";
@@ -94,6 +102,8 @@
   @media (max-width: 899px) {
     .rail-link.is-active {
       background: rgba(170, 150, 242, 0.12);
+      border: 1px solid transparent;
+      box-shadow: none;
       border-radius: 12px;
     }
     .rail-link.is-active::after {
@@ -104,7 +114,11 @@
       height: 3px;
       border-radius: 9999px;
       background: var(--accent);
-      box-shadow: 0 0 6px var(--accent);
+      box-shadow: none;
+    }
+    .rail__brand:hover {
+      filter: none;
+      transform: none;
     }
   }
 

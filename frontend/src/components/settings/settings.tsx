@@ -430,7 +430,7 @@ export function Settings() {
                   </small>
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="admin-notification-header-actions">
                 <button
                   type="button"
                   className="button secondary small"
@@ -779,6 +779,7 @@ export function Settings() {
       <MobileScreenHeader
         title={subsectionTitle || "Settings"}
         onBack={section ? () => router.back() : undefined}
+        showAvatar={false}
       />
       <PageHeader
         title="Settings"

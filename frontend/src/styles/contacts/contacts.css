@@ -6,10 +6,10 @@
     @apply mx-auto max-w-[1440px];
   }
   .people-workspace {
-    @apply max-w-[680px];
+    @apply max-w-[860px];
   }
   .people-workspace .page-search {
-    @apply w-full max-w-[680px];
+    @apply w-full max-w-[860px];
   }
   .person-card {
     @apply flex items-center gap-[14px] border-b border-border px-[4px] py-[12px];
@@ -84,7 +84,7 @@
       align-items: center;
       column-gap: 12px;
       row-gap: 2px;
-      max-width: 680px;
+      max-width: 860px;
       margin-top: 10px;
       padding: 12px 16px;
       border: 1px solid var(--border);

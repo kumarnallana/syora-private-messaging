@@ -252,6 +252,9 @@
   .admin-notification-header-row {
     @apply flex items-center justify-between gap-[12px] w-full;
   }
+  .admin-notification-header-actions {
+    @apply flex flex-wrap items-center gap-[8px] shrink-0;
+  }
   .admin-notification-header-title {
     @apply flex items-start gap-[10px];
   }
@@ -490,6 +493,12 @@
     }
     .admin-push-control {
       @apply items-start;
+    }
+    .admin-notification-header-row {
+      @apply flex-col items-start gap-[12px];
+    }
+    .admin-notification-header-actions {
+      @apply w-full flex-wrap gap-[8px] pt-[4px];
     }
     .choice-row {
       @apply flex-col items-stretch gap-[12px] px-[14px] py-[15px];

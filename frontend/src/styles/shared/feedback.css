@@ -249,6 +249,13 @@
     .admin-drawer-content {
       @apply p-[8px_10px];
     }
+    .admin-drawer-pulse {
+      box-shadow: none !important;
+      animation: none !important;
+    }
+    .rail-badge--alert {
+      animation: none !important;
+    }
   }
   .empty-state {
     @apply flex flex-col items-center gap-[14px] p-[45px_20px] text-center;
@@ -392,6 +399,12 @@
     .app-toast,
     .page-notice {
       top: calc(env(safe-area-inset-top) + 72px);
+    }
+    .app-toast.is-success,
+    .app-toast.is-error,
+    .app-toast.is-loading,
+    .app-toast.is-info {
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
     }
   }
 }

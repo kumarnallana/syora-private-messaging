@@ -1,6 +1,6 @@
 @layer components {
   .status-page {
-    @apply mx-auto max-w-[840px];
+    @apply w-full max-w-[1240px];
   }
   .status-page > section {
     @apply border-b border-border/70 pb-[14px];
@@ -113,7 +113,7 @@
   }
   @media (min-width: 900px) {
     .status-page {
-      @apply grid content-start items-start gap-x-[18px] gap-y-[16px];
+      @apply grid content-start items-start gap-x-[22px] gap-y-[18px];
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .status-page > .page-header,
