@@ -317,8 +317,14 @@
     color: #34d399;
   }
   @keyframes notice-in {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .app-toast {
@@ -340,7 +346,9 @@
 
   .app-toast.is-success {
     border-color: rgba(52, 211, 153, 0.35);
-    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65), 0 0 24px rgba(52, 211, 153, 0.14);
+    box-shadow:
+      0 16px 45px rgba(0, 0, 0, 0.65),
+      0 0 24px rgba(52, 211, 153, 0.14);
   }
   .app-toast.is-success .app-toast__icon {
     background: rgba(52, 211, 153, 0.16);
@@ -350,7 +358,9 @@
 
   .app-toast.is-error {
     border-color: rgba(248, 113, 113, 0.35);
-    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65), 0 0 24px rgba(248, 113, 113, 0.14);
+    box-shadow:
+      0 16px 45px rgba(0, 0, 0, 0.65),
+      0 0 24px rgba(248, 113, 113, 0.14);
   }
   .app-toast.is-error .app-toast__icon {
     background: rgba(248, 113, 113, 0.16);
@@ -361,7 +371,9 @@
   .app-toast.is-loading,
   .app-toast.is-info {
     border-color: rgba(170, 150, 242, 0.35);
-    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65), 0 0 24px rgba(170, 150, 242, 0.14);
+    box-shadow:
+      0 16px 45px rgba(0, 0, 0, 0.65),
+      0 0 24px rgba(170, 150, 242, 0.14);
   }
   .app-toast.is-loading .app-toast__icon,
   .app-toast.is-info .app-toast__icon {
@@ -372,7 +384,9 @@
   :root[data-theme="light"] .app-toast {
     background: rgba(255, 255, 255, 0.96);
     border-color: rgba(0, 0, 0, 0.08);
-    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.03);
+    box-shadow:
+      0 16px 45px rgba(0, 0, 0, 0.12),
+      0 0 0 1px rgba(0, 0, 0, 0.03);
   }
 
   @keyframes app-toast-in {
