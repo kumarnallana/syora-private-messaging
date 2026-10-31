@@ -334,3 +334,4 @@ Full-Stack Product Engineer
 <p align="center">
   <sub>Built from a personal communication challenge into a production full-stack engineering reality.</sub>
 </p>
+
