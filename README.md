@@ -327,7 +327,7 @@ Full-Stack Product Engineer
 - **Portfolio:** [https://nallana-sasi-kumar-portfolio.vercel.app](https://nallana-sasi-kumar-portfolio.vercel.app)
 - **GitHub:** [@kumarnallana](https://github.com/kumarnallana)
 - **Live Project:** [https://syora.vercel.app](https://syora.vercel.app)
-- **LinkedIn:** [Nallana Sasi Kumar](https://linkedin.com/in/nallana-sasi-kumar)
+- **LinkedIn:** [Sasi Kumar Nallana](https://www.linkedin.com/in/sasi-kumar-nallana)
 
 ---
 
