@@ -6,16 +6,22 @@
     @apply border-b border-border/70 pb-[14px];
   }
   .status-page .empty-state {
-    @apply flex-row items-center gap-[12px] p-[12px_14px] text-left rounded-[9px] border border-border/60 bg-surface/50 mt-[8px];
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 2px;
+    @apply p-[12px_14px] text-left rounded-[9px] border border-border/60 bg-surface/50 mt-[8px];
   }
   .status-page .empty-state__icon {
+    grid-row: 1 / 3;
     @apply size-[36px] rounded-[9px] shrink-0;
   }
   .status-page .empty-state h2 {
-    @apply text-[13px] font-medium;
+    @apply text-[13px] font-medium leading-[1.3] m-0;
   }
   .status-page .empty-state p {
-    @apply text-[12px] leading-[1.4] text-muted max-w-none mt-[2px];
+    @apply text-[12px] leading-[1.4] text-muted max-w-none m-0;
   }
   .status-grid {
     @apply grid grid-cols-1 gap-[4px];
@@ -132,12 +138,6 @@
     }
   }
   @media (max-width: 899px) {
-    .status-page .empty-state {
-      @apply gap-[11px] py-[24px];
-    }
-    .status-page .empty-state__icon {
-      @apply size-[50px];
-    }
     .status-grid {
       @apply mx-0 flex flex-col gap-[2px] overflow-visible p-0;
     }

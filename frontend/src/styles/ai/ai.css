@@ -362,8 +362,13 @@
   }
 
   .ai-composer__textarea {
-    @apply flex-1 min-h-[38px] max-h-[120px] resize-none border-0 bg-transparent p-[3px_4px] text-[14px] text-text-primary placeholder:text-muted/60 focus:outline-none focus:ring-0 leading-relaxed;
+    @apply flex-1 min-h-[38px] max-h-[120px] resize-none border-0 bg-transparent p-[3px_4px] text-[14px] text-text-primary placeholder:text-muted/60 focus:outline-none focus:ring-0 leading-relaxed placeholder:truncate;
     font-family: inherit;
+  }
+  .ai-composer__textarea::placeholder {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
   }
 
   .ai-composer__buttons {
