@@ -1445,7 +1445,7 @@ export function AIAssistant() {
               <textarea
                 className="ai-composer__textarea"
                 rows={1}
-                placeholder="Explain what you need to say..."
+                placeholder="How can I help you today?"
                 value={inputPrompt}
                 onChange={(e) => setInputPrompt(e.target.value)}
                 onKeyDown={(e) => {
