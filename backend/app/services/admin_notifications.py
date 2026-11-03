@@ -28,7 +28,10 @@ def schedule_admin_message(message_id: uuid.UUID) -> None:
 
 
 def _preference(pref: UserPreference | None, field: str, default: bool = True) -> bool:
-    return bool(getattr(pref, field, default))
+    if pref is None:
+        return default
+    val = getattr(pref, field, None)
+    return default if val is None else bool(val)
 
 
 async def _send_push(subscription: PushSubscription, payload: dict[str, Any]) -> bool:
