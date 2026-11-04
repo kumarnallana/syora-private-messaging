@@ -135,5 +135,23 @@
     .contact-profile .row-actions {
       @apply ml-0 w-full flex-wrap justify-center;
     }
+    .people-workspace > section .empty-state {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      column-gap: 12px;
+      row-gap: 2px;
+      @apply p-[12px_14px] text-left rounded-[9px] border border-border/60 bg-surface/50 mt-[8px];
+    }
+    .people-workspace > section .empty-state__icon {
+      grid-row: 1 / 3;
+      @apply size-[36px] rounded-[9px] shrink-0;
+    }
+    .people-workspace > section .empty-state h2 {
+      @apply text-[13px] font-medium leading-[1.3] m-0;
+    }
+    .people-workspace > section .empty-state p {
+      @apply text-[12px] leading-[1.4] text-muted max-w-none m-0;
+    }
   }
 }

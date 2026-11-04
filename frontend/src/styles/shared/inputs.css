@@ -36,4 +36,13 @@
     background-color: #ffffff !important;
     color: #1e1b2e !important;
   }
+
+  @media (max-width: 899px) {
+    .input,
+    select.input,
+    input.input,
+    .search-field input {
+      font-size: 16px;
+    }
+  }
 }

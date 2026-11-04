@@ -290,32 +290,28 @@
   .rail {
     padding-left: 6px;
     padding-right: 6px;
-    gap: 2px;
+    gap: 0;
   }
   .rail-brand,
-  .logout-link {
-    display: none;
-  }
-  .rail nav {
-    display: flex;
-    flex: 3;
-    width: auto;
-  }
+  .rail__brand,
+  .logout-link,
   .rail-bottom {
-    margin: 0;
-    flex: 2;
-    gap: 2px;
+    display: none !important;
   }
-  .rail-link,
-  .rail-bottom .rail-link,
-  .profile-link {
+  .rail nav,
+  .rail__nav {
+    display: flex !important;
+    width: 100% !important;
+    flex: 1 1 100% !important;
+    justify-content: space-around !important;
+  }
+  .rail-link {
     width: auto;
     flex: 1;
     min-width: 0;
   }
   .profile-link {
-    display: grid;
-    place-items: center;
+    display: none !important;
   }
   .message-search {
     padding: 8px 10px;
@@ -337,6 +333,13 @@
   }
   .modal-actions .button {
     flex: 1;
+  }
+
+  /* Prevent Mobile Safari Auto-Zoom On Focus */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
   }
 }
 

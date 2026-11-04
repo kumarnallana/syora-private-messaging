@@ -77,7 +77,9 @@
     @apply fixed left-1/2 top-[12px] z-[140] -translate-x-1/2 rounded-full border border-border bg-elevated px-[14px] py-[8px] text-[12px] font-medium text-muted shadow-lg;
   }
   .mobile-header {
-    @apply sticky top-0 z-20 -mx-[18px] mb-[20px] flex h-[60px] items-center gap-[15px] border-b border-border bg-panel px-[15px];
+    @apply sticky top-0 z-20 -mx-[18px] mb-[20px] flex items-center gap-[15px] border-b border-border bg-panel px-[15px];
+    padding-top: max(0px, env(safe-area-inset-top, 0px));
+    height: calc(56px + max(0px, env(safe-area-inset-top, 0px)));
   }
   .mobile-header__title {
     @apply text-[17px] font-semibold;
@@ -100,6 +102,16 @@
   }
 
   @media (max-width: 899px) {
+    .rail {
+      height: calc(62px + max(0px, env(safe-area-inset-bottom, 0px)));
+      padding-bottom: max(6px, env(safe-area-inset-bottom, 0px));
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .rail-link {
+      @apply py-1 min-h-[46px];
+      touch-action: manipulation;
+    }
     .rail-link.is-active {
       background: rgba(170, 150, 242, 0.12);
       border: 1px solid transparent;
@@ -109,8 +121,8 @@
     .rail-link.is-active::after {
       content: "";
       position: absolute;
-      bottom: 3px;
-      width: 14px;
+      bottom: 2px;
+      width: 16px;
       height: 3px;
       border-radius: 9999px;
       background: var(--accent);

@@ -9,7 +9,9 @@
   }
 
   .ai-sidebar--mobile {
-    @apply fixed inset-0 z-[280] flex w-full max-w-[340px] flex-col border-r border-border bg-panel shadow-2xl;
+    @apply fixed inset-y-0 left-0 z-[280] flex w-full max-w-[340px] flex-col border-r border-border bg-panel shadow-2xl;
+    padding-top: max(0px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
     animation: drawer-slide-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
@@ -100,6 +102,7 @@
 
   .ai-header {
     @apply flex items-center justify-between border-b border-border px-[8px] sm:px-[18px] py-[6px] sm:py-[12px] bg-panel/90 backdrop-blur-md shrink-0 gap-[4px] sm:gap-[12px] min-h-[48px] sm:min-h-[52px];
+    padding-top: calc(6px + max(0px, env(safe-area-inset-top, 0px)));
   }
 
   .ai-header__brand {
@@ -458,5 +461,12 @@
 
   .ai-key-input {
     @apply w-full rounded-[8px] border border-border bg-panel px-[10px] py-[7px] text-[12px] font-mono text-text-primary placeholder:text-muted/60 focus:border-accent focus:outline-none transition-colors;
+  }
+
+  @media (max-width: 899px) {
+    .ai-composer__textarea,
+    .ai-preview-card__editor {
+      font-size: 16px;
+    }
   }
 }

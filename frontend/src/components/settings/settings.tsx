@@ -778,7 +778,7 @@ export function Settings() {
     <div className="page-view settings-page">
       <MobileScreenHeader
         title={subsectionTitle || "Settings"}
-        onBack={section ? () => router.back() : undefined}
+        onBack={section ? () => router.push("/settings") : undefined}
         showAvatar={false}
       />
       <PageHeader

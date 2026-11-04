@@ -165,13 +165,24 @@
       @apply hidden;
     }
     .composer textarea {
-      @apply px-[5px];
+      @apply px-[6px] py-[9px];
+      font-size: 16px;
     }
     .composer {
       @apply gap-0 rounded-[14px];
     }
     .composer .icon-button {
       @apply size-11;
+      touch-action: manipulation;
+    }
+    .composer-ai-custom-form {
+      @apply flex-wrap gap-[6px];
+    }
+    .composer-ai-custom-input {
+      font-size: 16px;
+    }
+    .composer-ai-chips {
+      -webkit-overflow-scrolling: touch;
     }
     .emoji-picker {
       @apply right-[8px] w-[calc(100vw-16px)];

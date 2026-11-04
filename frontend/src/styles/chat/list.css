@@ -113,7 +113,8 @@
       @apply h-full w-full border-0;
     }
     .list-header {
-      @apply px-[16px] pb-[14px] pt-[17px];
+      @apply px-[16px] pb-[14px];
+      padding-top: calc(14px + max(0px, env(safe-area-inset-top, 0px)));
     }
     .conversation-row {
       @apply min-h-[72px] gap-[12px] px-[9px] py-[11px];

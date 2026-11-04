@@ -38,6 +38,10 @@
   }
 
   @media (max-width: 899px) {
+    .modal {
+      @apply p-[18px_16px];
+      max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 24px);
+    }
     .mobile-sheet {
       @apply inset-x-0 bottom-0 top-auto m-0 w-full max-w-none rounded-b-none border-x-0 border-b-0 px-[18px];
       padding-bottom: max(18px, env(safe-area-inset-bottom));
