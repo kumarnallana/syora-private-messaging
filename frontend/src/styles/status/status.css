@@ -28,6 +28,8 @@
   }
   .status-card {
     @apply flex items-center rounded-[9px] bg-panel p-[10px_12px];
+    content-visibility: auto;
+    contain-intrinsic-size: auto 60px;
   }
   .status-open {
     @apply flex min-w-0 flex-1 items-center gap-[11px] text-left;

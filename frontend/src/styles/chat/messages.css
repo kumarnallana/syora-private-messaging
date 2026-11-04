@@ -35,6 +35,8 @@
     @apply min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-[clamp(16px,4vw,56px)] py-[14px];
     background: transparent;
     scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
   .timeline-feed {
     @apply w-full;
@@ -53,6 +55,8 @@
   }
   .message-row {
     @apply relative my-[6px] flex items-center gap-[4px];
+    content-visibility: auto;
+    contain-intrinsic-size: auto 54px;
   }
   .message-row:focus {
     @apply outline-none;

@@ -608,9 +608,10 @@ export function Chats() {
             aria-relevant="additions text"
             onScroll={(e) => {
               const el = e.currentTarget;
-              nearBottom.current =
+              const isNearBottom =
                 el.scrollHeight - el.scrollTop - el.clientHeight < 96;
-              if (nearBottom.current) setShowLatest(false);
+              nearBottom.current = isNearBottom;
+              if (isNearBottom && showLatest) setShowLatest(false);
             }}
           >
             <div className="timeline-feed">

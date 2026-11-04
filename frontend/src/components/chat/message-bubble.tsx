@@ -1,6 +1,6 @@
 'use client';
 
-import { type CSSProperties, type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react';
+import { memo, type CSSProperties, type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react';
 import { Copy, MoreHorizontal, Reply, RotateCcw, Shield, Trash2 } from 'lucide-react';
 import { time, IconButton, Modal } from '@/components/shared/ui';
 import { AttachmentContent } from '@/components/media/attachment';
@@ -25,7 +25,7 @@ function renderMessageText(text: string) {
   return text.split(URL_PATTERN).map((part, index) => part.startsWith('http://') || part.startsWith('https://') ? <a className="message-link" href={part} target="_blank" rel="noreferrer" key={part + ':' + index}>{part}</a> : part);
 }
 
-export function MessageBubble({ message, mine, original, onReply, onOpenReply, groupedWithPrevious = false, groupedWithNext = false }: { message: Message; mine: boolean; original?: Message; onReply: () => void; onOpenReply?: () => void; groupedWithPrevious?: boolean; groupedWithNext?: boolean }) {
+export const MessageBubble = memo(function MessageBubble({ message, mine, original, onReply, onOpenReply, groupedWithPrevious = false, groupedWithNext = false }: { message: Message; mine: boolean; original?: Message; onReply: () => void; onOpenReply?: () => void; groupedWithPrevious?: boolean; groupedWithNext?: boolean }) {
   const { services, users, me } = useApp();
   const [deleting, setDeleting] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
@@ -187,4 +187,4 @@ export function MessageBubble({ message, mine, original, onReply, onOpenReply, g
     </div>}
     {deleting && <Modal title="Delete this message?" className="mobile-sheet" onClose={() => setDeleting(false)}><p className="modal-copy">Delete for me hides it from your account. Delete for everyone leaves a deleted-message notice.</p><div className="delete-choices"><button className="button secondary" onClick={() => void remove(false)}>Delete for me</button>{mine && !message.deleted && <button className="button danger" onClick={() => void remove(true)}>Delete for everyone</button>}<button className="button secondary" onClick={() => setDeleting(false)}>Cancel</button></div></Modal>}
   </article>;
-}
+});

@@ -13,6 +13,8 @@
   }
   .person-card {
     @apply flex items-center gap-[14px] border-b border-border px-[4px] py-[12px];
+    content-visibility: auto;
+    contain-intrinsic-size: auto 64px;
   }
   .person-card > div:nth-child(2) {
     @apply min-w-0 flex-1;

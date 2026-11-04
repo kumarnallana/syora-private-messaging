@@ -140,18 +140,38 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }, [adminNotification, isPaused]);
   useEffect(() => {
     const viewport = window.visualViewport;
-    const update = () => {
-      document.documentElement.style.setProperty("--syora-viewport-height", `${Math.round(viewport?.height || window.innerHeight)}px`);
-      document.documentElement.style.setProperty("--syora-viewport-top", `${Math.round(viewport?.offsetTop || 0)}px`);
+    let frameId: number | null = null;
+    let lastHeight = -1;
+    let lastTop = -1;
+
+    const applyViewport = () => {
+      frameId = null;
+      const h = Math.round(viewport?.height || window.innerHeight);
+      const t = Math.round(viewport?.offsetTop || 0);
+      if (h !== lastHeight) {
+        lastHeight = h;
+        document.documentElement.style.setProperty("--syora-viewport-height", `${h}px`);
+      }
+      if (t !== lastTop) {
+        lastTop = t;
+        document.documentElement.style.setProperty("--syora-viewport-top", `${t}px`);
+      }
     };
-    update();
-    viewport?.addEventListener("resize", update);
-    viewport?.addEventListener("scroll", update);
-    window.addEventListener("resize", update);
+
+    const scheduleUpdate = () => {
+      if (frameId !== null) return;
+      frameId = window.requestAnimationFrame(applyViewport);
+    };
+
+    applyViewport();
+    viewport?.addEventListener("resize", scheduleUpdate);
+    viewport?.addEventListener("scroll", scheduleUpdate);
+    window.addEventListener("resize", scheduleUpdate);
     return () => {
-      viewport?.removeEventListener("resize", update);
-      viewport?.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
+      if (frameId !== null) window.cancelAnimationFrame(frameId);
+      viewport?.removeEventListener("resize", scheduleUpdate);
+      viewport?.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
       document.documentElement.style.removeProperty("--syora-viewport-height");
       document.documentElement.style.removeProperty("--syora-viewport-top");
     };

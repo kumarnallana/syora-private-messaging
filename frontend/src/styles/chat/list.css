@@ -37,9 +37,13 @@
   .conversation-rows {
     @apply min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-[8px] py-[9px];
     scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
   .conversation-row {
     @apply relative flex min-h-[70px] w-full items-center gap-[11px] rounded-[10px] border border-transparent px-[10px] py-[11px] text-left transition-[color,background-color,border-color] duration-150 hover:bg-surface active:scale-[0.98];
+    content-visibility: auto;
+    contain-intrinsic-size: auto 72px;
   }
   .conversation-row + .conversation-row {
     @apply mt-[2px];
