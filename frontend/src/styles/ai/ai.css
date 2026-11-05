@@ -232,6 +232,10 @@
 
   .ai-chip {
     @apply inline-flex items-center gap-[5px] rounded-full border border-border bg-surface px-[10px] py-[4px] text-[11px] font-medium text-muted transition-colors hover:border-accent/50 hover:text-text-primary cursor-pointer;
+    touch-action: manipulation;
+  }
+  .ai-chip:active {
+    transform: scale(0.96);
   }
 
   .ai-preview-card__footer {
@@ -440,6 +444,10 @@
 
   .ai-tone-pill {
     @apply inline-flex items-center gap-[3px] sm:gap-[4px] rounded-full border border-border bg-surface/80 px-[7px] sm:px-[9px] py-[2px] sm:py-[3px] text-[10px] sm:text-[11px] text-muted transition-all hover:border-accent hover:text-text-primary whitespace-nowrap cursor-pointer shrink-0 select-none;
+    touch-action: manipulation;
+  }
+  .ai-tone-pill:active {
+    transform: scale(0.96);
   }
 
   .ai-tone-pill:hover {

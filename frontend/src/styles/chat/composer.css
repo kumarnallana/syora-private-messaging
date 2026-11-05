@@ -101,6 +101,10 @@
   }
   .composer-ai-chip {
     @apply inline-flex shrink-0 items-center gap-[5px] rounded-full border border-border bg-surface px-[11px] py-[6px] text-[12px] font-medium text-text-primary transition-all duration-150 hover:border-accent/50 hover:bg-surface/80 hover:text-accent disabled:opacity-50;
+    touch-action: manipulation;
+  }
+  .composer-ai-chip:active:not(:disabled) {
+    transform: scale(0.97);
   }
   .composer-ai-chip svg {
     @apply text-accent;
